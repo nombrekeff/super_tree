@@ -13,6 +13,18 @@ enum ExpansionTrigger {
   doubleTap,
 }
 
+/// Selection modes for the tree nodes.
+enum SelectionMode {
+  /// No selection allowed.
+  none,
+
+  /// Only one node can be selected at a time.
+  single,
+
+  /// Multiple nodes can be selected using Ctrl/Cmd or Shift keys.
+  multiple,
+}
+
 /// Strategies for triggering in-tree node renaming.
 enum TreeNamingStrategy {
   /// No in-tree renaming allowed.
@@ -39,8 +51,8 @@ class TreeViewConfig<T> {
   /// Whether nodes can be dragged and dropped.
   final bool enableDragAndDrop;
 
-  /// Whether multiple nodes can be selected concurrently (e.g. holding Shift/Ctrl).
-  final bool enableMultiSelect;
+  /// Whether to enable selection and in what mode.
+  final SelectionMode selectionMode;
 
   /// The node ID that is currently being renamed, if any.
   final TreeNamingStrategy namingStrategy;
@@ -64,7 +76,7 @@ class TreeViewConfig<T> {
   const TreeViewConfig({
     this.expansionTrigger = ExpansionTrigger.tap,
     this.enableDragAndDrop = true,
-    this.enableMultiSelect = false,
+    this.selectionMode = SelectionMode.single,
     this.namingStrategy = TreeNamingStrategy.none,
     this.defaultSortComparator,
     this.onNodeTap,
@@ -76,7 +88,7 @@ class TreeViewConfig<T> {
   TreeViewConfig<T> copyWith({
     ExpansionTrigger? expansionTrigger,
     bool? enableDragAndDrop,
-    bool? enableMultiSelect,
+    SelectionMode? selectionMode,
     void Function(String id)? onNodeTap,
     void Function(String id)? onNodeDoubleTap,
     TreeNamingStrategy? namingStrategy,
@@ -87,7 +99,7 @@ class TreeViewConfig<T> {
     return TreeViewConfig<T>(
       expansionTrigger: expansionTrigger ?? this.expansionTrigger,
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
-      enableMultiSelect: enableMultiSelect ?? this.enableMultiSelect,
+      selectionMode: selectionMode ?? this.selectionMode,
       namingStrategy: namingStrategy ?? this.namingStrategy,
       defaultSortComparator: defaultSortComparator ?? this.defaultSortComparator,
       onNodeTap: onNodeTap ?? this.onNodeTap,

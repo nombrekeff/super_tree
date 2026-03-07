@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/tree_node.dart';
 import '../controllers/tree_controller.dart';
 import '../configs/tree_view_style.dart';
@@ -29,7 +30,10 @@ class SuperTreeView<T> extends StatefulWidget {
   /// Defines behavior properties like expansion triggers and selectability.
   final TreeViewConfig<T> logic;
 
-  /// Builds the prefix widget (e.g. expandable caret icon or file icon).
+  /// Builds the expansion widget (e.g. caret icon).
+  final Widget Function(BuildContext, TreeNode<T>)? expansionBuilder;
+
+  /// Builds the prefix widget (e.g. file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
 
   /// Optional provider to extract a display label from node data.
@@ -64,6 +68,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.controller,
     this.roots,
     this.sortComparator,
+    this.expansionBuilder,
     required this.prefixBuilder,
     required this.contentBuilder,
     this.labelProvider,
@@ -81,6 +86,7 @@ class SuperTreeView<T> extends StatefulWidget {
     TreeController<T>? controller,
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
+    Widget Function(BuildContext, TreeNode<T>)? expansionBuilder,
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
     required Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
@@ -97,6 +103,7 @@ class SuperTreeView<T> extends StatefulWidget {
       controller: controller,
       roots: roots,
       sortComparator: sortComparator,
+      expansionBuilder: expansionBuilder,
       prefixBuilder: prefixBuilder,
       contentBuilder: contentBuilder,
       labelProvider: labelProvider,
@@ -116,6 +123,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.controller,
     this.roots,
     this.sortComparator,
+    this.expansionBuilder,
     required this.prefixBuilder,
     required this.contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
@@ -136,9 +144,12 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   late TreeController<T> _internalController;
   late bool _ownsController;
 
+  late final FocusNode _focusNode;
+
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     _initController();
   }
 
@@ -190,64 +201,124 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     }
     
     if (_ownsController) {
-      if (widget.logic.debugMode) {
-        debugPrint('[SuperTreeView] Disposing internal controller in dispose(): ${_internalController.hashCode}');
-      }
       _internalController.dispose();
     }
+    _focusNode.dispose();
     super.dispose();
+  }
+
+  // TODO: Refactor this into reusable widget or utility. As there will be more places that will use shortctus.
+  //  check if we could do this with flutter shortcuts or something.
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+
+    final controller = _internalController;
+    final logicalKey = event.logicalKey;
+
+    if (logicalKey == LogicalKeyboardKey.arrowDown) {
+      controller.selectNext();
+    } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
+      controller.selectPrevious();
+    } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
+      final selectedId = controller.selectedNodeId;
+      if (selectedId != null) {
+        final node = controller.findNodeById(selectedId);
+        if (node != null) {
+          if (node.hasChildren) {
+            if (!node.isExpanded) {
+              controller.expandNode(node);
+            } else {
+              controller.selectNext();
+            }
+          }
+        }
+      }
+    } else if (logicalKey == LogicalKeyboardKey.arrowLeft) {
+      final selectedId = controller.selectedNodeId;
+      if (selectedId != null) {
+        final node = controller.findNodeById(selectedId);
+        if (node != null) {
+          if (node.isExpanded) {
+            controller.collapseNode(node);
+          } else if (!node.isRoot) {
+            controller.setSelectedNodeId(node.parent!.id);
+          }
+        }
+      }
+    } else if (logicalKey == LogicalKeyboardKey.home) {
+      controller.selectFirst();
+    } else if (logicalKey == LogicalKeyboardKey.end) {
+      controller.selectLast();
+    } else if (logicalKey == LogicalKeyboardKey.enter) {
+      final selectedId = controller.selectedNodeId;
+      if (selectedId != null) {
+        if (widget.logic.namingStrategy != TreeNamingStrategy.none) {
+          controller.setRenamingNodeId(selectedId);
+        } else {
+          final node = controller.findNodeById(selectedId);
+          if (node != null) {
+            controller.toggleNodeExpansion(node);
+          }
+        }
+      }
+    } else if (logicalKey == LogicalKeyboardKey.space) {
+      final selectedId = controller.selectedNodeId;
+      if (selectedId != null) {
+        final node = controller.findNodeById(selectedId);
+        if (node != null) {
+          controller.toggleNodeExpansion(node);
+        }
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: _internalController,
-      builder: (context, _) {
-        final nodes = _internalController.flatVisibleNodes;
+    return Focus(
+      focusNode: _focusNode,
+      onKeyEvent: (node, event) {
+        _handleKeyEvent(event);
+        return KeyEventResult.handled;
+      },
+      child: ListenableBuilder(
+        listenable: _internalController,
+        builder: (context, _) {
+          final nodes = _internalController.flatVisibleNodes;
 
-        if (widget._separatorBuilder != null) {
-          return ListView.separated(
-            controller: widget.scrollController,
-            physics: widget.physics,
-            itemCount: nodes.length,
-            separatorBuilder: widget._separatorBuilder!,
-            itemBuilder: (context, index) {
-              return SuperTreeNodeWidget<T>(
-                key: ValueKey(nodes[index].id),
-                node: nodes[index],
-                controller: _internalController,
-                style: widget.style,
-                logic: widget.logic,
-                prefixBuilder: widget.prefixBuilder,
-                labelProvider: widget.labelProvider,
-                contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
-                trailingBuilder: widget.trailingBuilder,
-                contextMenuBuilder: widget.contextMenuBuilder,
-              );
-            },
-          );
-        }
-
-        return ListView.builder(
-          controller: widget.scrollController,
-          physics: widget.physics,
-          itemCount: nodes.length,
-          itemBuilder: (context, index) {
+          Widget buildItem(int index) {
             return SuperTreeNodeWidget<T>(
               key: ValueKey(nodes[index].id),
               node: nodes[index],
               controller: _internalController,
               style: widget.style,
               logic: widget.logic,
+              expansionBuilder: widget.expansionBuilder,
               prefixBuilder: widget.prefixBuilder,
               labelProvider: widget.labelProvider,
               contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
               trailingBuilder: widget.trailingBuilder,
               contextMenuBuilder: widget.contextMenuBuilder,
             );
-          },
-        );
-      },
+          }
+
+          if (widget._separatorBuilder != null) {
+            return ListView.separated(
+              controller: widget.scrollController,
+              physics: widget.physics,
+              itemCount: nodes.length,
+              separatorBuilder: widget._separatorBuilder!,
+              itemBuilder: (context, index) => buildItem(index),
+            );
+          }
+
+          return ListView.builder(
+            controller: widget.scrollController,
+            physics: widget.physics,
+            itemCount: nodes.length,
+            itemBuilder: (context, index) => buildItem(index),
+          );
+        },
+      ),
     );
   }
 }

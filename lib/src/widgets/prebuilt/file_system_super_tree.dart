@@ -45,14 +45,7 @@ class FileSystemSuperTree extends StatelessWidget {
   });
 
   Widget _defaultPrefixBuilder(BuildContext context, TreeNode<FileSystemItem> node) {
-    if (node.data.isFolder) {
-      return Icon(
-        node.isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-        color: Colors.grey,
-        size: 18,
-      );
-    }
-    return const SizedBox(width: 18);
+    return const SizedBox(width: 4); // Small gap between caret and icon
   }
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {

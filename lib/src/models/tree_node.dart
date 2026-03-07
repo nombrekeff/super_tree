@@ -7,7 +7,7 @@ typedef TreeLabelProvider<T> = String Function(T data);
 class TreeNode<T> {
   /// Unique identifier for this node. Useful for expanding/collapsing by ID,
   /// preserving state, and finding nodes efficiently.
-  final String id;
+  String id;
 
   /// Business logic or data associated with this node.
   final T data;
@@ -24,17 +24,20 @@ class TreeNode<T> {
   /// Reference to the parent node. Null if this is a root node.
   TreeNode<T>? parent;
 
-  /// Creates a new [TreeNode] with a required [id] and [data].
+  static int _idCounter = 0;
+
+  /// Creates a new [TreeNode] with a required [data] and optional [id].
   /// 
   /// The [children] list, [isExpanded], and [isSelected] flags are optional.
   TreeNode({
-    required this.id,
+    String? id,
     required this.data,
     List<TreeNode<T>>? children,
     this.isExpanded = false,
     this.isSelected = false,
     this.parent,
-  }) : _children = children ?? <TreeNode<T>>[] {
+  }) : id = id ?? 'node_${++_idCounter}',
+       _children = children ?? <TreeNode<T>>[] {
     _bindChildren();
   }
 

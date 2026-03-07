@@ -57,14 +57,6 @@ class TodoListSuperTree extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (node.hasChildren)
-          Icon(
-            node.isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-            color: Colors.grey,
-            size: 18,
-          )
-        else
-          const SizedBox(width: 18),
         Checkbox(
           value: node.data.isCompleted,
           onChanged: (val) {

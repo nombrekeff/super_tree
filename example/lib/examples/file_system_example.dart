@@ -114,66 +114,58 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
       },
       roots: [
         TreeNode(
-          id: 'super_tree',
           data: FolderItem('super_tree'),
           isExpanded: true,
           children: [
             TreeNode(
-              id: 'assets',
               data: FolderItem('assets'),
               children: [
-                TreeNode(id: 'logo.png', data: FileItem('logo.png')),
-                TreeNode(id: 'intro.mp4', data: FileItem('intro.mp4')),
-                TreeNode(id: 'theme.mp3', data: FileItem('theme.mp3')),
-                TreeNode(id: 'archive.zip', data: FileItem('archive.zip')),
-                TreeNode(id: 'data.csv', data: FileItem('data.csv')),
-                TreeNode(id: 'presentation.pptx', data: FileItem('presentation.pptx')),
+                TreeNode(data: FileItem('logo.png')),
+                TreeNode(data: FileItem('intro.mp4')),
+                TreeNode(data: FileItem('theme.mp3')),
+                TreeNode(data: FileItem('archive.zip')),
+                TreeNode(data: FileItem('data.csv')),
+                TreeNode(data: FileItem('presentation.pptx')),
               ],
             ),
             TreeNode(
-              id: 'lib',
               data: FolderItem('lib'),
               isExpanded: true,
               children: [
                 TreeNode(
-                  id: 'src',
                   data: FolderItem('src'),
                   children: [
                     TreeNode(
-                      id: 'models',
                       data: FolderItem('models'),
                       children: [
-                        TreeNode(id: 'tree_node.dart', data: FileItem('tree_node.dart')),
+                        TreeNode(data: FileItem('tree_node.dart')),
                       ],
                     ),
                     TreeNode(
-                      id: 'configs',
                       data: FolderItem('configs'),
                       children: [
-                        TreeNode(id: 'tree_view_style.dart', data: FileItem('tree_view_style.dart')),
+                        TreeNode(data: FileItem('tree_view_style.dart')),
                       ],
                     ),
                   ],
                 ),
-                TreeNode(id: 'super_tree.dart', data: FileItem('super_tree.dart')),
+                TreeNode(data: FileItem('super_tree.dart')),
               ],
             ),
             TreeNode(
-              id: 'example',
               data: FolderItem('example'),
               children: [
                 TreeNode(
-                  id: 'lib',
                   data: FolderItem('lib'),
                   children: [
-                    TreeNode(id: 'main.dart', data: FileItem('main.dart')),
+                    TreeNode(data: FileItem('main.dart')),
                   ],
                 ),
               ],
             ),
-            TreeNode(id: 'pubspec.yaml', data: FileItem('pubspec.yaml')),
-            TreeNode(id: 'README.md', data: FileItem('README.md')),
-            TreeNode(id: 'CHANGELOG.md', data: FileItem('CHANGELOG.md')),
+            TreeNode(data: FileItem('pubspec.yaml')),
+            TreeNode(data: FileItem('README.md')),
+            TreeNode(data: FileItem('CHANGELOG.md')),
           ],
         ),
       ],

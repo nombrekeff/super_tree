@@ -14,6 +14,10 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final TreeViewStyle style;
   final TreeViewConfig<T> logic;
 
+  /// Builds the expansion widget (e.g. caret icon). 
+  /// If null, a default [Icons.keyboard_arrow_right] is used.
+  final Widget Function(BuildContext, TreeNode<T>)? expansionBuilder;
+
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
   final TreeLabelProvider<T>? labelProvider;
   final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
@@ -28,6 +32,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.controller,
     required this.style,
     required this.logic,
+    this.expansionBuilder,
     required this.prefixBuilder,
     this.labelProvider,
     required this.contentBuilder,
@@ -46,6 +51,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
   late final FocusNode _keyboardListenerFocusNode;
   late final AnimationController _expansionController;
   late final Animation<double> _caretRotation;
+  bool _isExpanded = false;
   String? _prevRenamingNodeId;
 
   @override
@@ -56,10 +62,11 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
     _keyboardListenerFocusNode = FocusNode();
     _prevRenamingNodeId = widget.controller.renamingNodeId;
 
+    _isExpanded = widget.node.isExpanded;
     _expansionController = AnimationController(
       duration: const Duration(milliseconds: 200),
       vsync: this,
-      value: widget.node.isExpanded ? 1.0 : 0.0,
+      value: _isExpanded ? 1.0 : 0.0,
     );
     _caretRotation = Tween<double>(begin: 0.0, end: 0.25).animate(
       CurvedAnimation(parent: _expansionController, curve: Curves.easeInOut),
@@ -79,8 +86,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
       _initializeRenameText();
     }
     
-    if (widget.node.isExpanded != oldWidget.node.isExpanded) {
-      if (widget.node.isExpanded) {
+    if (widget.node.isExpanded != _isExpanded) {
+      _isExpanded = widget.node.isExpanded;
+      if (_isExpanded) {
         _expansionController.forward();
       } else {
         _expansionController.reverse();
@@ -131,6 +139,18 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
     } else if (widget.logic.expansionTrigger == ExpansionTrigger.tap) {
       widget.controller.toggleNodeExpansion(widget.node);
     }
+    final bool isMultiSelect = widget.logic.selectionMode == SelectionMode.multiple;
+    final bool isControlPressed = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+    final bool isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
+
+    if (isMultiSelect && isShiftPressed) {
+      widget.controller.selectRange(widget.node.id);
+    } else if (isMultiSelect && isControlPressed) {
+      widget.controller.toggleSelection(widget.node.id);
+    } else if (widget.logic.selectionMode != SelectionMode.none) {
+      widget.controller.setSelectedNodeId(widget.node.id);
+    }
+
     widget.logic.onNodeTap?.call(widget.node.id);
   }
 
@@ -242,7 +262,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
               top: widget.style.padding.vertical / 2,
               bottom: widget.style.padding.vertical / 2,
             ),
-            color: widget.node.isSelected
+            color: widget.controller.selectedNodeIds.contains(widget.node.id)
                 ? widget.style.selectedColor
                 : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
                     ? widget.style.hoverColor
@@ -250,15 +270,26 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Prefix (e.g. Caret icon)
-                GestureDetector(
-                  onTap: _handleIconTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: RotationTransition(
-                    turns: _caretRotation,
-                    child: widget.prefixBuilder(context, widget.node),
-                  ),
-                ),
+                // Expansion Caret
+                if (widget.node.hasChildren)
+                  GestureDetector(
+                    onTap: _handleIconTap,
+                    behavior: HitTestBehavior.opaque,
+                    child: RotationTransition(
+                      turns: _caretRotation,
+                      child: widget.expansionBuilder?.call(context, widget.node) ?? 
+                        const Icon(
+                          Icons.keyboard_arrow_right,
+                          color: Colors.grey,
+                          size: 20,
+                        ),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 20),
+                
+                // Prefix (e.g. File/Folder icon)
+                widget.prefixBuilder(context, widget.node),
                 
                 const SizedBox(width: 8),
 

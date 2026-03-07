@@ -92,7 +92,28 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Indexes a node and all its descendants recursively.
   void _indexNode(TreeNode<T> node) {
-    _nodeIndex[node.id] = node;
+    String finalId = node.id;
+    if (_nodeIndex.containsKey(finalId)) {
+      final String msg = 'Duplicate node ID detected: "$finalId". All IDs in the tree must be unique.';
+      
+      // In debug mode, we want to be loud and fail fast.
+      assert(false, '[SuperTree] FATAL: $msg');
+
+      // In release mode, we mangle the ID to prevent breaking the tree logic (like expansion/selection index collisions).
+      int suffix = 1;
+      while (_nodeIndex.containsKey('${finalId}_dup_$suffix')) {
+        suffix++;
+      }
+      finalId = '${finalId}_dup_$suffix';
+      
+      // We still log a warning in release mode so developers can see it in logs.
+      debugPrint('[SuperTree] WARNING: $msg. Auto-mangled to "$finalId" to prevent state corruption.');
+      
+      // We update the node's ID to match the final unique ID.
+      node.id = finalId;
+    }
+    
+    _nodeIndex[finalId] = node;
     for (var child in node.children) {
       _indexNode(child);
     }
@@ -216,6 +237,95 @@ class TreeController<T> extends ChangeNotifier {
   }
 
 
+
+  /// The node IDs that are currently selected.
+  final Set<String> _selectedNodeIds = {};
+  Set<String> get selectedNodeIds => Set.unmodifiable(_selectedNodeIds);
+
+  /// Gets the first selected node ID, if any.
+  String? get selectedNodeId => _selectedNodeIds.isEmpty ? null : _selectedNodeIds.first;
+
+  /// Update the current selected node ID (single selection).
+  void setSelectedNodeId(String? id) {
+    _selectedNodeIds.clear();
+    if (id != null) {
+      _selectedNodeIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  /// Toggles selection of a node.
+  void toggleSelection(String id) {
+    if (_selectedNodeIds.contains(id)) {
+      _selectedNodeIds.remove(id);
+    } else {
+      _selectedNodeIds.add(id);
+    }
+    notifyListeners();
+  }
+
+  /// Selects a range of nodes from the last selected node to the target node.
+  void selectRange(String targetId) {
+    if (_flatVisibleNodes.isEmpty) return;
+    
+    final lastId = _selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : _flatVisibleNodes.first.id;
+    final startIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastId);
+    final endIndex = _flatVisibleNodes.indexWhere((n) => n.id == targetId);
+    
+    if (startIndex == -1 || endIndex == -1) return;
+    
+    final min = startIndex < endIndex ? startIndex : endIndex;
+    final max = startIndex < endIndex ? endIndex : startIndex;
+    
+    for (int i = min; i <= max; i++) {
+      _selectedNodeIds.add(_flatVisibleNodes[i].id);
+    }
+    notifyListeners();
+  }
+
+  /// Selects the next visible node in the flat list.
+  void selectNext() {
+    if (_flatVisibleNodes.isEmpty) return;
+    final lastSelected = selectedNodeId;
+    if (lastSelected == null) {
+      setSelectedNodeId(_flatVisibleNodes.first.id);
+      return;
+    }
+
+    final currentIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastSelected);
+    if (currentIndex != -1 && currentIndex < _flatVisibleNodes.length - 1) {
+      setSelectedNodeId(_flatVisibleNodes[currentIndex + 1].id);
+    }
+  }
+
+  /// Selects the previous visible node in the flat list.
+  void selectPrevious() {
+    if (_flatVisibleNodes.isEmpty) return;
+    final lastSelected = selectedNodeId;
+    if (lastSelected == null) {
+      setSelectedNodeId(_flatVisibleNodes.last.id);
+      return;
+    }
+
+    final currentIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastSelected);
+    if (currentIndex > 0) {
+      setSelectedNodeId(_flatVisibleNodes[currentIndex - 1].id);
+    }
+  }
+
+  /// Selects the first visible node.
+  void selectFirst() {
+    if (_flatVisibleNodes.isNotEmpty) {
+      setSelectedNodeId(_flatVisibleNodes.first.id);
+    }
+  }
+
+  /// Selects the last visible node.
+  void selectLast() {
+    if (_flatVisibleNodes.isNotEmpty) {
+      setSelectedNodeId(_flatVisibleNodes.last.id);
+    }
+  }
 
   /// The node ID that currently has a context menu open for it, if any.
   /// Used by the UI to retain hover/focus styling while the menu is open.
