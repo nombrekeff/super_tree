@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:super_tree/src/configs/tree_view_logic.dart';
@@ -6,6 +5,8 @@ import 'package:super_tree/src/configs/tree_view_style.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_interaction_surface.dart';
+import 'package:super_tree/src/widgets/super_tree_node_list.dart';
 import 'package:super_tree/src/widgets/super_tree_node_widget.dart';
 
 class _TreeSelectNextIntent extends Intent {
@@ -143,7 +144,8 @@ class SuperTreeView<T> extends StatefulWidget {
     this.physics,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewConfig(),
-  }) : _separatorBuilder = null;
+  }) : assert(expansionSlotSize > 0),
+       _separatorBuilder = null;
 
   /// Convenience constructor to inject dividers between nodes using [ListView.separated].
   factory SuperTreeView.separated({
@@ -214,7 +216,8 @@ class SuperTreeView<T> extends StatefulWidget {
     this.physics,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewConfig(),
-  }) : _separatorBuilder = separatorBuilder;
+  }) : assert(expansionSlotSize > 0),
+       _separatorBuilder = separatorBuilder;
 
   @override
   State<SuperTreeView<T>> createState() => _SuperTreeViewState<T>();
@@ -523,9 +526,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       expansionSlotSize: widget.expansionSlotSize,
       prefixBuilder: widget.prefixBuilder,
       labelProvider: widget.labelProvider,
-      contentBuilder: (context, currentNode, renameField) {
-        return widget.contentBuilder(context, currentNode, renameField);
-      },
+      contentBuilder: widget.contentBuilder,
       trailingBuilder: widget.trailingBuilder,
       contextMenuBuilder: widget.contextMenuBuilder,
     );
@@ -533,46 +534,19 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        _focusNode.requestFocus();
-      },
-      onTap: () {
-        _internalController.deselectAll();
-      },
-      onSecondaryTapDown: (details) =>
-          _showRootContextMenu(details.globalPosition),
-      onLongPressStart: (details) =>
-          _showRootContextMenu(details.globalPosition),
-      behavior: HitTestBehavior.opaque,
-      child: FocusableActionDetector(
-        focusNode: _focusNode,
-        autofocus: true,
-        shortcuts: _buildShortcuts(),
-        actions: _buildActions(),
-        child: ListenableBuilder(
-          listenable: _internalController,
-          builder: (context, _) {
-            final nodes = _internalController.flatVisibleNodes;
-
-            if (widget._separatorBuilder != null) {
-              return ListView.separated(
-                controller: widget.scrollController,
-                physics: widget.physics,
-                itemCount: nodes.length,
-                separatorBuilder: widget._separatorBuilder!,
-                itemBuilder: (context, index) => _buildNodeItem(nodes[index]),
-              );
-            }
-
-            return ListView.builder(
-              controller: widget.scrollController,
-              physics: widget.physics,
-              itemCount: nodes.length,
-              itemBuilder: (context, index) => _buildNodeItem(nodes[index]),
-            );
-          },
-        ),
+    return SuperTreeInteractionSurface(
+      focusNode: _focusNode,
+      shortcuts: _buildShortcuts(),
+      actions: _buildActions(),
+      onRequestFocus: _focusNode.requestFocus,
+      onBackgroundTap: _internalController.deselectAll,
+      onOpenContextMenu: _showRootContextMenu,
+      child: SuperTreeNodeList<T>(
+        controller: _internalController,
+        itemBuilder: _buildNodeItem,
+        separatorBuilder: widget._separatorBuilder,
+        scrollController: widget.scrollController,
+        physics: widget.physics,
       ),
     );
   }

@@ -162,7 +162,7 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
 
   Widget _buildLoadingExpansion(
     BuildContext context,
-    TreeNode<FileSystemItem> node,
+    TreeNode<FileSystemItem> _,
   ) {
     return const SizedBox(
       width: 14,

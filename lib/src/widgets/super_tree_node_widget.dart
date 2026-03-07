@@ -5,6 +5,7 @@ import 'package:super_tree/src/configs/tree_view_style.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_rename_field.dart';
 import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
 
 /// Renders a single node row in the [SuperTreeView].
@@ -47,7 +48,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
-  });
+  }) : assert(expansionSlotSize > 0);
 
   @override
   State<SuperTreeNodeWidget<T>> createState() => _SuperTreeNodeWidgetState<T>();
@@ -55,6 +56,10 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
 
 class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     with SingleTickerProviderStateMixin {
+  static const double _defaultCaretSize = 20;
+  static const double _defaultLoadingSize = 14;
+  static const double _defaultLoadingStrokeWidth = 2;
+
   bool _isHovering = false;
   late final TextEditingController _renameController;
   late final FocusNode _renameFocusNode;
@@ -205,39 +210,61 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     return const Icon(
       Icons.keyboard_arrow_right,
       color: Colors.grey,
-      size: 20,
+      size: _defaultCaretSize,
     );
   }
 
   Widget _buildDefaultLoadingExpansionIcon() {
     return const SizedBox(
-      width: 14,
-      height: 14,
-      child: CircularProgressIndicator(strokeWidth: 2),
+      width: _defaultLoadingSize,
+      height: _defaultLoadingSize,
+      child: CircularProgressIndicator(strokeWidth: _defaultLoadingStrokeWidth),
     );
   }
 
-  Widget _buildExpansionSlot(BuildContext context) {
+  Widget _buildExpansionIcon(BuildContext context) {
     final TreeNodeAsyncState asyncState = widget.controller.getNodeAsyncState(
       widget.node.id,
     );
-    final Widget slotChild;
-
     if (asyncState.isLoading) {
-      slotChild =
-          widget.loadingExpansionBuilder?.call(context, widget.node) ??
+      return widget.loadingExpansionBuilder?.call(context, widget.node) ??
           _buildDefaultLoadingExpansionIcon();
-    } else {
-      final Widget icon =
-          widget.expansionBuilder?.call(context, widget.node) ??
-          _buildDefaultExpansionIcon();
-      slotChild = RotationTransition(turns: _caretRotation, child: icon);
     }
 
+    final Widget icon =
+        widget.expansionBuilder?.call(context, widget.node) ??
+        _buildDefaultExpansionIcon();
+    return RotationTransition(turns: _caretRotation, child: icon);
+  }
+
+  Widget _buildExpansionSlot(BuildContext context) {
+    final Widget slotChild = _buildExpansionIcon(context);
     return SizedBox(
       width: widget.expansionSlotSize,
       height: widget.expansionSlotSize,
       child: Center(child: slotChild),
+    );
+  }
+
+  Widget _buildRenameField(BuildContext context) {
+    final Color selectionColor = Theme.of(context).colorScheme.primary.withAlpha(
+      77,
+    );
+    final Color cursorColor = Theme.of(context).colorScheme.primary;
+    final TextStyle? renameStyle =
+        widget.style.labelStyle ??
+        widget.style.textStyle ??
+        Theme.of(context).textTheme.bodyMedium;
+
+    return SuperTreeRenameField(
+      controller: _renameController,
+      textFieldFocusNode: _renameFocusNode,
+      keyboardFocusNode: _keyboardListenerFocusNode,
+      style: renameStyle,
+      selectionColor: selectionColor,
+      cursorColor: cursorColor,
+      onEscape: _cancelRename,
+      onSubmitted: _submitRename,
     );
   }
 
@@ -369,39 +396,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
                     context,
                     widget.node,
                     widget.controller.renamingNodeId == widget.node.id
-                        ? TextSelectionTheme(
-                            data: TextSelectionThemeData(
-                              selectionColor: Theme.of(
-                                context,
-                              ).colorScheme.primary.withAlpha(77),
-                              cursorColor: Theme.of(context).colorScheme.primary,
-                            ),
-                            child: KeyboardListener(
-                              focusNode: _keyboardListenerFocusNode,
-                              onKeyEvent: (event) {
-                                if (event is KeyDownEvent &&
-                                    event.logicalKey == LogicalKeyboardKey.escape) {
-                                  _cancelRename();
-                                }
-                              },
-                              child: TextField(
-                                controller: _renameController,
-                                focusNode: _renameFocusNode,
-                                autofocus: true,
-                                style:
-                                    widget.style.labelStyle ??
-                                    widget.style.textStyle ??
-                                    Theme.of(context).textTheme.bodyMedium,
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                ),
-                                onSubmitted: (_) => _submitRename(),
-                                onTapOutside: (_) => _submitRename(),
-                              ),
-                            ),
-                          )
+                        ? _buildRenameField(context)
                         : null,
                   ),
                 ),
