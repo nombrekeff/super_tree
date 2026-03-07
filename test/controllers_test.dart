@@ -22,9 +22,7 @@ void main() {
               TreeNode(
                 id: 'child_1_2',
                 data: 'Child 1.2',
-                children: [
-                  TreeNode(id: 'child_1_2_1', data: 'Child 1.2.1'),
-                ],
+                children: [TreeNode(id: 'child_1_2_1', data: 'Child 1.2.1')],
               ),
             ],
           ),
@@ -55,7 +53,7 @@ void main() {
     test('Expanding nested children works recursively in DFS order', () {
       final root1 = controller.roots[0];
       final child1_2 = root1.children[1];
-      
+
       controller.expandNode(root1);
       controller.expandNode(child1_2);
 
@@ -68,17 +66,20 @@ void main() {
       expect(visible[4].id, 'root_2');
     });
 
-    test('Collapsing hides children but preserves their expansion state internally', () {
-      final root1 = controller.roots[0];
-      final child1_2 = root1.children[1];
-      
-      controller.expandAll();
-      expect(controller.flatVisibleNodes.length, 5);
+    test(
+      'Collapsing hides children but preserves their expansion state internally',
+      () {
+        final root1 = controller.roots[0];
+        final child1_2 = root1.children[1];
 
-      controller.collapseNode(root1);
-      expect(controller.flatVisibleNodes.length, 2); // Hidden
-      expect(child1_2.isExpanded, true); // Still expanded internally
-    });
+        controller.expandAll();
+        expect(controller.flatVisibleNodes.length, 5);
+
+        controller.collapseNode(root1);
+        expect(controller.flatVisibleNodes.length, 2); // Hidden
+        expect(child1_2.isExpanded, true); // Still expanded internally
+      },
+    );
 
     test('findNodeById correctly locates nodes', () {
       final found = controller.findNodeById('child_1_2_1');
@@ -102,10 +103,14 @@ void main() {
       final controller = TreeController<String>(
         roots: [
           TreeNode(id: 'b', data: 'B'),
-          TreeNode(id: 'a', data: 'A', children: [
-            TreeNode(id: 'a2', data: 'a2'),
-            TreeNode(id: 'a1', data: 'a1'),
-          ]),
+          TreeNode(
+            id: 'a',
+            data: 'A',
+            children: [
+              TreeNode(id: 'a2', data: 'a2'),
+              TreeNode(id: 'a1', data: 'a1'),
+            ],
+          ),
           TreeNode(id: 'c', data: 'C'),
         ],
       );
@@ -157,11 +162,17 @@ void main() {
     test('isDescendantOf correctly identifies descendants', () {
       final controller = TreeController<String>(
         roots: [
-          TreeNode(id: 'root', data: 'root', children: [
-            TreeNode(id: 'child', data: 'child', children: [
-              TreeNode(id: 'grandchild', data: 'grandchild'),
-            ]),
-          ]),
+          TreeNode(
+            id: 'root',
+            data: 'root',
+            children: [
+              TreeNode(
+                id: 'child',
+                data: 'child',
+                children: [TreeNode(id: 'grandchild', data: 'grandchild')],
+              ),
+            ],
+          ),
         ],
       );
 
@@ -179,7 +190,12 @@ void main() {
       controller.addChild(root, child);
 
       // Attempt to move root into child
-      controller.moveNode(dragged: root, target: child, insertBefore: false, nestInside: true);
+      controller.moveNode(
+        dragged: root,
+        target: child,
+        insertBefore: false,
+        nestInside: true,
+      );
 
       // Root should still be a root, child should still be its child
       expect(controller.roots.length, 1);
@@ -189,19 +205,115 @@ void main() {
     });
 
     test('moveNode does not delete node if nestInside is invalid', () {
-      final root_1 = TreeNode(id: 'root_1', data: TestData(canHaveChildren: false));
-      final root_2 = TreeNode(id: 'root_2', data: TestData(canHaveChildren: true));
+      final root_1 = TreeNode(
+        id: 'root_1',
+        data: TestData(canHaveChildren: false),
+      );
+      final root_2 = TreeNode(
+        id: 'root_2',
+        data: TestData(canHaveChildren: true),
+      );
       final controller = TreeController<TestData>(roots: [root_1, root_2]);
 
       expect(controller.roots.length, 2);
 
       // Attempt to move root_2 into root_1 (which cannot have children)
-      controller.moveNode(dragged: root_2, target: root_1, insertBefore: false, nestInside: true);
+      controller.moveNode(
+        dragged: root_2,
+        target: root_1,
+        insertBefore: false,
+        nestInside: true,
+      );
 
       // root_2 should NOT be deleted, it should still be a root
       expect(controller.roots.length, 2);
       expect(controller.roots[1].id, 'root_2');
       expect(controller.findNodeById('root_2'), isNotNull);
+    });
+
+    test('addChild prevents circular references', () {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'root');
+      final TreeNode<String> child = TreeNode<String>(
+        id: 'child',
+        data: 'child',
+      );
+      final TreeNode<String> grandchild = TreeNode<String>(
+        id: 'grandchild',
+        data: 'grandchild',
+      );
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      controller.addChild(root, child);
+      controller.addChild(child, grandchild);
+
+      controller.addChild(grandchild, root);
+
+      expect(controller.findNodeById('root')?.isRoot, isTrue);
+      expect(controller.findNodeById('child')?.parent?.id, 'root');
+      expect(controller.findNodeById('grandchild')?.parent?.id, 'child');
+      expect(
+        controller.lastIntegrityIssue?.type,
+        TreeIntegrityIssueType.circularReference,
+      );
+    });
+  });
+
+  group('TreeController Integrity Validation', () {
+    test(
+      'constructor ignores duplicated root IDs without mutating existing IDs',
+      () {
+        final TreeController<String> controller = TreeController<String>(
+          roots: <TreeNode<String>>[
+            TreeNode<String>(id: 'dup', data: 'first'),
+            TreeNode<String>(id: 'dup', data: 'second'),
+          ],
+        );
+
+        expect(controller.roots.length, 1);
+        expect(controller.roots.first.id, 'dup');
+        expect(
+          controller.lastIntegrityIssue?.type,
+          TreeIntegrityIssueType.duplicateId,
+        );
+      },
+    );
+
+    test('addRoot rejects duplicate IDs and keeps previous tree stable', () {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[TreeNode<String>(id: 'root_a', data: 'A')],
+      );
+
+      controller.addRoot(TreeNode<String>(id: 'root_a', data: 'A2'));
+
+      expect(controller.roots.length, 1);
+      expect(controller.findNodeById('root_a')?.data, 'A');
+      expect(
+        controller.lastIntegrityIssue?.type,
+        TreeIntegrityIssueType.duplicateId,
+      );
+    });
+
+    test('addChild rejects duplicate IDs and records issue on parent node', () {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      controller.addChild(root, TreeNode<String>(id: 'node_1', data: 'one'));
+      controller.addChild(
+        root,
+        TreeNode<String>(id: 'node_1', data: 'duplicate'),
+      );
+
+      expect(root.children.length, 1);
+      expect(root.children.first.data, 'one');
+      expect(
+        controller.lastIntegrityIssue?.type,
+        TreeIntegrityIssueType.duplicateId,
+      );
+      expect(controller.getIntegrityIssueForNode(root.id), isNotNull);
     });
   });
 
@@ -224,51 +336,65 @@ void main() {
         predicate: (TreeNode<String> node) => node.id == 'a',
       );
 
-      expect(controller.flatVisibleNodes.map((node) => node.id).toList(), ['root', 'a']);
+      expect(controller.flatVisibleNodes.map((node) => node.id).toList(), [
+        'root',
+        'a',
+      ]);
       expect(controller.hasMatchedIndices('a'), isFalse);
     });
 
-    test('TreeSearchController supports custom matcher and restores expansion on clear', () {
-      final TreeNode<String> docs = TreeNode<String>(
-        id: 'docs',
-        data: 'docs',
-        isExpanded: false,
-        children: <TreeNode<String>>[
-          TreeNode<String>(id: 'guide', data: 'guide.md'),
-          TreeNode<String>(id: 'api', data: 'api.md'),
-        ],
-      );
+    test(
+      'TreeSearchController supports custom matcher and restores expansion on clear',
+      () {
+        final TreeNode<String> docs = TreeNode<String>(
+          id: 'docs',
+          data: 'docs',
+          isExpanded: false,
+          children: <TreeNode<String>>[
+            TreeNode<String>(id: 'guide', data: 'guide.md'),
+            TreeNode<String>(id: 'api', data: 'api.md'),
+          ],
+        );
 
-      final controller = TreeController<String>(roots: <TreeNode<String>>[docs]);
-      final searchController = TreeSearchController<String>(
-        treeController: controller,
-        labelProvider: (String value) => value,
-        expansionBehavior: TreeSearchExpansionBehavior.expandMatchesAndAncestors,
-        searchMatcher: (String query, TreeNode<String> node, String candidate) {
-          if (query == 'md' && candidate.endsWith('.md')) {
-            final int start = candidate.length - 2;
-            return TreeFuzzyMatchResult(
-              score: 0,
-              matchedIndices: <int>[start, start + 1],
-            );
-          }
-          return defaultTreeFuzzyMatcher(query, candidate);
-        },
-      );
+        final controller = TreeController<String>(
+          roots: <TreeNode<String>>[docs],
+        );
+        final searchController = TreeSearchController<String>(
+          treeController: controller,
+          labelProvider: (String value) => value,
+          expansionBehavior:
+              TreeSearchExpansionBehavior.expandMatchesAndAncestors,
+          searchMatcher:
+              (String query, TreeNode<String> node, String candidate) {
+                if (query == 'md' && candidate.endsWith('.md')) {
+                  final int start = candidate.length - 2;
+                  return TreeFuzzyMatchResult(
+                    score: 0,
+                    matchedIndices: <int>[start, start + 1],
+                  );
+                }
+                return defaultTreeFuzzyMatcher(query, candidate);
+              },
+        );
 
-      expect(docs.isExpanded, isFalse);
+        expect(docs.isExpanded, isFalse);
 
-      searchController.search('md');
+        searchController.search('md');
 
-      expect(controller.flatVisibleNodes.map((node) => node.id).toList(), ['docs', 'guide', 'api']);
-      expect(docs.isExpanded, isTrue);
-      expect(controller.getMatchedIndices('guide').isNotEmpty, isTrue);
+        expect(controller.flatVisibleNodes.map((node) => node.id).toList(), [
+          'docs',
+          'guide',
+          'api',
+        ]);
+        expect(docs.isExpanded, isTrue);
+        expect(controller.getMatchedIndices('guide').isNotEmpty, isTrue);
 
-      searchController.clearSearch();
+        searchController.clearSearch();
 
-      expect(controller.hasActiveFilter, isFalse);
-      expect(docs.isExpanded, isFalse);
-    });
+        expect(controller.hasActiveFilter, isFalse);
+        expect(docs.isExpanded, isFalse);
+      },
+    );
   });
 
   group('TreeController State Persistence', () {
@@ -385,8 +511,10 @@ void main() {
       expect(root.isExpanded, isTrue);
       expect(root.children.length, 1);
       expect(controller.findNodeById('lazy_child'), isNotNull);
-      expect(controller.flatVisibleNodes.map((TreeNode<String> n) => n.id).toList(),
-          <String>['lazy_root', 'lazy_child']);
+      expect(
+        controller.flatVisibleNodes.map((TreeNode<String> n) => n.id).toList(),
+        <String>['lazy_root', 'lazy_child'],
+      );
     });
 
     test('ensureNodeChildrenLoaded deduplicates in-flight requests', () async {
@@ -413,11 +541,9 @@ void main() {
       expect(controller.isNodeLoading(root.id), isTrue);
       expect(loadCalls, 1);
 
-      completer.complete(
-        <TreeNode<String>>[
-          TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
-        ],
-      );
+      completer.complete(<TreeNode<String>>[
+        TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
+      ]);
       await Future.wait(<Future<void>>[first, second]);
 
       expect(loadCalls, 1);
@@ -460,25 +586,28 @@ void main() {
       expect(root.children.length, 1);
     });
 
-    test('toggleNodeExpansion handles empty lazy result without expanding', () async {
-      final TreeNode<String> root = TreeNode<String>(
-        id: 'lazy_root',
-        data: 'Lazy Root',
-        canLoadChildren: true,
-      );
+    test(
+      'toggleNodeExpansion handles empty lazy result without expanding',
+      () async {
+        final TreeNode<String> root = TreeNode<String>(
+          id: 'lazy_root',
+          data: 'Lazy Root',
+          canLoadChildren: true,
+        );
 
-      final TreeController<String> controller = TreeController<String>(
-        roots: <TreeNode<String>>[root],
-        loadChildren: (TreeNode<String> node) async => <TreeNode<String>>[],
-      );
+        final TreeController<String> controller = TreeController<String>(
+          roots: <TreeNode<String>>[root],
+          loadChildren: (TreeNode<String> node) async => <TreeNode<String>>[],
+        );
 
-      await controller.toggleNodeExpansion(root);
+        await controller.toggleNodeExpansion(root);
 
-      expect(root.isExpanded, isFalse);
-      expect(root.children, isEmpty);
-      expect(controller.canNodeLoadChildren(root), isFalse);
-      expect(controller.hasNodeLoadError(root.id), isFalse);
-    });
+        expect(root.isExpanded, isFalse);
+        expect(root.children, isEmpty);
+        expect(controller.canNodeLoadChildren(root), isFalse);
+        expect(controller.hasNodeLoadError(root.id), isFalse);
+      },
+    );
   });
 }
 

@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
 import 'package:super_tree/src/configs/tree_view_logic.dart';
 import 'package:super_tree/src/configs/tree_view_style.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
@@ -8,9 +8,41 @@ import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/widgets/context_menu_overlay.dart';
 import 'package:super_tree/src/widgets/super_tree_node_widget.dart';
 
+class _TreeSelectNextIntent extends Intent {
+  const _TreeSelectNextIntent();
+}
+
+class _TreeSelectPreviousIntent extends Intent {
+  const _TreeSelectPreviousIntent();
+}
+
+class _TreeExpandOrTraverseIntent extends Intent {
+  const _TreeExpandOrTraverseIntent();
+}
+
+class _TreeCollapseOrParentIntent extends Intent {
+  const _TreeCollapseOrParentIntent();
+}
+
+class _TreeSelectFirstIntent extends Intent {
+  const _TreeSelectFirstIntent();
+}
+
+class _TreeSelectLastIntent extends Intent {
+  const _TreeSelectLastIntent();
+}
+
+class _TreePrimaryActionIntent extends Intent {
+  const _TreePrimaryActionIntent();
+}
+
+class _TreeToggleExpansionIntent extends Intent {
+  const _TreeToggleExpansionIntent();
+}
+
 /// The entry point for rendering the tree view.
-/// 
-/// This widget observes a [TreeController] and renders nodes in a highly efficient 
+///
+/// This widget observes a [TreeController] and renders nodes in a highly efficient
 /// flat List using `ListView.builder`.
 class SuperTreeView<T> extends StatefulWidget {
   /// The controller used to manipulate the tree.
@@ -42,17 +74,23 @@ class SuperTreeView<T> extends StatefulWidget {
   final TreeLabelProvider<T>? labelProvider;
 
   /// Builds the main content area of the node (e.g. text label, checkbox).
-  /// 
-  /// The [renameField] is provided when the node is in renaming mode. 
+  ///
+  /// The [renameField] is provided when the node is in renaming mode.
   /// If [renameField] is not null, it should be displayed instead of the normal content.
-  final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
+  final Widget Function(
+    BuildContext context,
+    TreeNode<T> node,
+    Widget? renameField,
+  )
+  contentBuilder;
 
   /// Builds optional trailing widgets (e.g. a 'more options' popup menu icon).
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
   /// Returns a list of [ContextMenuItem]s to display in the overlay.
-  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)?
+  contextMenuBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the tree background.
   /// Returns a list of [ContextMenuItem]s to display in the overlay for root-level actions.
@@ -84,7 +122,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.physics,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewConfig(),
-  })  : _separatorBuilder = null;
+  }) : _separatorBuilder = null;
 
   /// Convenience constructor to inject dividers between nodes using [ListView.separated].
   factory SuperTreeView.separated({
@@ -94,11 +132,17 @@ class SuperTreeView<T> extends StatefulWidget {
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
     Widget Function(BuildContext, TreeNode<T>)? expansionBuilder,
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
-    required Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder,
+    required Widget Function(
+      BuildContext context,
+      TreeNode<T> node,
+      Widget? renameField,
+    )
+    contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
     TreeLabelProvider<T>? labelProvider,
     Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
-    List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder,
+    List<ContextMenuItem> Function(BuildContext, TreeNode<T>)?
+    contextMenuBuilder,
     List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder,
     ScrollController? scrollController,
     ScrollPhysics? physics,
@@ -143,7 +187,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.physics,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewConfig(),
-  })  : _separatorBuilder = separatorBuilder;
+  }) : _separatorBuilder = separatorBuilder;
 
   @override
   State<SuperTreeView<T>> createState() => _SuperTreeViewState<T>();
@@ -164,31 +208,39 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
 
   void _initController() {
     _ownsController = widget.controller == null;
-    _internalController = widget.controller ??
+    _internalController =
+        widget.controller ??
         TreeController<T>(
           roots: widget.roots,
-          sortComparator: widget.sortComparator ?? widget.logic.defaultSortComparator,
+          sortComparator:
+              widget.sortComparator ?? widget.logic.defaultSortComparator,
         );
-    
+
     if (widget.logic.debugMode) {
-      debugPrint('[SuperTreeView] Initialized with ${_ownsController ? "internal" : "external"} controller: ${_internalController.hashCode}');
+      debugPrint(
+        '[SuperTreeView] Initialized with ${_ownsController ? "internal" : "external"} controller: ${_internalController.hashCode}',
+      );
     }
   }
 
   @override
   void didUpdateWidget(SuperTreeView<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     final controllerChanged = widget.controller != oldWidget.controller;
-    
+
     if (controllerChanged) {
       if (widget.logic.debugMode) {
-        debugPrint('[SuperTreeView] Controller changed. Old: ${oldWidget.controller?.hashCode}, New: ${widget.controller?.hashCode}');
+        debugPrint(
+          '[SuperTreeView] Controller changed. Old: ${oldWidget.controller?.hashCode}, New: ${widget.controller?.hashCode}',
+        );
       }
-      
+
       if (_ownsController) {
         if (widget.logic.debugMode) {
-          debugPrint('[SuperTreeView] Disposing internal controller: ${_internalController.hashCode}');
+          debugPrint(
+            '[SuperTreeView] Disposing internal controller: ${_internalController.hashCode}',
+          );
         }
         _internalController.dispose();
       }
@@ -196,7 +248,9 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     } else if (_ownsController) {
       if (widget.sortComparator != oldWidget.sortComparator) {
         if (widget.logic.debugMode) {
-          debugPrint('[SuperTreeView] Updating internal controller sort comparator');
+          debugPrint(
+            '[SuperTreeView] Updating internal controller sort comparator',
+          );
         }
         _internalController.sortComparator = widget.sortComparator;
       }
@@ -206,9 +260,11 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   @override
   void dispose() {
     if (widget.logic.debugMode) {
-      debugPrint('[SuperTreeView] Disposing widget state. Owns controller: $_ownsController');
+      debugPrint(
+        '[SuperTreeView] Disposing widget state. Owns controller: $_ownsController',
+      );
     }
-    
+
     if (_ownsController) {
       _internalController.dispose();
     }
@@ -216,105 +272,156 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     super.dispose();
   }
 
-  // TODO: Refactor this into reusable widget or utility. As there will be more places that will use shortctus.
-  //  check if we could do this with flutter shortcuts or something.
-  bool _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) {
-      return false;
-    }
-
-    final controller = _internalController;
-    final logicalKey = event.logicalKey;
-
-    if (logicalKey == LogicalKeyboardKey.arrowDown) {
-      controller.selectNext();
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
-      controller.selectPrevious();
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
-      final selectedId = controller.selectedNodeId;
-      if (selectedId != null) {
-        final node = controller.findNodeById(selectedId);
-        if (node != null) {
-          final bool canExpand =
-              node.hasChildren || controller.canNodeLoadChildren(node);
-          if (canExpand) {
-            if (!node.isExpanded) {
-              controller.toggleNodeExpansion(node);
-            } else {
-              controller.selectNext();
-            }
-          }
-        }
-      }
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.arrowLeft) {
-      final selectedId = controller.selectedNodeId;
-      if (selectedId != null) {
-        final node = controller.findNodeById(selectedId);
-        if (node != null) {
-          if (node.isExpanded) {
-            controller.collapseNode(node);
-          } else if (!node.isRoot) {
-            controller.setSelectedNodeId(node.parent!.id);
-          }
-        }
-      }
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.home) {
-      controller.selectFirst();
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.end) {
-      controller.selectLast();
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.enter) {
-      final selectedId = controller.selectedNodeId;
-      if (selectedId != null) {
-        if (widget.logic.namingStrategy != TreeNamingStrategy.none) {
-          controller.setRenamingNodeId(selectedId);
-        } else {
-          final node = controller.findNodeById(selectedId);
-          if (node != null) {
-            controller.toggleNodeExpansion(node);
-          }
-        }
-      }
-      return true;
-    } else if (logicalKey == LogicalKeyboardKey.space) {
-      final selectedId = controller.selectedNodeId;
-      if (selectedId != null) {
-        final node = controller.findNodeById(selectedId);
-        if (node != null) {
-          controller.toggleNodeExpansion(node);
-        }
-      }
-      return true;
-    }
-
-    return false;
+  Map<ShortcutActivator, Intent> _buildShortcuts() {
+    return <ShortcutActivator, Intent>{
+      const SingleActivator(LogicalKeyboardKey.arrowDown):
+          const _TreeSelectNextIntent(),
+      const SingleActivator(LogicalKeyboardKey.arrowUp):
+          const _TreeSelectPreviousIntent(),
+      const SingleActivator(LogicalKeyboardKey.arrowRight):
+          const _TreeExpandOrTraverseIntent(),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft):
+          const _TreeCollapseOrParentIntent(),
+      const SingleActivator(LogicalKeyboardKey.home):
+          const _TreeSelectFirstIntent(),
+      const SingleActivator(LogicalKeyboardKey.end):
+          const _TreeSelectLastIntent(),
+      const SingleActivator(LogicalKeyboardKey.enter):
+          const _TreePrimaryActionIntent(),
+      const SingleActivator(LogicalKeyboardKey.space):
+          const _TreeToggleExpansionIntent(),
+    };
   }
 
-  bool _shouldSuppressUnhandledPrintableKey(KeyEvent event) {
-    if (defaultTargetPlatform != TargetPlatform.macOS || event is! KeyDownEvent) {
-      return false;
+  Map<Type, Action<Intent>> _buildActions() {
+    return <Type, Action<Intent>>{
+      _TreeSelectNextIntent: CallbackAction<_TreeSelectNextIntent>(
+        onInvoke: (_TreeSelectNextIntent intent) => _onSelectNext(),
+      ),
+      _TreeSelectPreviousIntent: CallbackAction<_TreeSelectPreviousIntent>(
+        onInvoke: (_TreeSelectPreviousIntent intent) => _onSelectPrevious(),
+      ),
+      _TreeExpandOrTraverseIntent: CallbackAction<_TreeExpandOrTraverseIntent>(
+        onInvoke: (_TreeExpandOrTraverseIntent intent) => _onExpandOrTraverse(),
+      ),
+      _TreeCollapseOrParentIntent: CallbackAction<_TreeCollapseOrParentIntent>(
+        onInvoke: (_TreeCollapseOrParentIntent intent) => _onCollapseOrParent(),
+      ),
+      _TreeSelectFirstIntent: CallbackAction<_TreeSelectFirstIntent>(
+        onInvoke: (_TreeSelectFirstIntent intent) => _onSelectFirst(),
+      ),
+      _TreeSelectLastIntent: CallbackAction<_TreeSelectLastIntent>(
+        onInvoke: (_TreeSelectLastIntent intent) => _onSelectLast(),
+      ),
+      _TreePrimaryActionIntent: CallbackAction<_TreePrimaryActionIntent>(
+        onInvoke: (_TreePrimaryActionIntent intent) => _onPrimaryAction(),
+      ),
+      _TreeToggleExpansionIntent: CallbackAction<_TreeToggleExpansionIntent>(
+        onInvoke: (_TreeToggleExpansionIntent intent) => _onToggleExpansion(),
+      ),
+    };
+  }
+
+  Object? _onSelectNext() {
+    _internalController.selectNext();
+    return null;
+  }
+
+  Object? _onSelectPrevious() {
+    _internalController.selectPrevious();
+    return null;
+  }
+
+  Object? _onExpandOrTraverse() {
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      return null;
     }
 
-    final bool hasModifier =
-        HardwareKeyboard.instance.isMetaPressed ||
-        HardwareKeyboard.instance.isControlPressed ||
-        HardwareKeyboard.instance.isAltPressed;
-
-    if (hasModifier) {
-      return false;
+    final TreeNode<T>? node = _internalController.findNodeById(selectedId);
+    if (node == null) {
+      return null;
     }
 
-    final String? character = event.character;
-    if (character == null || character.isEmpty) {
-      return false;
+    final bool canExpand =
+        node.hasChildren || _internalController.canNodeLoadChildren(node);
+    if (!canExpand) {
+      return null;
     }
 
-    return true;
+    if (!node.isExpanded) {
+      _internalController.toggleNodeExpansion(node);
+    } else {
+      _internalController.selectNext();
+    }
+
+    return null;
+  }
+
+  Object? _onCollapseOrParent() {
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      return null;
+    }
+
+    final TreeNode<T>? node = _internalController.findNodeById(selectedId);
+    if (node == null) {
+      return null;
+    }
+
+    if (node.isExpanded) {
+      _internalController.collapseNode(node);
+      return null;
+    }
+
+    if (!node.isRoot && node.parent != null) {
+      _internalController.setSelectedNodeId(node.parent!.id);
+    }
+
+    return null;
+  }
+
+  Object? _onSelectFirst() {
+    _internalController.selectFirst();
+    return null;
+  }
+
+  Object? _onSelectLast() {
+    _internalController.selectLast();
+    return null;
+  }
+
+  Object? _onPrimaryAction() {
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      return null;
+    }
+
+    if (widget.logic.namingStrategy != TreeNamingStrategy.none) {
+      _internalController.setRenamingNodeId(selectedId);
+      return null;
+    }
+
+    final TreeNode<T>? node = _internalController.findNodeById(selectedId);
+    if (node != null) {
+      _internalController.toggleNodeExpansion(node);
+    }
+
+    return null;
+  }
+
+  Object? _onToggleExpansion() {
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      return null;
+    }
+
+    final TreeNode<T>? node = _internalController.findNodeById(selectedId);
+    if (node != null) {
+      _internalController.toggleNodeExpansion(node);
+    }
+
+    return null;
   }
 
   Widget _buildNodeItem(TreeNode<T> node) {
@@ -344,20 +451,16 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       onTap: () {
         _internalController.deselectAll();
       },
-      onSecondaryTapDown: (details) => _showRootContextMenu(details.globalPosition),
-      onLongPressStart: (details) => _showRootContextMenu(details.globalPosition),
+      onSecondaryTapDown: (details) =>
+          _showRootContextMenu(details.globalPosition),
+      onLongPressStart: (details) =>
+          _showRootContextMenu(details.globalPosition),
       behavior: HitTestBehavior.opaque,
-      child: Focus(
+      child: FocusableActionDetector(
         focusNode: _focusNode,
         autofocus: true,
-        onKeyEvent: (node, event) {
-          final bool handled = _handleKeyEvent(event);
-          if (handled || _shouldSuppressUnhandledPrintableKey(event)) {
-            return KeyEventResult.handled;
-          }
-
-          return KeyEventResult.ignored;
-        },
+        shortcuts: _buildShortcuts(),
+        actions: _buildActions(),
         child: ListenableBuilder(
           listenable: _internalController,
           builder: (context, _) {
@@ -391,10 +494,6 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     final items = widget.rootContextMenuBuilder!(context);
     if (items.isEmpty) return;
 
-    ContextMenuOverlay.show(
-      context: context,
-      position: position,
-      items: items,
-    );
+    ContextMenuOverlay.show(context: context, position: position, items: items);
   }
 }

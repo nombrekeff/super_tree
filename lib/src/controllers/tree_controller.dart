@@ -4,19 +4,37 @@ import 'package:super_tree/src/models/tree_filtering.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 
 /// Callback used to lazily resolve children for a node.
-typedef TreeLoadChildrenCallback<T> = Future<List<TreeNode<T>>> Function(TreeNode<T> node);
+typedef TreeLoadChildrenCallback<T> =
+    Future<List<TreeNode<T>>> Function(TreeNode<T> node);
 
 /// Read-only async UI state for a node.
 class TreeNodeAsyncState {
-  const TreeNodeAsyncState({
-    required this.isLoading,
-    required this.error,
-  });
+  const TreeNodeAsyncState({required this.isLoading, required this.error});
 
   final bool isLoading;
   final Object? error;
 
   bool get hasError => error != null;
+}
+
+/// Integrity issue types emitted when operations are rejected to keep the graph valid.
+enum TreeIntegrityIssueType { duplicateId, circularReference }
+
+/// Describes a non-fatal graph integrity issue.
+class TreeIntegrityIssue {
+  const TreeIntegrityIssue({
+    required this.type,
+    required this.message,
+    required this.operation,
+    this.nodeId,
+    this.relatedNodeId,
+  });
+
+  final TreeIntegrityIssueType type;
+  final String message;
+  final String operation;
+  final String? nodeId;
+  final String? relatedNodeId;
 }
 
 class _FilterTraversalResult<T> {
@@ -30,7 +48,7 @@ class _FilterTraversalResult<T> {
 }
 
 /// Manages the state and structure of the tree.
-/// 
+///
 /// The [TreeController] is independent of the UI and provides methods to
 /// expand, collapse, add, remove, and traverse nodes. It calculates and caches
 /// a flat list of visible nodes [flatVisibleNodes] to be efficiently consumed
@@ -39,7 +57,7 @@ class TreeController<T> extends ChangeNotifier {
   final List<TreeNode<T>> _roots;
 
   final TreeLoadChildrenCallback<T>? _loadChildren;
-  
+
   /// Optional comparator to keep the tree sorted.
   int Function(TreeNode<T> a, TreeNode<T> b)? _sortComparator;
 
@@ -64,8 +82,15 @@ class TreeController<T> extends ChangeNotifier {
   /// Last loading error by node ID.
   final Map<String, Object> _loadErrorsByNodeId = <String, Object>{};
 
+  /// Last integrity issue emitted by validation guards.
+  TreeIntegrityIssue? _lastIntegrityIssue;
+
+  /// Integrity issues keyed by node ID for UI-level surfacing.
+  final Map<String, TreeIntegrityIssue> _integrityIssuesByNodeId =
+      <String, TreeIntegrityIssue>{};
+
   /// Creates a new [TreeController] initialized with optional [roots].
-  /// 
+  ///
   /// [sortComparator] can be used to keep the tree automatically sorted.
   /// [onNodeRenamed] and [onNodeDeleted] are useful for listening to state changes
   /// triggered by high-level actions.
@@ -75,11 +100,21 @@ class TreeController<T> extends ChangeNotifier {
     TreeLoadChildrenCallback<T>? loadChildren,
     this.onNodeRenamed,
     this.onNodeDeleted,
-  }) : _roots = roots ?? <TreeNode<T>>[],
+  }) : _roots = <TreeNode<T>>[],
        _sortComparator = sortComparator,
        _loadChildren = loadChildren {
-    for (var root in _roots) {
-      _indexNode(root);
+    final List<TreeNode<T>> initialRoots = roots ?? <TreeNode<T>>[];
+    for (final TreeNode<T> root in initialRoots) {
+      if (!_canIndexNodes(
+        <TreeNode<T>>[root],
+        operation: 'initialize',
+        notify: false,
+      )) {
+        continue;
+      }
+
+      _indexSubtree(root);
+      _roots.add(root);
       _markInitialLoadedState(root);
     }
     _rebuildFlatList();
@@ -100,8 +135,32 @@ class TreeController<T> extends ChangeNotifier {
   /// Callback generated when a node is deleted.
   final void Function(TreeNode<T> node)? onNodeDeleted;
 
+  /// Last integrity issue emitted by graph guards.
+  TreeIntegrityIssue? get lastIntegrityIssue => _lastIntegrityIssue;
+
+  /// Per-node integrity issues that can be rendered in row UIs.
+  Map<String, TreeIntegrityIssue> get integrityIssuesByNodeId =>
+      Map<String, TreeIntegrityIssue>.unmodifiable(_integrityIssuesByNodeId);
+
+  /// Returns the integrity issue associated with [nodeId], if any.
+  TreeIntegrityIssue? getIntegrityIssueForNode(String nodeId) {
+    return _integrityIssuesByNodeId[nodeId];
+  }
+
+  /// Clears all recorded integrity issues.
+  void clearIntegrityIssues() {
+    if (_lastIntegrityIssue == null && _integrityIssuesByNodeId.isEmpty) {
+      return;
+    }
+
+    _lastIntegrityIssue = null;
+    _integrityIssuesByNodeId.clear();
+    notifyListeners();
+  }
+
   /// Gets the current sort comparator.
-  int Function(TreeNode<T> a, TreeNode<T> b)? get sortComparator => _sortComparator;
+  int Function(TreeNode<T> a, TreeNode<T> b)? get sortComparator =>
+      _sortComparator;
 
   /// Sets the sort comparator and re-sorts the tree.
   set sortComparator(int Function(TreeNode<T> a, TreeNode<T> b)? comparator) {
@@ -127,7 +186,8 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Returns the flat list of currently visible (expanded) nodes.
   /// This list is pre-calculated and highly efficient for `ListView.builder`.
-  List<TreeNode<T>> get flatVisibleNodes => List.unmodifiable(_flatVisibleNodes);
+  List<TreeNode<T>> get flatVisibleNodes =>
+      List.unmodifiable(_flatVisibleNodes);
 
   /// Whether a filter is currently active.
   bool get hasActiveFilter => _activeFilter != null;
@@ -159,12 +219,18 @@ class TreeController<T> extends ChangeNotifier {
     }
 
     for (var root in _roots) {
-      final _FilterTraversalResult<T> result = _collectFiltered(root, ancestorMatched: false);
+      final _FilterTraversalResult<T> result = _collectFiltered(
+        root,
+        ancestorMatched: false,
+      );
       _flatVisibleNodes.addAll(result.visibleNodes);
     }
   }
 
-  _FilterTraversalResult<T> _collectFiltered(TreeNode<T> node, {required bool ancestorMatched}) {
+  _FilterTraversalResult<T> _collectFiltered(
+    TreeNode<T> node, {
+    required bool ancestorMatched,
+  }) {
     final bool selfMatches = _nodeMatchesFilter(node);
     final bool nextAncestorMatched = ancestorMatched || selfMatches;
 
@@ -180,7 +246,8 @@ class TreeController<T> extends ChangeNotifier {
       visibleChildren.addAll(childResult.visibleNodes);
     }
 
-    final bool includeNode = ancestorMatched || selfMatches || descendantMatches;
+    final bool includeNode =
+        ancestorMatched || selfMatches || descendantMatches;
     if (!includeNode) {
       return _FilterTraversalResult<T>(
         visibleNodes: <TreeNode<T>>[],
@@ -222,7 +289,8 @@ class TreeController<T> extends ChangeNotifier {
         matchedIndicesByNodeId == null
             ? const <String, List<int>>{}
             : matchedIndicesByNodeId.map(
-                (String key, List<int> value) => MapEntry<String, List<int>>(key, List<int>.from(value)),
+                (String key, List<int> value) =>
+                    MapEntry<String, List<int>>(key, List<int>.from(value)),
               ),
       );
   }
@@ -257,40 +325,95 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
-  /// Indexes a node and all its descendants recursively.
-  void _indexNode(TreeNode<T> node) {
-    String finalId = node.id;
-    if (_nodeIndex.containsKey(finalId)) {
-      final String msg = 'Duplicate node ID detected: "$finalId". All IDs in the tree must be unique.';
-      
-      // In debug mode, we want to be loud and fail fast.
-      assert(false, '[SuperTree] FATAL: $msg');
+  void _reportIntegrityIssue(TreeIntegrityIssue issue, {bool notify = true}) {
+    _lastIntegrityIssue = issue;
 
-      // In release mode, we mangle the ID to prevent breaking the tree logic (like expansion/selection index collisions).
-      int suffix = 1;
-      while (_nodeIndex.containsKey('${finalId}_dup_$suffix')) {
-        suffix++;
-      }
-      finalId = '${finalId}_dup_$suffix';
-      
-      // We still log a warning in release mode so developers can see it in logs.
-      debugPrint('[SuperTree] WARNING: $msg. Auto-mangled to "$finalId" to prevent state corruption.');
-      
-      // We update the node's ID to match the final unique ID.
-      node.id = finalId;
+    if (issue.nodeId != null) {
+      _integrityIssuesByNodeId[issue.nodeId!] = issue;
     }
-    
-    _nodeIndex[finalId] = node;
-    for (var child in node.children) {
-      _indexNode(child);
+    if (issue.relatedNodeId != null) {
+      _integrityIssuesByNodeId[issue.relatedNodeId!] = issue;
+    }
+
+    debugPrint(
+      '[SuperTree] Integrity issue (${issue.type.name}) during ${issue.operation}: ${issue.message}',
+    );
+
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  bool _canIndexNodes(
+    List<TreeNode<T>> nodes, {
+    required String operation,
+    String? targetNodeId,
+    bool notify = true,
+  }) {
+    final Set<String> seenIds = <String>{..._nodeIndex.keys};
+    String? duplicateId;
+
+    bool visit(TreeNode<T> node) {
+      if (seenIds.contains(node.id)) {
+        duplicateId = node.id;
+        return false;
+      }
+
+      seenIds.add(node.id);
+      for (final TreeNode<T> child in node.children) {
+        if (!visit(child)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    for (final TreeNode<T> root in nodes) {
+      if (!visit(root)) {
+        break;
+      }
+    }
+
+    if (duplicateId == null) {
+      return true;
+    }
+
+    final String message =
+        'Duplicate node ID detected: "$duplicateId". Operation was ignored to preserve graph integrity.';
+    _reportIntegrityIssue(
+      TreeIntegrityIssue(
+        type: TreeIntegrityIssueType.duplicateId,
+        message: message,
+        operation: operation,
+        nodeId: targetNodeId,
+        relatedNodeId: duplicateId,
+      ),
+      notify: notify,
+    );
+    return false;
+  }
+
+  /// Indexes a node and all its descendants recursively.
+  void _indexSubtree(TreeNode<T> node) {
+    _nodeIndex[node.id] = node;
+    for (final TreeNode<T> child in node.children) {
+      _indexSubtree(child);
     }
   }
 
   /// Unindexes a node and all its descendants recursively.
   void _unindexNode(TreeNode<T> node) {
     _nodeIndex.remove(node.id);
-    for (var child in node.children) {
+    for (final TreeNode<T> child in node.children) {
       _unindexNode(child);
+    }
+  }
+
+  void _clearIntegrityIssuesForSubtree(TreeNode<T> node) {
+    _integrityIssuesByNodeId.remove(node.id);
+    for (final TreeNode<T> child in node.children) {
+      _clearIntegrityIssuesForSubtree(child);
     }
   }
 
@@ -308,7 +431,7 @@ class TreeController<T> extends ChangeNotifier {
   void expandNode(TreeNode<T> node) {
     if (!node.isExpanded) {
       node.isExpanded = true;
-      
+
       // Delta update: Insert visible descendants
       final index = _flatVisibleNodes.indexOf(node);
       if (index != -1) {
@@ -321,7 +444,7 @@ class TreeController<T> extends ChangeNotifier {
         // Fallback if node is not in flat list for some reason
         _rebuildFlatList();
       }
-      
+
       notifyListeners();
     }
   }
@@ -333,7 +456,8 @@ class TreeController<T> extends ChangeNotifier {
   Object? getNodeLoadError(String nodeId) => _loadErrorsByNodeId[nodeId];
 
   /// Returns `true` if [nodeId] has a captured lazy-loading error.
-  bool hasNodeLoadError(String nodeId) => _loadErrorsByNodeId.containsKey(nodeId);
+  bool hasNodeLoadError(String nodeId) =>
+      _loadErrorsByNodeId.containsKey(nodeId);
 
   /// Returns whether a node can trigger lazy loading.
   bool canNodeLoadChildren(TreeNode<T> node) {
@@ -387,8 +511,20 @@ class TreeController<T> extends ChangeNotifier {
         return;
       }
 
+      if (!_canIndexNodes(
+        children,
+        operation: 'ensureNodeChildrenLoaded',
+        targetNodeId: nodeId,
+        notify: false,
+      )) {
+        _loadErrorsByNodeId[nodeId] = StateError(
+          'Duplicate node IDs were returned while loading children for "$nodeId".',
+        );
+        return;
+      }
+
       for (final TreeNode<T> child in children) {
-        _indexNode(child);
+        _indexSubtree(child);
         node.internalAddChild(child);
       }
 
@@ -414,7 +550,7 @@ class TreeController<T> extends ChangeNotifier {
   void collapseNode(TreeNode<T> node) {
     if (node.isExpanded) {
       node.isExpanded = false;
-      
+
       // Delta update: Remove visible descendants
       final index = _flatVisibleNodes.indexOf(node);
       if (index != -1) {
@@ -422,12 +558,15 @@ class TreeController<T> extends ChangeNotifier {
         for (var child in node.children) {
           _getVisibleDescendants(child, descendants);
         }
-        _flatVisibleNodes.removeRange(index + 1, index + 1 + descendants.length);
+        _flatVisibleNodes.removeRange(
+          index + 1,
+          index + 1 + descendants.length,
+        );
       } else {
         // Fallback
         _rebuildFlatList();
       }
-      
+
       notifyListeners();
     }
   }
@@ -504,8 +643,6 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
-
-
   /// The node IDs that are currently selected.
   final Set<String> _selectedNodeIds = {};
   Set<String> get selectedNodeIds => Set.unmodifiable(_selectedNodeIds);
@@ -514,7 +651,9 @@ class TreeController<T> extends ChangeNotifier {
   String? _anchorNodeId;
 
   /// Gets the first selected node ID, if any.
-  String? get selectedNodeId => _selectedNodeIds.isEmpty ? null : (_anchorNodeId ?? _selectedNodeIds.first);
+  String? get selectedNodeId => _selectedNodeIds.isEmpty
+      ? null
+      : (_anchorNodeId ?? _selectedNodeIds.first);
 
   /// Deselects all nodes.
   void deselectAll() {
@@ -540,7 +679,9 @@ class TreeController<T> extends ChangeNotifier {
     if (_selectedNodeIds.contains(id)) {
       _selectedNodeIds.remove(id);
       if (_anchorNodeId == id) {
-        _anchorNodeId = _selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : null;
+        _anchorNodeId = _selectedNodeIds.isNotEmpty
+            ? _selectedNodeIds.last
+            : null;
       }
     } else {
       _selectedNodeIds.add(id);
@@ -552,22 +693,26 @@ class TreeController<T> extends ChangeNotifier {
   /// Selects a range of nodes from the anchor node to the target node.
   void selectRange(String targetId) {
     if (_flatVisibleNodes.isEmpty) return;
-    
-    final anchorId = _anchorNodeId ?? (_selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : _flatVisibleNodes.first.id);
+
+    final anchorId =
+        _anchorNodeId ??
+        (_selectedNodeIds.isNotEmpty
+            ? _selectedNodeIds.last
+            : _flatVisibleNodes.first.id);
     final startIndex = _flatVisibleNodes.indexWhere((n) => n.id == anchorId);
     final endIndex = _flatVisibleNodes.indexWhere((n) => n.id == targetId);
-    
+
     if (startIndex == -1 || endIndex == -1) return;
-    
+
     final min = startIndex < endIndex ? startIndex : endIndex;
     final max = startIndex < endIndex ? endIndex : startIndex;
-    
+
     _selectedNodeIds.clear();
     for (int i = min; i <= max; i++) {
       _selectedNodeIds.add(_flatVisibleNodes[i].id);
     }
     // We don't update anchorId here because we want to keep the original anchor for expanding ranges
-    _anchorNodeId = anchorId; 
+    _anchorNodeId = anchorId;
 
     notifyListeners();
   }
@@ -581,7 +726,9 @@ class TreeController<T> extends ChangeNotifier {
       return;
     }
 
-    final currentIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastSelected);
+    final currentIndex = _flatVisibleNodes.indexWhere(
+      (n) => n.id == lastSelected,
+    );
     if (currentIndex != -1 && currentIndex < _flatVisibleNodes.length - 1) {
       setSelectedNodeId(_flatVisibleNodes[currentIndex + 1].id);
     }
@@ -596,7 +743,9 @@ class TreeController<T> extends ChangeNotifier {
       return;
     }
 
-    final currentIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastSelected);
+    final currentIndex = _flatVisibleNodes.indexWhere(
+      (n) => n.id == lastSelected,
+    );
     if (currentIndex > 0) {
       setSelectedNodeId(_flatVisibleNodes[currentIndex - 1].id);
     }
@@ -621,11 +770,12 @@ class TreeController<T> extends ChangeNotifier {
   /// The payload intentionally stores interaction state only and does not
   /// include node business data.
   Map<String, Object?> toJson() {
-    final List<String> expandedNodeIds = _nodeIndex.values
-        .where((TreeNode<T> node) => node.isExpanded)
-        .map((TreeNode<T> node) => node.id)
-        .toList()
-      ..sort();
+    final List<String> expandedNodeIds =
+        _nodeIndex.values
+            .where((TreeNode<T> node) => node.isExpanded)
+            .map((TreeNode<T> node) => node.id)
+            .toList()
+          ..sort();
 
     return <String, Object?>{
       'version': 1,
@@ -642,10 +792,13 @@ class TreeController<T> extends ChangeNotifier {
     final Set<String> expandedNodeIds = _readStringList(
       json['expandedNodeIds'],
     ).toSet();
-    final List<String> selectedNodeIds = _readStringList(json['selectedNodeIds']);
+    final List<String> selectedNodeIds = _readStringList(
+      json['selectedNodeIds'],
+    );
     final Object? rawAnchorValue = json['anchorNodeId'];
-    final String? rawAnchorNodeId =
-      rawAnchorValue is String ? rawAnchorValue : null;
+    final String? rawAnchorNodeId = rawAnchorValue is String
+        ? rawAnchorValue
+        : null;
 
     for (final TreeNode<T> node in _nodeIndex.values) {
       node.isExpanded = expandedNodeIds.contains(node.id);
@@ -661,7 +814,9 @@ class TreeController<T> extends ChangeNotifier {
     if (rawAnchorNodeId != null && _selectedNodeIds.contains(rawAnchorNodeId)) {
       _anchorNodeId = rawAnchorNodeId;
     } else {
-      _anchorNodeId = _selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : null;
+      _anchorNodeId = _selectedNodeIds.isNotEmpty
+          ? _selectedNodeIds.last
+          : null;
     }
 
     _rebuildFlatList();
@@ -730,7 +885,7 @@ class TreeController<T> extends ChangeNotifier {
       node.isNew = false;
       onNodeRenamed?.call(node, newName);
       setRenamingNodeId(null);
-      
+
       // If it was new, we might need to re-sort as the name changed
       if (wasNew && _sortComparator != null) {
         if (node.isRoot) {
@@ -746,7 +901,11 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Adds a new root node to the tree.
   void addRoot(TreeNode<T> node) {
-    _indexNode(node);
+    if (!_canIndexNodes(<TreeNode<T>>[node], operation: 'addRoot')) {
+      return;
+    }
+
+    _indexSubtree(node);
     _roots.add(node);
     if (_sortComparator != null) {
       _roots.sort(_sortComparator!);
@@ -759,10 +918,39 @@ class TreeController<T> extends ChangeNotifier {
   void addChild(TreeNode<T> parent, TreeNode<T> child) {
     final parentData = parent.data;
     if (parentData is SuperTreeData && !parentData.canHaveChildren) {
-      assert(false, 'Cannot add a child to a node that returns canHaveChildren = false');
+      assert(
+        false,
+        'Cannot add a child to a node that returns canHaveChildren = false',
+      );
       return;
     }
-    _indexNode(child);
+
+    final bool createsCycle =
+        parent.id == child.id || isDescendantOf(parent.id, child.id);
+    if (createsCycle) {
+      final String message =
+          'Cannot add "${child.id}" as child of "${parent.id}": operation would create a circular reference.';
+      _reportIntegrityIssue(
+        TreeIntegrityIssue(
+          type: TreeIntegrityIssueType.circularReference,
+          message: message,
+          operation: 'addChild',
+          nodeId: parent.id,
+          relatedNodeId: child.id,
+        ),
+      );
+      return;
+    }
+
+    if (!_canIndexNodes(
+      <TreeNode<T>>[child],
+      operation: 'addChild',
+      targetNodeId: parent.id,
+    )) {
+      return;
+    }
+
+    _indexSubtree(child);
     parent.internalAddChild(child);
     if (_sortComparator != null) {
       parent.internalSortChildren(_sortComparator!);
@@ -777,6 +965,7 @@ class TreeController<T> extends ChangeNotifier {
   void removeNode(TreeNode<T> node) {
     _unindexNode(node);
     _clearLazyStateForSubtree(node);
+    _clearIntegrityIssuesForSubtree(node);
     if (node.isRoot) {
       _roots.remove(node);
     } else {
@@ -789,8 +978,8 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Moves a node from its current place to a specific position relative to a target node.
   void moveNode({
-    required TreeNode<T> dragged, 
-    required TreeNode<T> target, 
+    required TreeNode<T> dragged,
+    required TreeNode<T> target,
     required bool insertBefore,
     bool nestInside = false,
   }) {
@@ -799,7 +988,17 @@ class TreeController<T> extends ChangeNotifier {
     // 1. Validation
     // Preventive check: Cannot drop a node into its own descendant
     if (isDescendantOf(target.id, dragged.id)) {
-      debugPrint('Circular move detected: Cannot move ${dragged.id} into its own descendant ${target.id}');
+      final String message =
+          'Cannot move "${dragged.id}" into its own descendant "${target.id}".';
+      _reportIntegrityIssue(
+        TreeIntegrityIssue(
+          type: TreeIntegrityIssueType.circularReference,
+          message: message,
+          operation: 'moveNode',
+          nodeId: dragged.id,
+          relatedNodeId: target.id,
+        ),
+      );
       return;
     }
 
@@ -807,7 +1006,9 @@ class TreeController<T> extends ChangeNotifier {
     if (nestInside) {
       final targetData = target.data;
       if (targetData is SuperTreeData && !targetData.canHaveChildren) {
-        debugPrint('Cannot move into node that cannot have children: ${target.id}');
+        debugPrint(
+          'Cannot move into node that cannot have children: ${target.id}',
+        );
         return;
       }
     }
@@ -824,7 +1025,7 @@ class TreeController<T> extends ChangeNotifier {
     // Re-find target in index just to be absolutely sure it hasn't somehow disappeared
     final actualTarget = findNodeById(target.id);
     if (actualTarget == null) {
-      // If target disappeared, we just leave the dragged node detached? 
+      // If target disappeared, we just leave the dragged node detached?
       // safer to re-attach to old parent?
       if (oldParent != null) {
         oldParent.internalAddChild(dragged);
@@ -837,7 +1038,7 @@ class TreeController<T> extends ChangeNotifier {
     // Re-attach to new location
     if (nestInside) {
       actualTarget.internalAddChild(dragged);
-      actualTarget.isExpanded = true; 
+      actualTarget.isExpanded = true;
     } else {
       final parent = actualTarget.parent;
       if (parent != null) {
@@ -863,7 +1064,7 @@ class TreeController<T> extends ChangeNotifier {
   bool isDescendantOf(String childId, String parentId) {
     final TreeNode<T>? child = findNodeById(childId);
     if (child == null) return false;
-    
+
     TreeNode<T>? cursor = child.parent;
     while (cursor != null) {
       if (cursor.id == parentId) return true;

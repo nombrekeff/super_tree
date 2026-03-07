@@ -110,9 +110,11 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
             ),
             TreeNode(
               data: FolderItem('lib'),
+              isExpanded: true,
               children: [
                 TreeNode(
                   data: FolderItem('src'),
+                  isExpanded: true,
                   children: [
                     TreeNode(
                       data: FolderItem('models'),

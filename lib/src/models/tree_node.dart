@@ -2,7 +2,7 @@
 typedef TreeLabelProvider<T> = String Function(T data);
 
 /// Represents a single node in the [SuperTreeView].
-/// 
+///
 /// The generic type [T] allows the node to hold custom business data.
 class TreeNode<T> {
   /// Unique identifier for this node. Useful for expanding/collapsing by ID,
@@ -35,7 +35,7 @@ class TreeNode<T> {
   static int _idCounter = 0;
 
   /// Creates a new [TreeNode] with a required [data] and optional [id].
-  /// 
+  ///
   /// The [children] list, [isExpanded], and [isSelected] flags are optional.
   TreeNode({
     String? id,
@@ -108,6 +108,11 @@ class TreeNode<T> {
 
   /// Internal method meant to be called by the TreeController to add a child.
   void internalAddChild(TreeNode<T> child) {
+    if (_children.any((TreeNode<T> existing) => existing.id == child.id)) {
+      assert(false, 'Duplicate sibling ID detected: "${child.id}".');
+      return;
+    }
+
     child.parent = this;
     _children.add(child);
   }
@@ -120,12 +125,20 @@ class TreeNode<T> {
 
   /// Internal method meant to be called by the TreeController to insert a child.
   void internalInsertChild(int index, TreeNode<T> child) {
+    if (_children.any((TreeNode<T> existing) => existing.id == child.id)) {
+      assert(false, 'Duplicate sibling ID detected: "${child.id}".');
+      return;
+    }
+
     child.parent = this;
     _children.insert(index, child);
   }
 
   /// Internal method meant to be called by the TreeController to sort children.
-  void internalSortChildren(int Function(TreeNode<T> a, TreeNode<T> b) comparator, {bool recursive = false}) {
+  void internalSortChildren(
+    int Function(TreeNode<T> a, TreeNode<T> b) comparator, {
+    bool recursive = false,
+  }) {
     _children.sort(comparator);
     if (recursive) {
       for (var child in _children) {

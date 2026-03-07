@@ -3,7 +3,6 @@ import 'package:example/examples/async_lazy_loading_example.dart';
 import 'package:example/examples/checkbox_example.dart';
 import 'package:example/examples/complex_node_example.dart';
 import 'package:example/examples/file_system_example.dart';
-import 'package:example/examples/responsive_menu_example.dart';
 import 'package:example/examples/simple_file_system_example.dart';
 import 'package:example/examples/todo_list_example.dart';
 
@@ -83,12 +82,6 @@ class ExampleHubScreen extends StatelessWidget {
       description: 'A minimalist example showing how to build a file tree with zero boilerplate and hardcoded data.',
       icon: Icons.folder,
       screen: SimpleFileSystemExample(),
-    ),
-    ExampleInfo(
-      title: 'Responsive Menus',
-      description: 'Demonstrates mobile-friendly 3-dot menus versus desktop-friendly right-click context menus.',
-      icon: Icons.menu_open,
-      screen: ResponsiveMenuExample(),
     ),
     ExampleInfo(
       title: 'Async Lazy Loading',
