@@ -53,6 +53,20 @@ class _FilterTraversalResult<T> {
   final bool hasMatch;
 }
 
+class _NodeLocation<T> {
+  const _NodeLocation({required this.parent, required this.index});
+
+  final TreeNode<T>? parent;
+  final int index;
+}
+
+class _DetachedNode<T> {
+  const _DetachedNode({required this.node, required this.index});
+
+  final TreeNode<T> node;
+  final int index;
+}
+
 /// Manages the state and structure of the tree.
 ///
 /// The [TreeController] is independent of the UI and provides methods to
@@ -812,6 +826,39 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+  /// Returns selected nodes in current visible order.
+  ///
+  /// When [topLevelOnly] is true, descendants of already selected parents are
+  /// omitted so drag/drop can move selection groups without duplicates.
+  List<TreeNode<T>> getSelectedNodesInVisibleOrder({bool topLevelOnly = false}) {
+    if (_selectedNodeIds.isEmpty) {
+      return <TreeNode<T>>[];
+    }
+
+    final List<TreeNode<T>> selected = _flatVisibleNodes
+        .where((TreeNode<T> node) => _selectedNodeIds.contains(node.id))
+        .toList(growable: false);
+    if (!topLevelOnly) {
+      return selected;
+    }
+
+    final Set<String> selectedIds = Set<String>.from(_selectedNodeIds);
+    return selected
+        .where((TreeNode<T> node) => !_hasSelectedAncestor(node, selectedIds))
+        .toList(growable: false);
+  }
+
+  bool _hasSelectedAncestor(TreeNode<T> node, Set<String> selectedIds) {
+    TreeNode<T>? cursor = node.parent;
+    while (cursor != null) {
+      if (selectedIds.contains(cursor.id)) {
+        return true;
+      }
+      cursor = cursor.parent;
+    }
+    return false;
+  }
+
   /// Serializes controller UI state for persistence.
   ///
   /// The payload intentionally stores interaction state only and does not
@@ -1030,81 +1077,214 @@ class TreeController<T> extends ChangeNotifier {
     required bool insertBefore,
     bool nestInside = false,
   }) {
-    if (dragged.id == target.id) return;
+    moveNodes(
+      draggedNodes: <TreeNode<T>>[dragged],
+      target: target,
+      insertBefore: insertBefore,
+      nestInside: nestInside,
+    );
+  }
 
-    // 1. Validation
-    // Preventive check: Cannot drop a node into its own descendant
-    if (isDescendantOf(target.id, dragged.id)) {
+  /// Moves multiple nodes atomically relative to a target node.
+  ///
+  /// Returns true when the move succeeds. If any dragged node is invalid for
+  /// the requested destination, no mutation is applied.
+  bool moveNodes({
+    required List<TreeNode<T>> draggedNodes,
+    required TreeNode<T> target,
+    required bool insertBefore,
+    bool nestInside = false,
+  }) {
+    if (draggedNodes.isEmpty) {
+      return false;
+    }
+
+    final List<TreeNode<T>> uniqueDragged = <TreeNode<T>>[];
+    final Set<String> seenIds = <String>{};
+    for (final TreeNode<T> node in draggedNodes) {
+      if (seenIds.add(node.id)) {
+        uniqueDragged.add(node);
+      }
+    }
+
+    if (uniqueDragged.isEmpty) {
+      return false;
+    }
+
+    final Set<String> draggedIds = uniqueDragged
+        .map((TreeNode<T> node) => node.id)
+        .toSet();
+    if (draggedIds.contains(target.id)) {
+      final TreeNode<T> firstNode = uniqueDragged.first;
       final String message =
-          'Cannot move "${dragged.id}" into its own descendant "${target.id}".';
+          'Cannot move "${firstNode.id}" onto itself or within the same dragged selection.';
       _reportIntegrityIssue(
         TreeIntegrityIssue(
           type: TreeIntegrityIssueType.circularReference,
           message: message,
-          operation: 'moveNode',
-          nodeId: dragged.id,
+          operation: 'moveNodes',
+          nodeId: firstNode.id,
           relatedNodeId: target.id,
         ),
       );
-      return;
+      return false;
     }
 
-    // If nesting, check if target can have children
+    for (final TreeNode<T> draggedNode in uniqueDragged) {
+      if (isDescendantOf(target.id, draggedNode.id)) {
+        final String message =
+            'Cannot move "${draggedNode.id}" into its own descendant "${target.id}".';
+        _reportIntegrityIssue(
+          TreeIntegrityIssue(
+            type: TreeIntegrityIssueType.circularReference,
+            message: message,
+            operation: 'moveNodes',
+            nodeId: draggedNode.id,
+            relatedNodeId: target.id,
+          ),
+        );
+        return false;
+      }
+    }
+
     if (nestInside) {
-      final targetData = target.data;
+      final Object? targetData = target.data;
       if (targetData is SuperTreeData && !targetData.canHaveChildren) {
         debugPrint(
           'Cannot move into node that cannot have children: ${target.id}',
         );
-        return;
+        return false;
       }
     }
 
-    // 2. Atomic mutation
-    // Detach from current parent
-    final oldParent = dragged.parent;
-    if (oldParent != null) {
-      oldParent.internalRemoveChild(dragged);
-    } else {
-      _roots.remove(dragged);
+    final Map<String, _NodeLocation<T>> originalLocations =
+        <String, _NodeLocation<T>>{};
+    for (final TreeNode<T> draggedNode in uniqueDragged) {
+      final _NodeLocation<T>? location = _captureNodeLocation(draggedNode);
+      if (location == null) {
+        return false;
+      }
+      originalLocations[draggedNode.id] = location;
     }
 
-    // Re-find target in index just to be absolutely sure it hasn't somehow disappeared
-    final actualTarget = findNodeById(target.id);
-    if (actualTarget == null) {
-      // If target disappeared, we just leave the dragged node detached?
-      // safer to re-attach to old parent?
+    for (final TreeNode<T> draggedNode in uniqueDragged) {
+      final TreeNode<T>? oldParent = draggedNode.parent;
       if (oldParent != null) {
-        oldParent.internalAddChild(dragged);
+        oldParent.internalRemoveChild(draggedNode);
       } else {
-        _roots.add(dragged);
+        _roots.remove(draggedNode);
       }
-      return;
     }
 
-    // Re-attach to new location
+    final TreeNode<T>? actualTarget = findNodeById(target.id);
+    if (actualTarget == null) {
+      _restoreDetachedNodes(
+        originalLocations: originalLocations,
+        orderedNodes: uniqueDragged,
+      );
+      return false;
+    }
+
     if (nestInside) {
-      actualTarget.internalAddChild(dragged);
+      for (final TreeNode<T> draggedNode in uniqueDragged) {
+        actualTarget.internalAddChild(draggedNode);
+      }
       actualTarget.isExpanded = true;
     } else {
-      final parent = actualTarget.parent;
+      final TreeNode<T>? parent = actualTarget.parent;
       if (parent != null) {
-        int index = parent.children.indexOf(actualTarget);
-        if (!insertBefore) index++;
-        parent.internalInsertChild(index, dragged);
+        int insertionIndex = parent.children.indexOf(actualTarget);
+        if (insertionIndex < 0) {
+          _restoreDetachedNodes(
+            originalLocations: originalLocations,
+            orderedNodes: uniqueDragged,
+          );
+          return false;
+        }
+        if (!insertBefore) {
+          insertionIndex++;
+        }
+
+        for (final TreeNode<T> draggedNode in uniqueDragged) {
+          parent.internalInsertChild(insertionIndex, draggedNode);
+          insertionIndex++;
+        }
       } else {
-        int index = _roots.indexOf(actualTarget);
-        if (!insertBefore) index++;
-        _roots.insert(index, dragged);
+        int insertionIndex = _roots.indexOf(actualTarget);
+        if (insertionIndex < 0) {
+          _restoreDetachedNodes(
+            originalLocations: originalLocations,
+            orderedNodes: uniqueDragged,
+          );
+          return false;
+        }
+        if (!insertBefore) {
+          insertionIndex++;
+        }
+
+        for (final TreeNode<T> draggedNode in uniqueDragged) {
+          draggedNode.parent = null;
+          _roots.insert(insertionIndex, draggedNode);
+          insertionIndex++;
+        }
       }
     }
 
-    // 3. Finalize
     if (_sortComparator != null) {
       _sortTree();
     }
     _rebuildFlatList();
     notifyListeners();
+    return true;
+  }
+
+  _NodeLocation<T>? _captureNodeLocation(TreeNode<T> node) {
+    final TreeNode<T>? parent = node.parent;
+    final int index = parent != null
+        ? parent.children.indexOf(node)
+        : _roots.indexOf(node);
+    if (index < 0) {
+      return null;
+    }
+
+    return _NodeLocation<T>(parent: parent, index: index);
+  }
+
+  void _restoreDetachedNodes({
+    required Map<String, _NodeLocation<T>> originalLocations,
+    required List<TreeNode<T>> orderedNodes,
+  }) {
+    final Map<TreeNode<T>?, List<_DetachedNode<T>>> grouped =
+        <TreeNode<T>?, List<_DetachedNode<T>>>{};
+    for (final TreeNode<T> node in orderedNodes) {
+      final _NodeLocation<T>? location = originalLocations[node.id];
+      if (location == null) {
+        continue;
+      }
+      grouped
+          .putIfAbsent(location.parent, () => <_DetachedNode<T>>[])
+          .add(_DetachedNode<T>(node: node, index: location.index));
+    }
+
+    for (final MapEntry<TreeNode<T>?, List<_DetachedNode<T>>> entry
+        in grouped.entries) {
+      final TreeNode<T>? parent = entry.key;
+      final List<_DetachedNode<T>> nodes = entry.value
+        ..sort((a, b) => a.index.compareTo(b.index));
+
+      if (parent == null) {
+        for (final _DetachedNode<T> detached in nodes) {
+          final int safeIndex = detached.index.clamp(0, _roots.length);
+          detached.node.parent = null;
+          _roots.insert(safeIndex, detached.node);
+        }
+      } else {
+        for (final _DetachedNode<T> detached in nodes) {
+          final int safeIndex = detached.index.clamp(0, parent.children.length);
+          parent.internalInsertChild(safeIndex, detached.node);
+        }
+      }
+    }
   }
 
   /// Returns true if the node with [childId] is a descendant of the node with [parentId].

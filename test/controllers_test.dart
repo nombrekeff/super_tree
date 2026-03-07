@@ -258,6 +258,90 @@ void main() {
         TreeIntegrityIssueType.circularReference,
       );
     });
+
+    test('getSelectedNodesInVisibleOrder(topLevelOnly) excludes selected descendants', () {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(
+            id: 'root',
+            data: 'root',
+            isExpanded: true,
+            children: <TreeNode<String>>[
+              TreeNode<String>(id: 'child_a', data: 'child_a'),
+              TreeNode<String>(id: 'child_b', data: 'child_b'),
+            ],
+          ),
+          TreeNode<String>(id: 'other_root', data: 'other_root'),
+        ],
+      );
+
+      controller.setSelectedNodeId('root');
+      controller.toggleSelection('child_a');
+      controller.toggleSelection('other_root');
+
+      final List<TreeNode<String>> selected = controller.getSelectedNodesInVisibleOrder(
+        topLevelOnly: true,
+      );
+
+      expect(
+        selected.map((TreeNode<String> node) => node.id).toList(growable: false),
+        <String>['root', 'other_root'],
+      );
+    });
+
+    test('moveNodes moves multiple roots atomically preserving input order', () {
+      final TreeNode<String> nodeA = TreeNode<String>(id: 'a', data: 'a');
+      final TreeNode<String> nodeB = TreeNode<String>(id: 'b', data: 'b');
+      final TreeNode<String> nodeC = TreeNode<String>(id: 'c', data: 'c');
+      final TreeNode<String> nodeD = TreeNode<String>(id: 'd', data: 'd');
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[nodeA, nodeB, nodeC, nodeD],
+      );
+
+      final bool moved = controller.moveNodes(
+        draggedNodes: <TreeNode<String>>[nodeA, nodeC],
+        target: nodeD,
+        insertBefore: true,
+      );
+
+      expect(moved, isTrue);
+      expect(
+        controller.roots.map((TreeNode<String> node) => node.id).toList(growable: false),
+        <String>['b', 'a', 'c', 'd'],
+      );
+    });
+
+    test('moveNodes aborts whole batch when one node would create cycle', () {
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'root',
+        data: 'root',
+        children: <TreeNode<String>>[
+          TreeNode<String>(id: 'child', data: 'child'),
+        ],
+      );
+      final TreeNode<String> other = TreeNode<String>(id: 'other', data: 'other');
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root, other],
+      );
+      final TreeNode<String> child = controller.findNodeById('child')!;
+
+      final bool moved = controller.moveNodes(
+        draggedNodes: <TreeNode<String>>[root, other],
+        target: child,
+        insertBefore: false,
+        nestInside: true,
+      );
+
+      expect(moved, isFalse);
+      expect(controller.roots.map((TreeNode<String> node) => node.id), <String>['root', 'other']);
+      expect(child.parent?.id, 'root');
+      expect(
+        controller.lastIntegrityIssue?.type,
+        TreeIntegrityIssueType.circularReference,
+      );
+    });
   });
 
   group('TreeController Integrity Validation', () {

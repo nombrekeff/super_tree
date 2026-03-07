@@ -19,4 +19,16 @@ mixin SuperTreeData {
   /// By default, it allows everything (unless [canHaveChildren] prevents an inside drop).
   /// [draggedItem] is the data ([T]) of the node being dragged.
   bool canAcceptDrop(dynamic draggedItem, NodeDropPosition position) => true;
+
+  /// Batch variant for multi-node dragging.
+  ///
+  /// The default behavior requires every item to pass [canAcceptDrop].
+  bool canAcceptDropMany(List<Object?> draggedItems, NodeDropPosition position) {
+    for (final Object? draggedItem in draggedItems) {
+      if (!canAcceptDrop(draggedItem, position)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }

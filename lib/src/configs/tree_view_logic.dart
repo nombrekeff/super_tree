@@ -72,6 +72,16 @@ class TreeViewConfig<T> {
   )?
   canAcceptDrop;
 
+  /// Callback to determine if a set of nodes can be dropped at a specific position.
+  ///
+  /// If null, batch drops fall back to [canAcceptDrop] validation per node.
+  final bool Function(
+    List<TreeNode<T>> draggedNodes,
+    TreeNode<T> targetNode,
+    NodeDropPosition position,
+  )?
+  canAcceptDropMany;
+
   /// Callback generated when a node is double-tapped.
   final void Function(String id)? onNodeDoubleTap;
 
@@ -110,6 +120,7 @@ class TreeViewConfig<T> {
     this.onNodeTap,
     this.onNodeDoubleTap,
     this.canAcceptDrop,
+    this.canAcceptDropMany,
     this.dropEdgeBandFraction = 0.05,
     this.dropEdgeBandFractionForLeaf = 0.2,
     this.dropPositionHysteresisPx = 8.0,
@@ -129,6 +140,12 @@ class TreeViewConfig<T> {
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)?
     canAcceptDrop,
+    bool Function(
+      List<TreeNode<T>> draggedNodes,
+      TreeNode<T> targetNode,
+      NodeDropPosition position,
+    )?
+    canAcceptDropMany,
     double? dropEdgeBandFraction,
     double? dropEdgeBandFractionForLeaf,
     double? dropPositionHysteresisPx,
@@ -146,6 +163,7 @@ class TreeViewConfig<T> {
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,
+      canAcceptDropMany: canAcceptDropMany ?? this.canAcceptDropMany,
       dropEdgeBandFraction: dropEdgeBandFraction ?? this.dropEdgeBandFraction,
       dropEdgeBandFractionForLeaf:
           dropEdgeBandFractionForLeaf ?? this.dropEdgeBandFractionForLeaf,

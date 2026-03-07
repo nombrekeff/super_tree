@@ -15,6 +15,22 @@ enum NodeDropPosition {
   below,
 }
 
+/// Payload carried during drag-and-drop operations.
+///
+/// [primaryNode] identifies the node where the drag gesture originated,
+/// while [nodes] can include a batch selection when multi-node dragging is used.
+class TreeDragPayload<T> {
+  TreeDragPayload({
+    required this.primaryNode,
+    required List<TreeNode<T>> nodes,
+  }) : nodes = List<TreeNode<T>>.unmodifiable(nodes);
+
+  final TreeNode<T> primaryNode;
+  final List<TreeNode<T>> nodes;
+
+  bool get isBatch => nodes.length > 1;
+}
+
 /// A wrapper that manages Drag and Drop logic, visual highlights,
 /// and exact drop positioning over a tree node.
 class TreeDragAndDropWrapper<T> extends StatefulWidget {
@@ -28,20 +44,27 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   final bool enableAutoScroll;
   final double autoScrollEdgeThresholdPx;
   final double autoScrollMaxStepPx;
+  final List<TreeNode<T>> dragNodes;
   final bool Function(
     TreeNode<T> draggedNode,
     TreeNode<T> targetNode,
     NodeDropPosition position,
   )?
   canAcceptDrop;
+  final bool Function(
+    List<TreeNode<T>> draggedNodes,
+    TreeNode<T> targetNode,
+    NodeDropPosition position,
+  )?
+  canAcceptDropMany;
   final void Function(
-    TreeNode<T> draggedNode,
+    TreeDragPayload<T> payload,
     TreeNode<T> targetNode,
     NodeDropPosition position,
   )
   onDrop;
 
-  const TreeDragAndDropWrapper({
+  TreeDragAndDropWrapper({
     super.key,
     required this.node,
     required this.enabled,
@@ -53,9 +76,13 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
     this.enableAutoScroll = true,
     this.autoScrollEdgeThresholdPx = 48.0,
     this.autoScrollMaxStepPx = 20.0,
+    List<TreeNode<T>>? dragNodes,
     this.canAcceptDrop,
+    this.canAcceptDropMany,
     required this.onDrop,
-  });
+  }) : dragNodes = List<TreeNode<T>>.unmodifiable(
+         dragNodes == null || dragNodes.isEmpty ? <TreeNode<T>>[node] : dragNodes,
+       );
 
   @override
   State<TreeDragAndDropWrapper<T>> createState() => _TreeDragAndDropWrapperState<T>();
@@ -174,9 +201,9 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
     return NodeDropPosition.inside;
   }
 
-  NodeDropPosition? _resolveDropPosition(TreeNode<T> draggedNode, Offset globalOffset) {
+  NodeDropPosition? _resolveDropPosition(TreeDragPayload<T> payload, Offset globalOffset) {
     final NodeDropPosition rawPosition = _calculateRawDropPosition(globalOffset);
-    if (_isValidDrop(draggedNode, rawPosition)) {
+    if (_isValidDrop(payload, rawPosition)) {
       return rawPosition;
     }
 
@@ -189,7 +216,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
           ? NodeDropPosition.above
           : NodeDropPosition.below;
 
-      if (_isValidDrop(draggedNode, nearestEdge)) {
+      if (_isValidDrop(payload, nearestEdge)) {
         return nearestEdge;
       }
     }
@@ -197,21 +224,26 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
     return null;
   }
 
-  bool _isValidDrop(TreeNode<T> draggedNode, NodeDropPosition position) {
-    // Cannot drop on oneself
-    if (draggedNode.id == widget.node.id) return false;
+  bool _isValidDrop(TreeDragPayload<T> payload, NodeDropPosition position) {
+    final Set<String> draggedIds = payload.nodes
+        .map((TreeNode<T> node) => node.id)
+        .toSet();
 
-    // Cannot drop a parent into its own descendant (infinite cycle prevention)
-    bool createsCycle = false;
-    TreeNode<T>? cursor = widget.node.parent;
-    while (cursor != null) {
-      if (cursor.id == draggedNode.id) {
-        createsCycle = true;
-        break;
-      }
-      cursor = cursor.parent;
+    // Cannot drop any dragged node onto itself.
+    if (draggedIds.contains(widget.node.id)) {
+      return false;
     }
-    if (createsCycle) return false;
+
+    // Cannot drop a parent into any of its descendants.
+    for (final TreeNode<T> draggedNode in payload.nodes) {
+      TreeNode<T>? cursor = widget.node.parent;
+      while (cursor != null) {
+        if (cursor.id == draggedNode.id) {
+          return false;
+        }
+        cursor = cursor.parent;
+      }
+    }
 
     // Let the data model override if it implements SuperTreeData
     final targetData = widget.node.data;
@@ -219,14 +251,37 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
       if (position == NodeDropPosition.inside && !targetData.canHaveChildren) {
         return false;
       }
-      if (!targetData.canAcceptDrop(draggedNode.data, position)) {
+      if (payload.isBatch) {
+        if (!targetData.canAcceptDropMany(
+          payload.nodes.map((TreeNode<T> node) => node.data).toList(growable: false),
+          position,
+        )) {
+          return false;
+        }
+      } else if (!targetData.canAcceptDrop(payload.primaryNode.data, position)) {
         return false;
       }
     }
 
-    // Let the logic override if needed
+    // Let optional logic-level guards override defaults.
+    if (payload.isBatch) {
+      if (widget.canAcceptDropMany != null) {
+        return widget.canAcceptDropMany!(payload.nodes, widget.node, position);
+      }
+
+      if (widget.canAcceptDrop != null) {
+        for (final TreeNode<T> draggedNode in payload.nodes) {
+          if (!widget.canAcceptDrop!(draggedNode, widget.node, position)) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    }
+
     if (widget.canAcceptDrop != null) {
-      return widget.canAcceptDrop!(draggedNode, widget.node, position);
+      return widget.canAcceptDrop!(payload.primaryNode, widget.node, position);
     }
 
     return true;
@@ -238,7 +293,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
     if (!widget.enabled) return widget.child;
     return LayoutBuilder(
       builder: (context, constraints) {
-        return DragTarget<TreeNode<T>>(
+        return DragTarget<TreeDragPayload<T>>(
           onWillAcceptWithDetails: (details) {
             return _resolveDropPosition(details.data, details.offset) != null;
           },
@@ -271,7 +326,8 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             // Dynamic drop validation
             NodeDropPosition? validatedPosition = _currentHoverPosition;
             if (validatedPosition != null && candidateData.isNotEmpty) {
-              final draggedNode = candidateData.first!;
+              final TreeDragPayload<T> payload = candidateData.first!;
+              final TreeNode<T> draggedNode = payload.primaryNode;
 
               // Cycle check in builder for visual feedback
               bool createsCycle = false;
@@ -289,16 +345,52 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
               } else {
                 final targetData = widget.node.data;
                 if (targetData is SuperTreeData) {
+                  final NodeDropPosition currentPosition = validatedPosition;
                   if (validatedPosition == NodeDropPosition.inside &&
                       !targetData.canHaveChildren) {
                     validatedPosition = null;
-                  } else if (!targetData.canAcceptDrop(draggedNode.data, validatedPosition)) {
+                  } else if (payload.isBatch) {
+                    if (!targetData.canAcceptDropMany(
+                      payload.nodes
+                          .map((TreeNode<T> node) => node.data)
+                          .toList(growable: false),
+                      currentPosition,
+                    )) {
+                      validatedPosition = null;
+                    }
+                  } else if (!targetData.canAcceptDrop(draggedNode.data, currentPosition)) {
                     validatedPosition = null;
                   }
                 }
 
                 if (validatedPosition != null && widget.canAcceptDrop != null) {
-                  if (!widget.canAcceptDrop!(draggedNode, widget.node, validatedPosition)) {
+                  final NodeDropPosition currentPosition = validatedPosition;
+                  if (payload.isBatch) {
+                    if (widget.canAcceptDropMany != null) {
+                      if (!widget.canAcceptDropMany!(
+                        payload.nodes,
+                        widget.node,
+                        currentPosition,
+                      )) {
+                        validatedPosition = null;
+                      }
+                    } else {
+                      for (final TreeNode<T> draggedItem in payload.nodes) {
+                        if (!widget.canAcceptDrop!(
+                          draggedItem,
+                          widget.node,
+                          currentPosition,
+                        )) {
+                          validatedPosition = null;
+                          break;
+                        }
+                      }
+                    }
+                  } else if (!widget.canAcceptDrop!(
+                    draggedNode,
+                    widget.node,
+                    currentPosition,
+                  )) {
                     validatedPosition = null;
                   }
                 }
@@ -306,10 +398,13 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             }
 
             // Check if draggable at all
-            final draggedData = widget.node.data;
             bool canDrag = true;
-            if (draggedData is SuperTreeData) {
-              canDrag = draggedData.canBeDragged;
+            for (final TreeNode<T> dragNode in widget.dragNodes) {
+              final Object? draggedData = dragNode.data;
+              if (draggedData is SuperTreeData && !draggedData.canBeDragged) {
+                canDrag = false;
+                break;
+              }
             }
 
             if (!canDrag) {
@@ -318,8 +413,11 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
 
             return LayoutBuilder(
               builder: (context, constraints) {
-                return Draggable<TreeNode<T>>(
-                  data: widget.node,
+                return Draggable<TreeDragPayload<T>>(
+                  data: TreeDragPayload<T>(
+                    primaryNode: widget.node,
+                    nodes: widget.dragNodes,
+                  ),
                   dragAnchorStrategy: pointerDragAnchorStrategy,
                   feedback: Material(
                     elevation: 8,

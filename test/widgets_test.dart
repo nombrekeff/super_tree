@@ -267,7 +267,7 @@ void main() {
       final Finder betaDragTarget = find.ancestor(
         of: find.text('Beta'),
         matching: find.byWidgetPredicate(
-          (Widget widget) => widget is DragTarget<TreeNode<String>>,
+          (Widget widget) => widget is DragTarget<TreeDragPayload<String>>,
         ),
       );
       final Rect betaRect = tester.getRect(betaDragTarget);
@@ -320,7 +320,8 @@ void main() {
       final Finder folderDragTarget = find.ancestor(
         of: find.text('folder'),
         matching: find.byWidgetPredicate(
-          (Widget widget) => widget is DragTarget<TreeNode<FileSystemItem>>,
+          (Widget widget) =>
+              widget is DragTarget<TreeDragPayload<FileSystemItem>>,
         ),
       );
       final Rect folderRect = tester.getRect(folderDragTarget);
@@ -328,7 +329,8 @@ void main() {
       final Finder fileDragTarget = find.ancestor(
         of: find.text('README.md'),
         matching: find.byWidgetPredicate(
-          (Widget widget) => widget is DragTarget<TreeNode<FileSystemItem>>,
+          (Widget widget) =>
+              widget is DragTarget<TreeDragPayload<FileSystemItem>>,
         ),
       );
       final Rect fileRect = tester.getRect(fileDragTarget);
@@ -483,6 +485,128 @@ void main() {
       expect(smallThresholdOffset, equals(0));
       expect(largeThresholdOffset, greaterThan(0));
     });
+
+    testWidgets(
+      'Dragging selected node in multi-select mode uses batch payload',
+      (WidgetTester tester) async {
+        List<String> observedDraggedIds = <String>[];
+
+        final TreeController<String> controller = TreeController<String>(
+          roots: <TreeNode<String>>[
+            TreeNode<String>(id: 'node_alpha', data: 'Alpha'),
+            TreeNode<String>(id: 'node_beta', data: 'Beta'),
+            TreeNode<String>(id: 'node_gamma', data: 'Gamma'),
+          ],
+        );
+
+        await tester.pumpWidget(
+          createTestableWidget(
+            SuperTreeView<String>(
+              controller: controller,
+              prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                return const SizedBox.shrink();
+              },
+              contentBuilder:
+                  (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                    return Text(node.data);
+                  },
+              logic: TreeViewConfig<String>(
+                enableDragAndDrop: true,
+                selectionMode: SelectionMode.multiple,
+                canAcceptDropMany:
+                    (
+                      List<TreeNode<String>> draggedNodes,
+                      TreeNode<String> targetNode,
+                      NodeDropPosition position,
+                    ) {
+                      observedDraggedIds = draggedNodes
+                          .map((TreeNode<String> node) => node.id)
+                          .toList(growable: false);
+                      return true;
+                    },
+              ),
+            ),
+          ),
+        );
+
+        controller.setSelectedNodeId('node_alpha');
+        controller.toggleSelection('node_beta');
+        await tester.pumpAndSettle();
+
+        final Offset alphaCenter = tester.getCenter(find.text('Alpha'));
+        final Offset gammaCenter = tester.getCenter(find.text('Gamma'));
+
+        await tester.dragFrom(alphaCenter, gammaCenter - alphaCenter);
+        await tester.pumpAndSettle();
+
+        expect(observedDraggedIds, <String>['node_alpha', 'node_beta']);
+      },
+    );
+
+    testWidgets(
+      'Dragging unselected node in multi-select mode stays single-node',
+      (WidgetTester tester) async {
+        String? observedDraggedId;
+        bool batchCallbackTriggered = false;
+
+        final TreeController<String> controller = TreeController<String>(
+          roots: <TreeNode<String>>[
+            TreeNode<String>(id: 'node_alpha', data: 'Alpha'),
+            TreeNode<String>(id: 'node_beta', data: 'Beta'),
+            TreeNode<String>(id: 'node_gamma', data: 'Gamma'),
+          ],
+        );
+
+        await tester.pumpWidget(
+          createTestableWidget(
+            SuperTreeView<String>(
+              controller: controller,
+              prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                return const SizedBox.shrink();
+              },
+              contentBuilder:
+                  (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                    return Text(node.data);
+                  },
+              logic: TreeViewConfig<String>(
+                enableDragAndDrop: true,
+                selectionMode: SelectionMode.multiple,
+                canAcceptDrop: (
+                  TreeNode<String> draggedNode,
+                  TreeNode<String> targetNode,
+                  NodeDropPosition position,
+                ) {
+                  observedDraggedId = draggedNode.id;
+                  return true;
+                },
+                canAcceptDropMany:
+                    (
+                      List<TreeNode<String>> draggedNodes,
+                      TreeNode<String> targetNode,
+                      NodeDropPosition position,
+                    ) {
+                      batchCallbackTriggered = true;
+                      return true;
+                    },
+              ),
+            ),
+          ),
+        );
+
+        controller.setSelectedNodeId('node_alpha');
+        controller.toggleSelection('node_beta');
+        await tester.pumpAndSettle();
+
+        final Offset gammaCenter = tester.getCenter(find.text('Gamma'));
+        final Offset betaCenter = tester.getCenter(find.text('Beta'));
+
+        await tester.dragFrom(gammaCenter, betaCenter - gammaCenter);
+        await tester.pumpAndSettle();
+
+        expect(observedDraggedId, 'node_gamma');
+        expect(batchCallbackTriggered, isFalse);
+      },
+    );
 
     testWidgets('Keyboard interactions work after tapping tree content', (
       WidgetTester tester,

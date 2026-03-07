@@ -10,7 +10,8 @@ export 'src/widgets/super_tree_view.dart';
 export 'src/widgets/super_tree_node_widget.dart';
 export 'src/widgets/tree_highlighted_label.dart';
 export 'src/widgets/context_menu_overlay.dart';
-export 'src/widgets/tree_drag_and_drop_wrapper.dart' show NodeDropPosition;
+export 'src/widgets/tree_drag_and_drop_wrapper.dart'
+	show NodeDropPosition, TreeDragPayload;
 export 'src/models/prebuilt/todo_item.dart';
 export 'src/configs/icon_provider.dart';
 export 'src/configs/file_system_icon_provider.dart';

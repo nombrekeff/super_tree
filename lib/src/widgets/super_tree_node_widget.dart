@@ -297,6 +297,56 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     );
   }
 
+  List<TreeNode<T>> _resolveDragNodes(bool isSelected) {
+    final bool canUseMultiSelection =
+        widget.logic.selectionMode == SelectionMode.multiple;
+    if (!canUseMultiSelection || !isSelected) {
+      return <TreeNode<T>>[widget.node];
+    }
+
+    final List<TreeNode<T>> selectedNodes = widget.controller
+        .getSelectedNodesInVisibleOrder(topLevelOnly: true);
+    if (selectedNodes.length <= 1) {
+      return <TreeNode<T>>[widget.node];
+    }
+
+    final bool containsCurrentNode = selectedNodes.any(
+      (TreeNode<T> node) => node.id == widget.node.id,
+    );
+    if (!containsCurrentNode) {
+      return <TreeNode<T>>[widget.node];
+    }
+
+    return selectedNodes;
+  }
+
+  void _handleDrop(
+    TreeDragPayload<T> payload,
+    TreeNode<T> targetNode,
+    NodeDropPosition position,
+  ) {
+    final List<TreeNode<T>> draggedNodes = payload.nodes;
+    final bool insertBefore = position == NodeDropPosition.above;
+    final bool nestInside = position == NodeDropPosition.inside;
+
+    if (draggedNodes.length > 1) {
+      widget.controller.moveNodes(
+        draggedNodes: draggedNodes,
+        target: targetNode,
+        insertBefore: insertBefore,
+        nestInside: nestInside,
+      );
+      return;
+    }
+
+    widget.controller.moveNode(
+      dragged: payload.primaryNode,
+      target: targetNode,
+      insertBefore: insertBefore,
+      nestInside: nestInside,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double paddingLeft = widget.style.indentAmount * widget.node.depth;
@@ -306,10 +356,12 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     final TreeIntegrityIssue? integrityIssue = widget.controller.getIntegrityIssueForNode(
       widget.node.id,
     );
+    final List<TreeNode<T>> dragNodes = _resolveDragNodes(isSelected);
 
     return TreeDragAndDropWrapper<T>(
       node: widget.node,
       enabled: widget.logic.enableDragAndDrop,
+      dragNodes: dragNodes,
       style: widget.style,
       edgeDropBandFraction: widget.logic.dropEdgeBandFraction,
       edgeDropBandFractionForLeaf: widget.logic.dropEdgeBandFractionForLeaf,
@@ -318,30 +370,8 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       autoScrollEdgeThresholdPx: widget.logic.dragAutoScrollEdgeThresholdPx,
       autoScrollMaxStepPx: widget.logic.dragAutoScrollMaxStepPx,
       canAcceptDrop: widget.logic.canAcceptDrop,
-      onDrop: (TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position) {
-        if (position == NodeDropPosition.inside) {
-          widget.controller.moveNode(
-            dragged: draggedNode,
-            target: targetNode,
-            insertBefore: false,
-            nestInside: true,
-          );
-        } else if (position == NodeDropPosition.above) {
-          widget.controller.moveNode(
-            dragged: draggedNode,
-            target: targetNode,
-            insertBefore: true,
-            nestInside: false,
-          );
-        } else {
-          widget.controller.moveNode(
-            dragged: draggedNode,
-            target: targetNode,
-            insertBefore: false,
-            nestInside: false,
-          );
-        }
-      },
+      canAcceptDropMany: widget.logic.canAcceptDropMany,
+      onDrop: _handleDrop,
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovering = true),
         onExit: (_) => setState(() => _isHovering = false),
