@@ -65,6 +65,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   late TreeController<FileSystemItem> _controller;
   late TreeSearchController<FileSystemItem> _searchController;
   late ExampleTreeSearchLogic<FileSystemItem> _searchUi;
+  late FuzzyTreeFilter<FileSystemItem> _fileSearchFilter;
   SortOption _currentSort = SortOption.none;
 
   @override
@@ -139,11 +140,19 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         ),
       ],
     );
+    _fileSearchFilter = FuzzyTreeFilter<FileSystemItem>(
+      customMatchers: <TreeFilterCustomMatcher<FileSystemItem>>[
+        FuzzyTreeFilter.extensionSuffixMatcher<FileSystemItem>(
+          nodePredicate: (TreeNode<FileSystemItem> node) => !node.data.isFolder,
+        ),
+      ],
+    );
+
     _searchController = TreeSearchController<FileSystemItem>(
       treeController: _controller,
       labelProvider: (FileSystemItem item) => item.name,
       expansionBehavior: TreeSearchExpansionBehavior.expandMatchesAndAncestors,
-      searchMatcher: _fileSearchMatcher,
+      searchMatcher: _fileSearchFilter.asSearchMatcher(),
     );
     _searchUi = ExampleTreeSearchLogic<FileSystemItem>(
       searchController: _searchController,
@@ -156,34 +165,6 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     _searchController.dispose();
     _controller.dispose();
     super.dispose();
-  }
-
-  TreeFuzzyMatchResult? _fileSearchMatcher(
-    String query,
-    TreeNode<FileSystemItem> node,
-    String candidate,
-  ) {
-    final String normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
-    }
-
-    // If user types an extension query (e.g. ".dart"), prefer suffix matches.
-    if (normalized.startsWith('.') && !node.data.isFolder) {
-      final String lowerCandidate = candidate.toLowerCase();
-      if (lowerCandidate.endsWith(normalized)) {
-        final int start = lowerCandidate.length - normalized.length;
-        return TreeFuzzyMatchResult(
-          score: 0,
-          matchedIndices: List<int>.generate(
-            normalized.length,
-            (int i) => start + i,
-          ),
-        );
-      }
-    }
-
-    return defaultTreeFuzzyMatcher(normalized, candidate);
   }
 
   void _openSearch() {

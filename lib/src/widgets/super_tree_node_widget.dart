@@ -5,6 +5,7 @@ import 'package:super_tree/src/configs/tree_view_style.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_node_semantics.dart';
 import 'package:super_tree/src/widgets/super_tree_rename_field.dart';
 import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
 
@@ -301,6 +302,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     final double paddingLeft = widget.style.indentAmount * widget.node.depth;
     final bool canExpand =
         widget.node.hasChildren || widget.controller.canNodeLoadChildren(widget.node);
+    final bool isSelected = widget.controller.selectedNodeIds.contains(widget.node.id);
     final TreeIntegrityIssue? integrityIssue = widget.controller.getIntegrityIssueForNode(
       widget.node.id,
     );
@@ -312,6 +314,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       edgeDropBandFraction: widget.logic.dropEdgeBandFraction,
       edgeDropBandFractionForLeaf: widget.logic.dropEdgeBandFractionForLeaf,
       dropPositionHysteresisPx: widget.logic.dropPositionHysteresisPx,
+      enableAutoScroll: widget.logic.enableDragAutoScroll,
+      autoScrollEdgeThresholdPx: widget.logic.dragAutoScrollEdgeThresholdPx,
+      autoScrollMaxStepPx: widget.logic.dragAutoScrollMaxStepPx,
       canAcceptDrop: widget.logic.canAcceptDrop,
       onDrop: (TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position) {
         if (position == NodeDropPosition.inside) {
@@ -350,74 +355,80 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
               ? _handleDoubleTap
               : null,
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            padding: EdgeInsets.only(
-              left: widget.style.padding.horizontal / 2 + paddingLeft,
-              right: widget.style.padding.horizontal / 2,
-              top: widget.style.padding.vertical / 2,
-              bottom: widget.style.padding.vertical / 2,
-            ),
-            decoration: BoxDecoration(
-              color: widget.controller.selectedNodeIds.contains(widget.node.id)
-                  ? widget.style.selectedColor
-                  : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
-                  ? widget.style.hoverColor
-                  : widget.style.idleColor,
-              border: Border.all(
-                color: widget.controller.renamingNodeId == widget.node.id
-                    ? Theme.of(context).colorScheme.primary.withAlpha(204)
-                    : Colors.transparent,
-                width: 2.0,
+          child: SuperTreeNodeSemantics<T>(
+            node: widget.node,
+            canExpand: canExpand,
+            isSelected: isSelected,
+            labelProvider: widget.labelProvider,
+            child: Container(
+              padding: EdgeInsets.only(
+                left: widget.style.padding.horizontal / 2 + paddingLeft,
+                right: widget.style.padding.horizontal / 2,
+                top: widget.style.padding.vertical / 2,
+                bottom: widget.style.padding.vertical / 2,
               ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (canExpand)
-                  GestureDetector(
-                    onTap: _handleIconTap,
-                    behavior: HitTestBehavior.opaque,
-                    child: KeyedSubtree(
-                      key: Key('expansion_caret_${widget.node.id}'),
-                      child: _buildExpansionSlot(context),
-                    ),
-                  )
-                else
-                  SizedBox(width: widget.expansionSlotSize),
-
-                // Prefix (e.g. File/Folder icon)
-                widget.prefixBuilder(context, widget.node),
-
-                const SizedBox(width: 8),
-
-                // Content
-                Expanded(
-                  child: widget.contentBuilder(
-                    context,
-                    widget.node,
-                    widget.controller.renamingNodeId == widget.node.id
-                        ? _buildRenameField(context)
-                        : null,
-                  ),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? widget.style.selectedColor
+                    : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
+                    ? widget.style.hoverColor
+                    : widget.style.idleColor,
+                border: Border.all(
+                  color: widget.controller.renamingNodeId == widget.node.id
+                      ? Theme.of(context).colorScheme.primary.withAlpha(204)
+                      : Colors.transparent,
+                  width: 2.0,
                 ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (canExpand)
+                    GestureDetector(
+                      onTap: _handleIconTap,
+                      behavior: HitTestBehavior.opaque,
+                      child: KeyedSubtree(
+                        key: Key('expansion_caret_${widget.node.id}'),
+                        child: _buildExpansionSlot(context),
+                      ),
+                    )
+                  else
+                    SizedBox(width: widget.expansionSlotSize),
 
-                if (integrityIssue != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 6),
-                    child: Tooltip(
-                      message: integrityIssue.message,
-                      child: Icon(
-                        Icons.error_outline,
-                        color: Theme.of(context).colorScheme.error,
-                        size: 16,
+                  // Prefix (e.g. File/Folder icon)
+                  widget.prefixBuilder(context, widget.node),
+
+                  const SizedBox(width: 8),
+
+                  // Content
+                  Expanded(
+                    child: widget.contentBuilder(
+                      context,
+                      widget.node,
+                      widget.controller.renamingNodeId == widget.node.id
+                          ? _buildRenameField(context)
+                          : null,
+                    ),
+                  ),
+
+                  if (integrityIssue != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Tooltip(
+                        message: integrityIssue.message,
+                        child: Icon(
+                          Icons.error_outline,
+                          color: Theme.of(context).colorScheme.error,
+                          size: 16,
+                        ),
                       ),
                     ),
-                  ),
 
-                // Trailing Actions
-                if (widget.trailingBuilder != null)
-                  widget.trailingBuilder!(context, widget.node),
-              ],
+                  // Trailing Actions
+                  if (widget.trailingBuilder != null)
+                    widget.trailingBuilder!(context, widget.node),
+                ],
+              ),
             ),
           ),
         ),

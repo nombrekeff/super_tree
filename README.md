@@ -65,6 +65,40 @@ controller.expandAll();
 controller.addRoot(newNode);
 ```
 
+### Built-In Fuzzy Filtering
+
+`super_tree` includes reusable fuzzy-search primitives (`TreeSearchController`,
+`defaultTreeFuzzyMatcher`) and a composable `FuzzyTreeFilter` helper for
+keyword rules and custom matcher hooks.
+
+```dart
+final FuzzyTreeFilter<TodoItem> filter = FuzzyTreeFilter<TodoItem>(
+  keywordRules: <TreeFilterKeywordRule<TodoItem>>[
+    TreeFilterKeywordRule<TodoItem>(
+      keywords: <String>{'done', 'completed'},
+      predicate: (TreeNode<TodoItem> node) => node.data.isCompleted,
+    ),
+    TreeFilterKeywordRule<TodoItem>(
+      keywords: <String>{'open', 'pending'},
+      predicate: (TreeNode<TodoItem> node) => !node.data.isCompleted,
+    ),
+  ],
+);
+
+final TreeSearchController<TodoItem> searchController =
+    TreeSearchController<TodoItem>(
+      treeController: controller,
+      labelProvider: (TodoItem item) => item.title,
+      searchMatcher: filter.asSearchMatcher(),
+      expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
+    );
+```
+
+Behavior notes:
+- Empty query: `FuzzyTreeFilter` returns a zero-score empty-highlight match; in normal usage call `searchController.clearSearch()` to restore unfiltered state.
+- No match: search keeps the current query active and shows no visible nodes until the query changes or is cleared.
+- Extension queries: use `FuzzyTreeFilter.extensionSuffixMatcher` to support terms like `.dart` for file-like trees.
+
 ## Examples
 
 Check the [example project](example/lib/main.dart) for comprehensive demonstrations including:

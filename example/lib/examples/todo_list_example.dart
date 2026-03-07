@@ -15,6 +15,7 @@ class _TodoListExampleState extends State<TodoListExample> {
   late final TreeController<TodoItem> _controller;
   late final TreeSearchController<TodoItem> _searchController;
   late final ExampleTreeSearchLogic<TodoItem> _searchUi;
+  late final FuzzyTreeFilter<TodoItem> _todoSearchFilter;
 
   @override
   void initState() {
@@ -66,11 +67,24 @@ class _TodoListExampleState extends State<TodoListExample> {
       ],
     );
 
+    _todoSearchFilter = FuzzyTreeFilter<TodoItem>(
+      keywordRules: <TreeFilterKeywordRule<TodoItem>>[
+        TreeFilterKeywordRule<TodoItem>(
+          keywords: <String>{'done', 'completed'},
+          predicate: (TreeNode<TodoItem> node) => node.data.isCompleted,
+        ),
+        TreeFilterKeywordRule<TodoItem>(
+          keywords: <String>{'open', 'pending'},
+          predicate: (TreeNode<TodoItem> node) => !node.data.isCompleted,
+        ),
+      ],
+    );
+
     _searchController = TreeSearchController<TodoItem>(
       treeController: _controller,
       labelProvider: (TodoItem item) => item.title,
       expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
-      searchMatcher: _todoSearchMatcher,
+      searchMatcher: _todoSearchFilter.asSearchMatcher(),
     );
     _searchUi = ExampleTreeSearchLogic<TodoItem>(
       searchController: _searchController,
@@ -83,33 +97,6 @@ class _TodoListExampleState extends State<TodoListExample> {
     _searchController.dispose();
     _controller.dispose();
     super.dispose();
-  }
-
-  TreeFuzzyMatchResult? _todoSearchMatcher(
-    String query,
-    TreeNode<TodoItem> node,
-    String candidate,
-  ) {
-    final TreeFuzzyMatchResult? match = defaultTreeFuzzyMatcher(query, candidate);
-    if (match != null) {
-      return match;
-    }
-
-    // Support quick status search terms.
-    final String normalized = query.trim().toLowerCase();
-    if (normalized == 'done' || normalized == 'completed') {
-      if (node.data.isCompleted) {
-        return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
-      }
-    }
-
-    if (normalized == 'open' || normalized == 'pending') {
-      if (!node.data.isCompleted) {
-        return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
-      }
-    }
-
-    return null;
   }
 
   void _openSearch() {

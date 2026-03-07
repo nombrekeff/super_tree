@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_tree/super_tree.dart';
@@ -342,6 +343,147 @@ void main() {
       expect(controller.roots.first.children, isEmpty);
     });
 
+    testWidgets('Drag near bottom edge auto-scrolls viewport', (
+      WidgetTester tester,
+    ) async {
+      final ScrollController scrollController = ScrollController();
+
+      addTearDown(() {
+        scrollController.dispose();
+      });
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: List<TreeNode<String>>.generate(
+          30,
+          (int index) => TreeNode<String>(id: 'node_$index', data: 'Node $index'),
+        ),
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              height: 220,
+              child: SuperTreeView<String>(
+                controller: controller,
+                scrollController: scrollController,
+                prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                  return const SizedBox.shrink();
+                },
+                contentBuilder:
+                    (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                      return Text(node.data);
+                    },
+                logic: const TreeViewConfig<String>(
+                  enableDragAndDrop: true,
+                  enableDragAutoScroll: true,
+                  dragAutoScrollEdgeThresholdPx: 48,
+                  dragAutoScrollMaxStepPx: 18,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      final Offset start = tester.getCenter(find.text('Node 0'));
+      final Finder treeFinder = find.byType(SuperTreeView<String>);
+      final Rect treeRect = tester.getRect(treeFinder);
+      final Offset bottomEdgePoint = Offset(start.dx, treeRect.bottom - 2);
+
+      final TestGesture gesture = await tester.startGesture(start);
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 30));
+      await tester.pump(const Duration(milliseconds: 16));
+
+      for (int i = 0; i < 12; i++) {
+        await gesture.moveTo(bottomEdgePoint);
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(scrollController.offset, greaterThan(0));
+    });
+
+    testWidgets('Drag auto-scroll threshold tuning changes edge sensitivity', (
+      WidgetTester tester,
+    ) async {
+      Future<double> runScenario(double thresholdPx) async {
+        final ScrollController scenarioScrollController = ScrollController();
+        final TreeController<String> scenarioController = TreeController<String>(
+          roots: List<TreeNode<String>>.generate(
+            30,
+            (int index) => TreeNode<String>(id: 'n_$index', data: 'Item $index'),
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                height: 220,
+                child: SuperTreeView<String>(
+                  controller: scenarioController,
+                  scrollController: scenarioScrollController,
+                  prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                    return const SizedBox.shrink();
+                  },
+                  contentBuilder:
+                      (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                        return Text(node.data);
+                      },
+                  logic: TreeViewConfig<String>(
+                    enableDragAndDrop: true,
+                    enableDragAutoScroll: true,
+                    dragAutoScrollEdgeThresholdPx: thresholdPx,
+                    dragAutoScrollMaxStepPx: 16,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        final Offset start = tester.getCenter(find.text('Item 0'));
+        final Rect treeRect = tester.getRect(find.byType(SuperTreeView<String>));
+        final Offset nearBottomButNotEdge = Offset(start.dx, treeRect.bottom - 20);
+
+        final TestGesture gesture = await tester.startGesture(start);
+        await tester.pump();
+        await gesture.moveBy(const Offset(0, 30));
+        await tester.pump(const Duration(milliseconds: 16));
+
+        for (int i = 0; i < 10; i++) {
+          await gesture.moveTo(nearBottomButNotEdge);
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        final double offset = scenarioScrollController.offset;
+        scenarioScrollController.dispose();
+        scenarioController.dispose();
+        return offset;
+      }
+
+      final double smallThresholdOffset = await runScenario(8);
+      final double largeThresholdOffset = await runScenario(48);
+
+      expect(smallThresholdOffset, equals(0));
+      expect(largeThresholdOffset, greaterThan(0));
+    });
+
     testWidgets('Keyboard interactions work after tapping tree content', (
       WidgetTester tester,
     ) async {
@@ -384,6 +526,137 @@ void main() {
       await tester.pump();
 
       expect(controller.selectedNodeId, 'root_2');
+    });
+
+    testWidgets('Tree nodes expose accessibility semantics metadata', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(
+            id: 'root_1',
+            data: 'Root 1',
+            children: <TreeNode<String>>[
+              TreeNode<String>(id: 'child_1', data: 'Child 1'),
+            ],
+          ),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      final SemanticsHandle semanticsHandle = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          createTestableWidget(
+            SuperTreeView<String>(
+              controller: controller,
+              prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                return const Icon(Icons.chevron_right);
+              },
+              contentBuilder:
+                  (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                    return Text(node.data);
+                  },
+            ),
+          ),
+        );
+
+        final Finder semanticsFinder = find.byKey(const Key('tree_node_semantics_root_1'));
+        final SemanticsData initialData = tester.getSemantics(semanticsFinder).getSemanticsData();
+        expect(initialData.label, contains('Root 1, Depth 1, Collapsed, Not selected'));
+        expect(initialData.flagsCollection.hasExpandedState, isTrue);
+        expect(initialData.flagsCollection.isExpanded, isFalse);
+        expect(initialData.flagsCollection.hasSelectedState, isTrue);
+        expect(initialData.flagsCollection.isSelected, isFalse);
+
+        await tester.tap(find.text('Root 1'));
+        await tester.pumpAndSettle();
+
+        final SemanticsData selectedData = tester.getSemantics(semanticsFinder).getSemanticsData();
+        expect(selectedData.label, contains('Root 1, Depth 1, Expanded, Selected'));
+        expect(selectedData.flagsCollection.hasExpandedState, isTrue);
+        expect(selectedData.flagsCollection.isExpanded, isTrue);
+        expect(selectedData.flagsCollection.hasSelectedState, isTrue);
+        expect(selectedData.flagsCollection.isSelected, isTrue);
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('Keyboard navigation updates accessibility selected semantics', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(id: 'root_1', data: 'Root 1'),
+          TreeNode<String>(id: 'root_2', data: 'Root 2'),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      final SemanticsHandle semanticsHandle = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          createTestableWidget(
+            SuperTreeView<String>(
+              controller: controller,
+              prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                return const Icon(Icons.chevron_right);
+              },
+              contentBuilder:
+                  (BuildContext context, TreeNode<String> node, Widget? renameField) {
+                    return Text(node.data);
+                  },
+            ),
+          ),
+        );
+
+        final Finder rootOneSemanticsFinder = find.byKey(
+          const Key('tree_node_semantics_root_1'),
+        );
+        final Finder rootTwoSemanticsFinder = find.byKey(
+          const Key('tree_node_semantics_root_2'),
+        );
+
+        await tester.tap(find.text('Root 1'));
+        await tester.pumpAndSettle();
+
+        final SemanticsData rootOneSelectedData = tester
+            .getSemantics(rootOneSemanticsFinder)
+            .getSemanticsData();
+        expect(rootOneSelectedData.label, contains('Root 1, Depth 1, Leaf, Selected'));
+        expect(rootOneSelectedData.flagsCollection.hasExpandedState, isFalse);
+        expect(rootOneSelectedData.flagsCollection.hasSelectedState, isTrue);
+        expect(rootOneSelectedData.flagsCollection.isSelected, isTrue);
+
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pumpAndSettle();
+
+        final SemanticsData rootOneAfterMoveData = tester
+            .getSemantics(rootOneSemanticsFinder)
+            .getSemanticsData();
+        final SemanticsData rootTwoAfterMoveData = tester
+            .getSemantics(rootTwoSemanticsFinder)
+            .getSemanticsData();
+
+        expect(rootOneAfterMoveData.label, contains('Root 1, Depth 1, Leaf, Not selected'));
+        expect(rootOneAfterMoveData.flagsCollection.hasExpandedState, isFalse);
+        expect(rootOneAfterMoveData.flagsCollection.hasSelectedState, isTrue);
+        expect(rootOneAfterMoveData.flagsCollection.isSelected, isFalse);
+        expect(rootTwoAfterMoveData.label, contains('Root 2, Depth 1, Leaf, Selected'));
+        expect(rootTwoAfterMoveData.flagsCollection.hasExpandedState, isFalse);
+        expect(rootTwoAfterMoveData.flagsCollection.hasSelectedState, isTrue);
+        expect(rootTwoAfterMoveData.flagsCollection.isSelected, isTrue);
+      } finally {
+        semanticsHandle.dispose();
+      }
     });
 
     testWidgets('Arrow right expands selected node and arrow left collapses it', (

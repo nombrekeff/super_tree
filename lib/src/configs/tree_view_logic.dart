@@ -89,6 +89,15 @@ class TreeViewConfig<T> {
   /// Pixel hysteresis around drop-zone boundaries to reduce flicker while dragging.
   final double dropPositionHysteresisPx;
 
+  /// Whether drag gestures should auto-scroll when pointer nears viewport edges.
+  final bool enableDragAutoScroll;
+
+  /// Distance from top/bottom viewport edge that triggers drag auto-scroll.
+  final double dragAutoScrollEdgeThresholdPx;
+
+  /// Maximum scroll delta per drag move while in auto-scroll edge zone.
+  final double dragAutoScrollMaxStepPx;
+
   /// Whether to print debug logs for lifecycle and state changes.
   final bool debugMode;
 
@@ -104,6 +113,9 @@ class TreeViewConfig<T> {
     this.dropEdgeBandFraction = 0.05,
     this.dropEdgeBandFractionForLeaf = 0.2,
     this.dropPositionHysteresisPx = 8.0,
+    this.enableDragAutoScroll = true,
+    this.dragAutoScrollEdgeThresholdPx = 48.0,
+    this.dragAutoScrollMaxStepPx = 20.0,
     this.debugMode = false,
   });
 
@@ -120,6 +132,9 @@ class TreeViewConfig<T> {
     double? dropEdgeBandFraction,
     double? dropEdgeBandFractionForLeaf,
     double? dropPositionHysteresisPx,
+    bool? enableDragAutoScroll,
+    double? dragAutoScrollEdgeThresholdPx,
+    double? dragAutoScrollMaxStepPx,
     bool? debugMode,
   }) {
     return TreeViewConfig<T>(
@@ -135,6 +150,11 @@ class TreeViewConfig<T> {
       dropEdgeBandFractionForLeaf:
           dropEdgeBandFractionForLeaf ?? this.dropEdgeBandFractionForLeaf,
       dropPositionHysteresisPx: dropPositionHysteresisPx ?? this.dropPositionHysteresisPx,
+      enableDragAutoScroll: enableDragAutoScroll ?? this.enableDragAutoScroll,
+      dragAutoScrollEdgeThresholdPx:
+          dragAutoScrollEdgeThresholdPx ?? this.dragAutoScrollEdgeThresholdPx,
+      dragAutoScrollMaxStepPx:
+          dragAutoScrollMaxStepPx ?? this.dragAutoScrollMaxStepPx,
       debugMode: debugMode ?? this.debugMode,
     );
   }

@@ -395,6 +395,42 @@ void main() {
         expect(docs.isExpanded, isFalse);
       },
     );
+
+    test('FuzzyTreeFilter supports keyword rules and extension matcher helpers', () {
+      final FuzzyTreeFilter<String> filter = FuzzyTreeFilter<String>(
+        keywordRules: <TreeFilterKeywordRule<String>>[
+          TreeFilterKeywordRule<String>(
+            keywords: <String>{'done'},
+            predicate: (TreeNode<String> node) => node.data.startsWith('DONE:'),
+          ),
+        ],
+        customMatchers: <TreeFilterCustomMatcher<String>>[
+          FuzzyTreeFilter.extensionSuffixMatcher<String>(
+            nodePredicate: (TreeNode<String> node) => !node.data.startsWith('DIR:'),
+          ),
+        ],
+      );
+
+      final TreeNode<String> doneNode = TreeNode<String>(id: 'done', data: 'DONE: release notes');
+      final TreeNode<String> fileNode = TreeNode<String>(id: 'file', data: 'README.md');
+      final TreeNode<String> folderNode = TreeNode<String>(id: 'folder', data: 'DIR: docs');
+
+      final TreeFuzzyMatchResult? doneMatch = filter.match('done', doneNode, doneNode.data);
+      final TreeFuzzyMatchResult? extensionMatch = filter.match('.md', fileNode, fileNode.data);
+      final TreeFuzzyMatchResult? extensionBlocked = filter.match('.md', folderNode, folderNode.data);
+      final TreeFuzzyMatchResult? emptyMatch = filter.match('', fileNode, fileNode.data);
+      final TreeFuzzyMatchResult? noMatch = filter.match('zzzz', fileNode, fileNode.data);
+
+      expect(doneMatch, isNotNull);
+      expect(doneMatch!.score, 0);
+      expect(doneMatch.matchedIndices, isEmpty);
+      expect(extensionMatch, isNotNull);
+      expect(extensionMatch!.matchedIndices, <int>[6, 7, 8]);
+      expect(extensionBlocked, isNull);
+      expect(emptyMatch, isNotNull);
+      expect(emptyMatch!.matchedIndices, isEmpty);
+      expect(noMatch, isNull);
+    });
   });
 
   group('TreeController State Persistence', () {

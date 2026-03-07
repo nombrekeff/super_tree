@@ -25,6 +25,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   final double edgeDropBandFraction;
   final double edgeDropBandFractionForLeaf;
   final double dropPositionHysteresisPx;
+  final bool enableAutoScroll;
+  final double autoScrollEdgeThresholdPx;
+  final double autoScrollMaxStepPx;
   final bool Function(
     TreeNode<T> draggedNode,
     TreeNode<T> targetNode,
@@ -47,6 +50,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
     this.edgeDropBandFraction = 0.05,
     this.edgeDropBandFractionForLeaf = 0.2,
     this.dropPositionHysteresisPx = 4.0,
+    this.enableAutoScroll = true,
+    this.autoScrollEdgeThresholdPx = 48.0,
+    this.autoScrollMaxStepPx = 20.0,
     this.canAcceptDrop,
     required this.onDrop,
   });
@@ -57,6 +63,63 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
 
 class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
   NodeDropPosition? _currentHoverPosition;
+
+  void _maybeAutoScroll(Offset globalOffset) {
+    if (!widget.enableAutoScroll) {
+      return;
+    }
+
+    final double edgeThreshold = widget.autoScrollEdgeThresholdPx;
+    final double maxStep = widget.autoScrollMaxStepPx;
+    if (edgeThreshold <= 0 || maxStep <= 0) {
+      return;
+    }
+
+    final ScrollableState? scrollable = Scrollable.maybeOf(context);
+    if (scrollable == null) {
+      return;
+    }
+
+    final ScrollPosition position = scrollable.position;
+    if (!position.hasPixels || !position.hasContentDimensions) {
+      return;
+    }
+
+    final RenderObject? scrollRenderObject = scrollable.context.findRenderObject();
+    if (scrollRenderObject is! RenderBox) {
+      return;
+    }
+
+    final Offset topLeft = scrollRenderObject.localToGlobal(Offset.zero);
+    final double viewportTop = topLeft.dy;
+    final double viewportBottom = viewportTop + scrollRenderObject.size.height;
+    final double distanceToTop = globalOffset.dy - viewportTop;
+    final double distanceToBottom = viewportBottom - globalOffset.dy;
+
+    double delta = 0;
+    if (distanceToTop < edgeThreshold) {
+      final double ratio = ((edgeThreshold - distanceToTop) / edgeThreshold).clamp(0.0, 1.0);
+      delta = -maxStep * ratio;
+    } else if (distanceToBottom < edgeThreshold) {
+      final double ratio =
+          ((edgeThreshold - distanceToBottom) / edgeThreshold).clamp(0.0, 1.0);
+      delta = maxStep * ratio;
+    }
+
+    if (delta == 0) {
+      return;
+    }
+
+    final double nextOffset = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (nextOffset == position.pixels) {
+      return;
+    }
+
+    position.jumpTo(nextOffset);
+  }
 
   double _clampEdgeFraction(double value) {
     return value.clamp(0.0, 0.49);
@@ -193,6 +256,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             setState(() => _currentHoverPosition = null);
           },
           onMove: (details) {
+            _maybeAutoScroll(details.offset);
             final NodeDropPosition? computedPosition = _resolveDropPosition(
               details.data,
               details.offset,
