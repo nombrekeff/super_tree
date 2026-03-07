@@ -271,6 +271,95 @@ void main() {
     });
   });
 
+  group('TreeController State Persistence', () {
+    TreeController<String> buildController() {
+      return TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(
+            id: 'root_1',
+            data: 'Root 1',
+            children: <TreeNode<String>>[
+              TreeNode<String>(id: 'child_1_1', data: 'Child 1.1'),
+              TreeNode<String>(id: 'child_1_2', data: 'Child 1.2'),
+            ],
+          ),
+          TreeNode<String>(id: 'root_2', data: 'Root 2'),
+        ],
+      );
+    }
+
+    test('toJson/fromJson roundtrip restores expanded and selected state', () {
+      final TreeController<String> source = buildController();
+      final TreeNode<String> root1 = source.findNodeById('root_1')!;
+
+      source.expandNode(root1);
+      source.setSelectedNodeId('root_1');
+      source.toggleSelection('root_2');
+
+      final Map<String, Object?> payload = source.toJson();
+
+      final TreeController<String> restored = buildController();
+      restored.fromJson(payload);
+
+      expect(restored.findNodeById('root_1')?.isExpanded, isTrue);
+      expect(restored.findNodeById('root_2')?.isExpanded, isFalse);
+      expect(restored.selectedNodeIds, <String>{'root_1', 'root_2'});
+      expect(restored.selectedNodeId, 'root_2');
+    });
+
+    test('fromJson ignores unknown and malformed values', () {
+      final TreeController<String> controller = buildController();
+
+      controller.fromJson(<String, Object?>{
+        'expandedNodeIds': <Object?>['root_1', 7, null, 'unknown'],
+        'selectedNodeIds': <Object?>['child_1_1', false, 'missing'],
+        'anchorNodeId': 123,
+      });
+
+      expect(controller.findNodeById('root_1')?.isExpanded, isTrue);
+      expect(controller.findNodeById('root_2')?.isExpanded, isFalse);
+      expect(controller.selectedNodeIds, <String>{'child_1_1'});
+      expect(controller.selectedNodeId, 'child_1_1');
+    });
+
+    test('fromJson with empty payload clears previous state', () {
+      final TreeController<String> controller = buildController();
+      controller.expandAll();
+      controller.setSelectedNodeId('root_1');
+
+      controller.fromJson(const <String, Object?>{});
+
+      expect(controller.findNodeById('root_1')?.isExpanded, isFalse);
+      expect(controller.findNodeById('child_1_1')?.isExpanded, isFalse);
+      expect(controller.selectedNodeIds, isEmpty);
+      expect(controller.selectedNodeId, isNull);
+    });
+
+    test('fromJson can be applied repeatedly without stale state', () {
+      final TreeController<String> controller = buildController();
+
+      controller.fromJson(<String, Object?>{
+        'expandedNodeIds': <String>['root_1'],
+        'selectedNodeIds': <String>['root_1'],
+        'anchorNodeId': 'root_1',
+      });
+
+      expect(controller.findNodeById('root_1')?.isExpanded, isTrue);
+      expect(controller.selectedNodeIds, <String>{'root_1'});
+
+      controller.fromJson(<String, Object?>{
+        'expandedNodeIds': <String>['root_2'],
+        'selectedNodeIds': <String>['root_2'],
+        'anchorNodeId': 'root_2',
+      });
+
+      expect(controller.findNodeById('root_1')?.isExpanded, isFalse);
+      expect(controller.findNodeById('root_2')?.isExpanded, isTrue);
+      expect(controller.selectedNodeIds, <String>{'root_2'});
+      expect(controller.selectedNodeId, 'root_2');
+    });
+  });
+
   group('TreeController Lazy Loading', () {
     test('toggleNodeExpansion lazy-loads children and expands node', () async {
       int loadCalls = 0;
