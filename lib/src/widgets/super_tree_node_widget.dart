@@ -220,6 +220,8 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
   @override
   Widget build(BuildContext context) {
     final double paddingLeft = widget.style.indentAmount * widget.node.depth;
+    final bool canExpand =
+        widget.node.hasChildren || widget.controller.canNodeLoadChildren(widget.node);
     
     return TreeDragAndDropWrapper<T>(
       node: widget.node,
@@ -282,7 +284,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                if (widget.node.hasChildren)
+                if (canExpand)
                   GestureDetector(
                     onTap: _handleIconTap,
                     behavior: HitTestBehavior.opaque,

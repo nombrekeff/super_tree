@@ -5,6 +5,7 @@ import 'examples/complex_node_example.dart';
 import 'examples/todo_list_example.dart';
 import 'examples/simple_file_system_example.dart';
 import 'examples/responsive_menu_example.dart';
+import 'examples/async_lazy_loading_example.dart';
 
 void main() {
   runApp(const MyApp());
@@ -80,6 +81,12 @@ class ExampleHubScreen extends StatelessWidget {
       description: 'Demonstrates mobile-friendly 3-dot menus versus desktop-friendly right-click context menus.',
       icon: Icons.menu_open,
       screen: ResponsiveMenuExample(),
+    ),
+    ExampleInfo(
+      title: 'Async Lazy Loading',
+      description: 'Shows on-demand child loading with spinner and error retry states when expanding nodes.',
+      icon: Icons.hourglass_top,
+      screen: AsyncLazyLoadingExample(),
     ),
   ];
 

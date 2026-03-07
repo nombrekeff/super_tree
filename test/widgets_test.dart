@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -347,6 +349,59 @@ void main() {
 
       expect(find.byType(RichText), findsOneWidget);
       expect(find.text('README.md'), findsNothing);
+    });
+
+    testWidgets('Lazy loading exposes spinner state via prefixBuilder', (WidgetTester tester) async {
+      final Completer<List<TreeNode<String>>> completer =
+          Completer<List<TreeNode<String>>>();
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(
+            id: 'lazy_root',
+            data: 'Lazy Root',
+            canLoadChildren: true,
+          ),
+        ],
+        loadChildren: (TreeNode<String> node) => completer.future,
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              if (controller.isNodeLoading(node.id)) {
+                return SizedBox(
+                  key: Key('loading_${node.id}'),
+                  width: 12,
+                  height: 12,
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                );
+              }
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('expansion_caret_lazy_root')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('loading_lazy_root')), findsOneWidget);
+
+      completer.complete(
+        <TreeNode<String>>[
+          TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('loading_lazy_root')), findsNothing);
+      expect(find.text('Lazy Child'), findsOneWidget);
     });
   });
 }

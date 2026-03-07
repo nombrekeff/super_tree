@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_tree/src/controllers/tree_search_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
@@ -266,6 +268,127 @@ void main() {
 
       expect(controller.hasActiveFilter, isFalse);
       expect(docs.isExpanded, isFalse);
+    });
+  });
+
+  group('TreeController Lazy Loading', () {
+    test('toggleNodeExpansion lazy-loads children and expands node', () async {
+      int loadCalls = 0;
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'lazy_root',
+        data: 'Lazy Root',
+        canLoadChildren: true,
+      );
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+        loadChildren: (TreeNode<String> node) async {
+          loadCalls++;
+          return <TreeNode<String>>[
+            TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
+          ];
+        },
+      );
+
+      await controller.toggleNodeExpansion(root);
+
+      expect(loadCalls, 1);
+      expect(root.isExpanded, isTrue);
+      expect(root.children.length, 1);
+      expect(controller.findNodeById('lazy_child'), isNotNull);
+      expect(controller.flatVisibleNodes.map((TreeNode<String> n) => n.id).toList(),
+          <String>['lazy_root', 'lazy_child']);
+    });
+
+    test('ensureNodeChildrenLoaded deduplicates in-flight requests', () async {
+      int loadCalls = 0;
+      final Completer<List<TreeNode<String>>> completer =
+          Completer<List<TreeNode<String>>>();
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'lazy_root',
+        data: 'Lazy Root',
+        canLoadChildren: true,
+      );
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+        loadChildren: (TreeNode<String> node) {
+          loadCalls++;
+          return completer.future;
+        },
+      );
+
+      final Future<void> first = controller.ensureNodeChildrenLoaded(root);
+      final Future<void> second = controller.ensureNodeChildrenLoaded(root);
+
+      expect(controller.isNodeLoading(root.id), isTrue);
+      expect(loadCalls, 1);
+
+      completer.complete(
+        <TreeNode<String>>[
+          TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
+        ],
+      );
+      await Future.wait(<Future<void>>[first, second]);
+
+      expect(loadCalls, 1);
+      expect(controller.isNodeLoading(root.id), isFalse);
+      expect(root.children.length, 1);
+    });
+
+    test('toggleNodeExpansion captures load errors and allows retry', () async {
+      int loadCalls = 0;
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'lazy_root',
+        data: 'Lazy Root',
+        canLoadChildren: true,
+      );
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+        loadChildren: (TreeNode<String> node) async {
+          loadCalls++;
+          if (loadCalls == 1) {
+            throw StateError('load failed');
+          }
+          return <TreeNode<String>>[
+            TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
+          ];
+        },
+      );
+
+      await controller.toggleNodeExpansion(root);
+
+      expect(controller.hasNodeLoadError(root.id), isTrue);
+      expect(root.isExpanded, isFalse);
+      expect(root.children, isEmpty);
+
+      await controller.toggleNodeExpansion(root);
+
+      expect(loadCalls, 2);
+      expect(controller.hasNodeLoadError(root.id), isFalse);
+      expect(root.isExpanded, isTrue);
+      expect(root.children.length, 1);
+    });
+
+    test('toggleNodeExpansion handles empty lazy result without expanding', () async {
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'lazy_root',
+        data: 'Lazy Root',
+        canLoadChildren: true,
+      );
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+        loadChildren: (TreeNode<String> node) async => <TreeNode<String>>[],
+      );
+
+      await controller.toggleNodeExpansion(root);
+
+      expect(root.isExpanded, isFalse);
+      expect(root.children, isEmpty);
+      expect(controller.canNodeLoadChildren(root), isFalse);
+      expect(controller.hasNodeLoadError(root.id), isFalse);
     });
   });
 }

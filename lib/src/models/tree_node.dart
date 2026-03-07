@@ -21,6 +21,11 @@ class TreeNode<T> {
   /// Whether this node is currently selected.
   bool isSelected;
 
+  /// Whether this node can lazily load children on first expansion.
+  ///
+  /// When true, UI may show an expansion affordance even if [children] is empty.
+  bool canLoadChildren;
+
   /// Reference to the parent node. Null if this is a root node.
   TreeNode<T>? parent;
 
@@ -38,6 +43,7 @@ class TreeNode<T> {
     List<TreeNode<T>>? children,
     this.isExpanded = false,
     this.isSelected = false,
+    this.canLoadChildren = false,
     this.isNew = false,
     this.parent,
   }) : id = id ?? 'node_${++_idCounter}',
@@ -84,6 +90,7 @@ class TreeNode<T> {
     List<TreeNode<T>>? children,
     bool? isExpanded,
     bool? isSelected,
+    bool? canLoadChildren,
     bool? isNew,
     TreeNode<T>? parent,
   }) {
@@ -93,6 +100,7 @@ class TreeNode<T> {
       children: children ?? _children.map((c) => c.copyWith()).toList(),
       isExpanded: isExpanded ?? this.isExpanded,
       isSelected: isSelected ?? this.isSelected,
+      canLoadChildren: canLoadChildren ?? this.canLoadChildren,
       isNew: isNew ?? this.isNew,
       parent: parent ?? this.parent,
     );

@@ -3,6 +3,22 @@ import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/models/tree_filtering.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 
+/// Callback used to lazily resolve children for a node.
+typedef TreeLoadChildrenCallback<T> = Future<List<TreeNode<T>>> Function(TreeNode<T> node);
+
+/// Read-only async UI state for a node.
+class TreeNodeAsyncState {
+  const TreeNodeAsyncState({
+    required this.isLoading,
+    required this.error,
+  });
+
+  final bool isLoading;
+  final Object? error;
+
+  bool get hasError => error != null;
+}
+
 class _FilterTraversalResult<T> {
   const _FilterTraversalResult({
     required this.visibleNodes,
@@ -21,6 +37,8 @@ class _FilterTraversalResult<T> {
 /// by a `ListView.builder` in the UI layer.
 class TreeController<T> extends ChangeNotifier {
   final List<TreeNode<T>> _roots;
+
+  final TreeLoadChildrenCallback<T>? _loadChildren;
   
   /// Optional comparator to keep the tree sorted.
   int Function(TreeNode<T> a, TreeNode<T> b)? _sortComparator;
@@ -37,6 +55,15 @@ class TreeController<T> extends ChangeNotifier {
   /// Index for O(1) node lookup by ID.
   final Map<String, TreeNode<T>> _nodeIndex = {};
 
+  /// Node IDs that have completed lazy loading at least once.
+  final Set<String> _lazyLoadedNodeIds = <String>{};
+
+  /// Node IDs that currently have a pending lazy-loading request.
+  final Set<String> _loadingNodeIds = <String>{};
+
+  /// Last loading error by node ID.
+  final Map<String, Object> _loadErrorsByNodeId = <String, Object>{};
+
   /// Creates a new [TreeController] initialized with optional [roots].
   /// 
   /// [sortComparator] can be used to keep the tree automatically sorted.
@@ -45,14 +72,26 @@ class TreeController<T> extends ChangeNotifier {
   TreeController({
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
+    TreeLoadChildrenCallback<T>? loadChildren,
     this.onNodeRenamed,
     this.onNodeDeleted,
   }) : _roots = roots ?? <TreeNode<T>>[],
-       _sortComparator = sortComparator {
+       _sortComparator = sortComparator,
+       _loadChildren = loadChildren {
     for (var root in _roots) {
       _indexNode(root);
+      _markInitialLoadedState(root);
     }
     _rebuildFlatList();
+  }
+
+  void _markInitialLoadedState(TreeNode<T> node) {
+    if (node.hasChildren || !node.canLoadChildren) {
+      _lazyLoadedNodeIds.add(node.id);
+    }
+    for (final TreeNode<T> child in node.children) {
+      _markInitialLoadedState(child);
+    }
   }
 
   /// Callback generated when a node is renamed.
@@ -246,6 +285,16 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+  /// Clears lazy-loading state for a node subtree.
+  void _clearLazyStateForSubtree(TreeNode<T> node) {
+    _loadingNodeIds.remove(node.id);
+    _lazyLoadedNodeIds.remove(node.id);
+    _loadErrorsByNodeId.remove(node.id);
+    for (final TreeNode<T> child in node.children) {
+      _clearLazyStateForSubtree(child);
+    }
+  }
+
   /// Expands a specific node and updates the UI.
   void expandNode(TreeNode<T> node) {
     if (!node.isExpanded) {
@@ -264,6 +313,90 @@ class TreeController<T> extends ChangeNotifier {
         _rebuildFlatList();
       }
       
+      notifyListeners();
+    }
+  }
+
+  /// Returns `true` if [nodeId] is currently loading children.
+  bool isNodeLoading(String nodeId) => _loadingNodeIds.contains(nodeId);
+
+  /// Returns the last lazy-loading error for [nodeId], if any.
+  Object? getNodeLoadError(String nodeId) => _loadErrorsByNodeId[nodeId];
+
+  /// Returns `true` if [nodeId] has a captured lazy-loading error.
+  bool hasNodeLoadError(String nodeId) => _loadErrorsByNodeId.containsKey(nodeId);
+
+  /// Returns whether a node can trigger lazy loading.
+  bool canNodeLoadChildren(TreeNode<T> node) {
+    return _loadChildren != null &&
+        node.canLoadChildren &&
+        !node.hasChildren &&
+        !_lazyLoadedNodeIds.contains(node.id);
+  }
+
+  /// Gets an immutable async state snapshot for [nodeId].
+  TreeNodeAsyncState getNodeAsyncState(String nodeId) {
+    return TreeNodeAsyncState(
+      isLoading: isNodeLoading(nodeId),
+      error: getNodeLoadError(nodeId),
+    );
+  }
+
+  /// Clears the lazy-loading error for [nodeId].
+  void clearNodeLoadError(String nodeId) {
+    final bool removed = _loadErrorsByNodeId.remove(nodeId) != null;
+    if (removed) {
+      notifyListeners();
+    }
+  }
+
+  /// Ensures lazy children are loaded for [node] if needed.
+  ///
+  /// No-op when no lazy loader is configured or the node is already loaded.
+  Future<void> ensureNodeChildrenLoaded(TreeNode<T> node) async {
+    if (!canNodeLoadChildren(node)) {
+      return;
+    }
+
+    final String nodeId = node.id;
+    if (_loadingNodeIds.contains(nodeId)) {
+      return;
+    }
+
+    _loadingNodeIds.add(nodeId);
+    _loadErrorsByNodeId.remove(nodeId);
+    notifyListeners();
+
+    try {
+      final TreeLoadChildrenCallback<T>? loadChildren = _loadChildren;
+      if (loadChildren == null) {
+        return;
+      }
+
+      final List<TreeNode<T>> children = await loadChildren(node);
+      if (findNodeById(nodeId) == null) {
+        return;
+      }
+
+      for (final TreeNode<T> child in children) {
+        _indexNode(child);
+        node.internalAddChild(child);
+      }
+
+      if (_sortComparator != null) {
+        node.internalSortChildren(_sortComparator!);
+      }
+
+      node.canLoadChildren = false;
+      _lazyLoadedNodeIds.add(nodeId);
+      _loadErrorsByNodeId.remove(nodeId);
+      if (node.isExpanded) {
+        _rebuildFlatList();
+      }
+    } catch (error) {
+      _loadErrorsByNodeId[nodeId] = error;
+    } finally {
+      _loadingNodeIds.remove(nodeId);
       notifyListeners();
     }
   }
@@ -301,10 +434,17 @@ class TreeController<T> extends ChangeNotifier {
   }
 
   /// Toggles the expansion state of a specific node.
-  void toggleNodeExpansion(TreeNode<T> node) {
+  Future<void> toggleNodeExpansion(TreeNode<T> node) async {
     if (node.isExpanded) {
       collapseNode(node);
     } else {
+      await ensureNodeChildrenLoaded(node);
+      if (isNodeLoading(node.id) || hasNodeLoadError(node.id)) {
+        return;
+      }
+      if (!node.hasChildren) {
+        return;
+      }
       expandNode(node);
     }
   }
@@ -564,6 +704,7 @@ class TreeController<T> extends ChangeNotifier {
   /// Removes a node from the tree entirely.
   void removeNode(TreeNode<T> node) {
     _unindexNode(node);
+    _clearLazyStateForSubtree(node);
     if (node.isRoot) {
       _roots.remove(node);
     } else {

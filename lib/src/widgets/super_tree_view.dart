@@ -237,9 +237,11 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       if (selectedId != null) {
         final node = controller.findNodeById(selectedId);
         if (node != null) {
-          if (node.hasChildren) {
+          final bool canExpand =
+              node.hasChildren || controller.canNodeLoadChildren(node);
+          if (canExpand) {
             if (!node.isExpanded) {
-              controller.expandNode(node);
+              controller.toggleNodeExpansion(node);
             } else {
               controller.selectNext();
             }

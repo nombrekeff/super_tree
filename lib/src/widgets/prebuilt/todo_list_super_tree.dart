@@ -55,6 +55,10 @@ class TodoListSuperTree extends StatelessWidget {
   }
 
   Widget _defaultPrefixBuilder(BuildContext context, TreeNode<TodoItem> node) {
+    final TreeNodeAsyncState asyncState =
+        controller?.getNodeAsyncState(node.id) ??
+        const TreeNodeAsyncState(isLoading: false, error: null);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -70,6 +74,18 @@ class TodoListSuperTree extends StatelessWidget {
             // For now, checkboxes handle their own visual update when managed by a StatefulWidget parent.
           },
         ),
+        if (asyncState.isLoading)
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        else if (asyncState.hasError)
+          Icon(
+            Icons.error_outline,
+            size: 14,
+            color: Theme.of(context).colorScheme.error,
+          ),
       ],
     );
   }
