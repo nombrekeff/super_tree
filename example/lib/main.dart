@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:super_tree/super_tree.dart';
+import 'examples/file_system_example.dart';
+import 'examples/checkbox_example.dart';
+import 'examples/complex_node_example.dart';
 
 void main() {
   runApp(const MyApp());
-}
-
-class FileItem {
-  final String name;
-  final bool isFolder;
-  FileItem(this.name, this.isFolder);
 }
 
 class MyApp extends StatelessWidget {
@@ -17,153 +13,127 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Super Tree Explorer',
+      title: 'Super Tree Examples',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF181818),
-        cardColor: const Color(0xFF252526),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
       ),
-      home: const TreeExampleScreen(),
+      home: const ExampleHubScreen(),
     );
   }
 }
 
-class TreeExampleScreen extends StatefulWidget {
-  const TreeExampleScreen({super.key});
+class ExampleInfo {
+  final String title;
+  final String description;
+  final IconData icon;
+  final Widget screen;
 
-  @override
-  State<TreeExampleScreen> createState() => _TreeExampleScreenState();
+  const ExampleInfo({
+    required this.title,
+    required this.description,
+    required this.icon,
+    required this.screen,
+  });
 }
 
-class _TreeExampleScreenState extends State<TreeExampleScreen> {
-  late TreeController<FileItem> _controller;
+class ExampleHubScreen extends StatelessWidget {
+  const ExampleHubScreen({super.key});
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = TreeController<FileItem>(
-      roots: [
-        TreeNode(
-          id: 'src',
-          data: FileItem('src', true),
-          isExpanded: true,
-          children: [
-            TreeNode(id: 'models', data: FileItem('models', true), children: [
-              TreeNode(id: 'tree_node.dart', data: FileItem('tree_node.dart', false)),
-            ]),
-            TreeNode(id: 'controllers', data: FileItem('controllers', true), children: [
-              TreeNode(id: 'tree_controller.dart', data: FileItem('tree_controller.dart', false)),
-            ]),
-          ],
-        ),
-        TreeNode(
-          id: 'pubspec.yaml',
-          data: FileItem('pubspec.yaml', false),
-        ),
-        TreeNode(
-          id: 'README.md',
-          data: FileItem('README.md', false),
-        ),
-      ]
-    );
-  }
-
-  void _showContextMenu(BuildContext context, TreeNode<FileItem> node, Offset position) {
-    ContextMenuOverlay.show(
-      context: context,
-      position: position,
-      items: [
-        ContextMenuItem(
-          child: const Text('Rename'),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Renaming ${node.data.name}')));
-          },
-        ),
-        ContextMenuItem(
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          onTap: () {
-            _controller.removeNode(node);
-          },
-        ),
-      ],
-    );
-  }
+  final List<ExampleInfo> _examples = const [
+    ExampleInfo(
+      title: 'File System Explorer',
+      description: 'The classic file explorer example with drag & drop and multiple themes (VS Code, Finder, etc).',
+      icon: Icons.folder_open,
+      screen: FileSystemExample(),
+    ),
+    ExampleInfo(
+      title: 'Checkboxes & State',
+      description: 'A permissions tree demonstrating checkboxes with recursive parent/child state management.',
+      icon: Icons.check_box,
+      screen: CheckboxExample(),
+    ),
+    ExampleInfo(
+      title: 'Complex Node UI',
+      description: 'A task management board showing rich custom node content, avatars, and inline actions.',
+      icon: Icons.dashboard_customize,
+      screen: ComplexNodeExample(),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Super Tree Widget - File Explorer Demo'),
-        backgroundColor: const Color(0xFF252526),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.expand),
-            onPressed: _controller.expandAll,
-            tooltip: 'Expand All',
-          ),
-          IconButton(
-            icon: const Icon(Icons.compress),
-            onPressed: _controller.collapseAll,
-            tooltip: 'Collapse All',
-          ),
-        ],
+        title: const Text('Super Tree Examples'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Row(
-        children: [
-          // Sidebar
-          Container(
-            width: 300,
-            decoration: const BoxDecoration(
-              border: Border(right: BorderSide(color: Colors.white12)),
-              color: Color(0xFF1E1E1E), // standard side panel color
-            ),
-            child: SuperTreeView<FileItem>(
-              controller: _controller,
-              style: const TreeViewStyle(
-                indentAmount: 16.0,
-                idleColor: Colors.transparent,
-                hoverColor: Color(0x1FFFFFFF),
-              ),
-              logic: const TreeViewLogic(
-                enableDragAndDrop: true,
-                expansionTrigger: ExpansionTrigger.tap,
-              ),
-              onContextMenu: _showContextMenu,
-              prefixBuilder: (context, node) {
-                if (node.data.isFolder) {
-                  return Icon(
-                    node.isExpanded ? Icons.folder_open : Icons.folder,
-                    color: Colors.blueAccent,
-                    size: 20,
-                  );
-                }
-                return const SizedBox(width: 20); // Alignment spacing for files without caret
-              },
-              contentBuilder: (context, node) {
-                return Padding(
-                  padding: const EdgeInsets.only(left: 6.0),
-                  child: Text(
-                    node.data.name,
-                    style: TextStyle(
-                      color: node.data.isFolder ? Colors.white : Colors.white70,
-                      fontSize: 14,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(24),
+            itemCount: _examples.length,
+            itemBuilder: (context, index) {
+              final example = _examples[index];
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => example.screen),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            example.icon,
+                            size: 32,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                example.title,
+                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                example.description,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-          
-          const Expanded(
-            child: Center(
-              child: Text(
-                'Select a file to view',
-                style: TextStyle(color: Colors.white54, fontSize: 18),
-              ),
-            ),
-          )
-        ],
+        ),
       ),
     );
   }

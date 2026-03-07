@@ -9,6 +9,9 @@ import '../models/tree_node.dart';
 /// by a `ListView.builder` in the UI layer.
 class TreeController<T> extends ChangeNotifier {
   final List<TreeNode<T>> _roots;
+  
+  /// Optional comparator to keep the tree sorted.
+  int Function(TreeNode<T> a, TreeNode<T> b)? _sortComparator;
 
   /// Cache of the flat visible nodes computed from the current tree state.
   final List<TreeNode<T>> _flatVisibleNodes = [];
@@ -16,8 +19,32 @@ class TreeController<T> extends ChangeNotifier {
   /// Creates a new [TreeController] initialized with optional [roots].
   TreeController({
     List<TreeNode<T>>? roots,
-  }) : _roots = roots ?? <TreeNode<T>>[] {
+    int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
+  }) : _roots = roots ?? <TreeNode<T>>[],
+       _sortComparator = sortComparator {
     _rebuildFlatList();
+  }
+
+  /// Gets the current sort comparator.
+  int Function(TreeNode<T> a, TreeNode<T> b)? get sortComparator => _sortComparator;
+
+  /// Sets the sort comparator and re-sorts the tree.
+  set sortComparator(int Function(TreeNode<T> a, TreeNode<T> b)? comparator) {
+    _sortComparator = comparator;
+    if (_sortComparator != null) {
+      _sortTree();
+    }
+    _rebuildFlatList();
+    notifyListeners();
+  }
+
+  /// Sorts the tree based on the provided comparator.
+  void _sortTree() {
+    if (_sortComparator == null) return;
+    _roots.sort(_sortComparator!);
+    for (var root in _roots) {
+      root.internalSortChildren(_sortComparator!, recursive: true);
+    }
   }
 
   /// Returns the unmodifiable list of root nodes.
@@ -120,6 +147,9 @@ class TreeController<T> extends ChangeNotifier {
   /// Adds a new root node to the tree.
   void addRoot(TreeNode<T> node) {
     _roots.add(node);
+    if (_sortComparator != null) {
+      _roots.sort(_sortComparator!);
+    }
     _rebuildFlatList();
     notifyListeners();
   }
@@ -127,6 +157,9 @@ class TreeController<T> extends ChangeNotifier {
   /// Appends a child to a specific parent node.
   void addChild(TreeNode<T> parent, TreeNode<T> child) {
     parent.internalAddChild(child);
+    if (_sortComparator != null) {
+      parent.internalSortChildren(_sortComparator!);
+    }
     if (parent.isExpanded) {
       _rebuildFlatList();
     }
@@ -164,13 +197,23 @@ class TreeController<T> extends ChangeNotifier {
       int index = 0;
 
       if (parent != null) {
-        index = parent.children.indexOf(target);
-        if (!insertBefore) index++;
-        parent.internalInsertChild(index, dragged);
+        if (_sortComparator != null) {
+          parent.internalAddChild(dragged);
+          parent.internalSortChildren(_sortComparator!);
+        } else {
+          index = parent.children.indexOf(target);
+          if (!insertBefore) index++;
+          parent.internalInsertChild(index, dragged);
+        }
       } else {
-        index = _roots.indexOf(target);
-        if (!insertBefore) index++;
-        _roots.insert(index, dragged);
+        if (_sortComparator != null) {
+          _roots.add(dragged);
+          _roots.sort(_sortComparator!);
+        } else {
+          index = _roots.indexOf(target);
+          if (!insertBefore) index++;
+          _roots.insert(index, dragged);
+        }
       }
     }
     _rebuildFlatList();

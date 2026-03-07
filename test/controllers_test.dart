@@ -91,4 +91,60 @@ void main() {
       expect(child1_2_1.depth, 2);
     });
   });
+
+  group('TreeController Sorting Tests', () {
+    test('Setting sortComparator sorts existing roots and children', () {
+      final controller = TreeController<String>(
+        roots: [
+          TreeNode(id: 'b', data: 'B'),
+          TreeNode(id: 'a', data: 'A', children: [
+            TreeNode(id: 'a2', data: 'a2'),
+            TreeNode(id: 'a1', data: 'a1'),
+          ]),
+          TreeNode(id: 'c', data: 'C'),
+        ],
+      );
+
+      // Not sorted
+      expect(controller.roots[0].id, 'b');
+      expect(controller.roots[1].id, 'a');
+      expect(controller.roots[1].children[0].id, 'a2');
+
+      // Set comparator
+      controller.sortComparator = (a, b) => a.data.compareTo(b.data);
+
+      // Sorted recursively
+      expect(controller.roots[0].id, 'a');
+      expect(controller.roots[1].id, 'b');
+      expect(controller.roots[2].id, 'c');
+      expect(controller.roots[0].children[0].id, 'a1');
+      expect(controller.roots[0].children[1].id, 'a2');
+    });
+
+    test('addRoot applies sorting if comparator is set', () {
+      final controller = TreeController<String>(
+        sortComparator: (a, b) => a.data.compareTo(b.data),
+      );
+
+      controller.addRoot(TreeNode(id: 'c', data: 'c'));
+      controller.addRoot(TreeNode(id: 'a', data: 'a'));
+      controller.addRoot(TreeNode(id: 'b', data: 'b'));
+
+      expect(controller.roots.map((r) => r.data).toList(), ['a', 'b', 'c']);
+    });
+
+    test('addChild applies sorting if comparator is set', () {
+      final controller = TreeController<String>(
+        roots: [TreeNode(id: 'root', data: 'root')],
+        sortComparator: (a, b) => a.data.compareTo(b.data),
+      );
+
+      final root = controller.roots[0];
+      controller.addChild(root, TreeNode(id: 'c', data: 'c'));
+      controller.addChild(root, TreeNode(id: 'a', data: 'a'));
+      controller.addChild(root, TreeNode(id: 'b', data: 'b'));
+
+      expect(root.children.map((c) => c.data).toList(), ['a', 'b', 'c']);
+    });
+  });
 }

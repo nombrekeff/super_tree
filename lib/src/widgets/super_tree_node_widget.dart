@@ -10,7 +10,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final TreeNode<T> node;
   final TreeController<T> controller;
   final TreeViewStyle style;
-  final TreeViewLogic logic;
+  final TreeViewLogic<T> logic;
 
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
   final Widget Function(BuildContext, TreeNode<T>) contentBuilder;
@@ -72,6 +72,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
       node: widget.node,
       enabled: widget.logic.enableDragAndDrop,
       style: widget.style,
+      canAcceptDrop: widget.logic.canAcceptDrop,
       onDrop: (TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position) {
         if (position == NodeDropPosition.inside) {
           widget.controller.moveNode(
@@ -103,7 +104,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
           onSecondaryTapDown: _handleSecondaryTapDown,
           onLongPressStart: _handleLongPressStart,
           onTap: _handleTap,
-          onDoubleTap: _handleDoubleTap,
+          onDoubleTap: (widget.logic.expansionTrigger == ExpansionTrigger.doubleTap || widget.logic.onNodeDoubleTap != null) ? _handleDoubleTap : null,
           behavior: HitTestBehavior.opaque,
           child: Container(
             padding: EdgeInsets.only(

@@ -102,6 +102,16 @@ class TreeNode<T> {
     _children.insert(index, child);
   }
 
+  /// Internal method meant to be called by the TreeController to sort children.
+  void internalSortChildren(int Function(TreeNode<T> a, TreeNode<T> b) comparator, {bool recursive = false}) {
+    _children.sort(comparator);
+    if (recursive) {
+      for (var child in _children) {
+        child.internalSortChildren(comparator, recursive: true);
+      }
+    }
+  }
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;

@@ -15,7 +15,7 @@ class SuperTreeView<T> extends StatelessWidget {
   final TreeViewStyle style;
 
   /// Defines behavior properties like expansion triggers and selectability.
-  final TreeViewLogic logic;
+  final TreeViewLogic<T> logic;
 
   /// Builds the prefix widget (e.g. expandable caret icon or file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
@@ -60,7 +60,7 @@ class SuperTreeView<T> extends StatelessWidget {
     ScrollController? scrollController,
     ScrollPhysics? physics,
     TreeViewStyle style = const TreeViewStyle(),
-    TreeViewLogic logic = const TreeViewLogic(),
+    TreeViewLogic<T> logic = const TreeViewLogic(),
   }) {
     return _SuperTreeViewSeparated<T>(
       key: key,
@@ -120,7 +120,7 @@ class _SuperTreeViewSeparated<T> extends SuperTreeView<T> {
     ScrollController? scrollController,
     ScrollPhysics? physics,
     required TreeViewStyle style,
-    required TreeViewLogic logic,
+    required TreeViewLogic<T> logic,
   }) : super(
           key: key,
           controller: controller,
