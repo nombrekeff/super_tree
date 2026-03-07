@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'examples/file_system_example.dart';
-import 'examples/checkbox_example.dart';
-import 'examples/complex_node_example.dart';
-import 'examples/todo_list_example.dart';
-import 'examples/simple_file_system_example.dart';
-import 'examples/responsive_menu_example.dart';
-import 'examples/async_lazy_loading_example.dart';
+import 'package:example/examples/async_lazy_loading_example.dart';
+import 'package:example/examples/checkbox_example.dart';
+import 'package:example/examples/complex_node_example.dart';
+import 'package:example/examples/file_system_example.dart';
+import 'package:example/examples/responsive_menu_example.dart';
+import 'package:example/examples/simple_file_system_example.dart';
+import 'package:example/examples/todo_list_example.dart';
 
 void main() {
   runApp(const MyApp());

@@ -1,16 +1,25 @@
-# example
+# super_tree example
 
-A new Flutter project.
+This Flutter app demonstrates the package features and recommended usage patterns.
 
-## Getting Started
+## Run
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Included demos
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+- Basic tree rendering and expansion behavior.
+- File-system style tree with icon providers and theme presets.
+- Todo tree with checkboxes and state interactions.
+- Drag-and-drop node movement patterns.
+- Context menu behavior across desktop/mobile inputs.
+- Search and filtering flows with highlighted labels.
+- Async/lazy-loading behavior with loading and error states.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Notes
+
+- The example is intentionally feature-rich and not meant to be minimal boilerplate.
+- Use this app as the manual validation surface before publishing package updates.

@@ -1,4 +1,4 @@
-# Super Tree 🌳
+# Super Tree
 
 A high-performance, fully customizable, and platform-agnostic hierarchical tree view for Flutter.
 
@@ -6,13 +6,13 @@ Build complex tree structures like **File Explorers**, **Todo Lists**, or **Perm
 
 ## Key Features
 
-- ⚡ **High Performance**: Uses a flat list architecture internally for smooth scrolling even with thousands of nodes.
-- 🎨 **Fully Customizable**: Control every pixel with builders for prefixes, content, and trailing actions.
-- 🖱️ **Desktop & Mobile Ready**: Built-in support for context menus (right-click), long-press actions, and drag-and-drop.
-- 🔄 **State Management**: Optional `TreeController` for granular control over expansion, selection, and updates.
-- 📂 **Prebuilt Kits**: includes ready-to-use implementations for common use cases like File Systems and Todo Lists.
-- 🔍 **Search & Selection**: Built-in methods for finding nodes and managing multi-selection.
-- 🧪 **Testable**: Decoupled business logic from UI for easier unit testing.
+- **High Performance**: Uses a flat-list architecture internally for smooth scrolling with large trees.
+- **Fully Customizable**: Control rendering with builders for expansion, prefix, content, and trailing actions.
+- **Desktop and Mobile Ready**: Built-in support for keyboard navigation, right-click/long-press menus, and drag-and-drop.
+- **State Management**: Optional `TreeController` for expansion, selection, filtering, and runtime updates.
+- **Prebuilt Widgets**: Includes ready-to-use implementations for file-system and todo scenarios.
+- **Search and Selection**: Supports fuzzy search and multi-selection workflows.
+- **Testable**: Business logic is decoupled from UI for focused unit and widget testing.
 
 ## Getting Started
 
@@ -71,7 +71,7 @@ Check the [example project](example/lib/main.dart) for comprehensive demonstrati
 
 - **File System Explorer**: VS Code style implementation with themes and icons.
 - **Todo List**: Hierarchical task management with checkboxes.
-- **Checkbox States**: Recursive parent/child checkbox synchronization.
+- **Checkbox States**: Stateful checkbox behavior and parent-child tree workflows.
 - **Responsive Menus**: Adaptive interaction patterns for Mobile and Desktop.
 
 ## Contributing

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/tree_node.dart';
-import '../models/super_tree_data.dart';
-import '../configs/tree_view_style.dart';
+import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
+import 'package:super_tree/src/models/tree_node.dart';
 
 /// The target drop position relative to a node's bounds.
 enum NodeDropPosition {

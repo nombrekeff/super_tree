@@ -1,5 +1,5 @@
-import '../models/tree_node.dart';
-import '../widgets/tree_drag_and_drop_wrapper.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
 
 /// Behaviors that trigger a node's expansion.
 enum ExpansionTrigger {

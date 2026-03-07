@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../models/tree_node.dart';
-import '../configs/tree_view_style.dart';
-import '../configs/tree_view_logic.dart';
-import '../controllers/tree_controller.dart';
-import 'tree_drag_and_drop_wrapper.dart';
-import 'context_menu_overlay.dart';
+import 'package:super_tree/src/configs/tree_view_logic.dart';
+import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
 
 /// Renders a single node row in the [SuperTreeView].
 class SuperTreeNodeWidget<T> extends StatefulWidget {
@@ -276,7 +276,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
                       : widget.style.idleColor,
               border: Border.all(
                 color: widget.controller.renamingNodeId == widget.node.id
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+                    ? Theme.of(context).colorScheme.primary.withAlpha(204)
                     : Colors.transparent,
                 width: 2.0,
               ),
@@ -315,7 +315,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
                     widget.controller.renamingNodeId == widget.node.id
                         ? TextSelectionTheme(
                             data: TextSelectionThemeData(
-                              selectionColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              selectionColor: Theme.of(context).colorScheme.primary.withAlpha(77),
                               cursorColor: Theme.of(context).colorScheme.primary,
                             ),
                             child: KeyboardListener(

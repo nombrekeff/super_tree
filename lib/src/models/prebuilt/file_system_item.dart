@@ -1,4 +1,4 @@
-import '../super_tree_data.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
 
 /// A base ergonomic class for representing file system structures in a tree view.
 abstract class FileSystemItem with SuperTreeData {

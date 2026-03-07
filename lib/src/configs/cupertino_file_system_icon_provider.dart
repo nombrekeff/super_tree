@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
-import '../models/tree_node.dart';
-import '../models/prebuilt/file_system_item.dart';
+import 'package:super_tree/src/models/prebuilt/file_system_item.dart';
+import 'package:super_tree/src/models/tree_node.dart';
 import 'file_system_icon_provider.dart';
 
 /// A default Cupertino icon provider for file systems.

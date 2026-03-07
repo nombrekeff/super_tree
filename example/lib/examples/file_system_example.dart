@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:example/examples/shared/example_tree_search_bar.dart';
+import 'package:example/examples/shared/example_tree_search_logic.dart';
+import 'package:example/examples/shared/example_tree_search_shortcuts.dart';
 import 'package:super_tree/super_tree.dart';
-import 'shared/example_tree_search_bar.dart';
-import 'shared/example_tree_search_logic.dart';
-import 'shared/example_tree_search_shortcuts.dart';
 
 enum ThemeOption {
   vscode,

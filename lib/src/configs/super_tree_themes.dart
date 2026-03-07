@@ -96,7 +96,7 @@ class SuperTreeThemes {
         padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       ),
       fileSystemIconProvider: MaterialFileSystemIconProvider(
-        folderColor: Color(0xFF3B82F6),
+        folderColor: const Color(0xFF3B82F6),
       ),
       sidebarColor: const Color(0xFFF3F4F6),
       brightness: Brightness.light,
@@ -117,7 +117,7 @@ class SuperTreeThemes {
         padding: EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
       ),
       fileSystemIconProvider: CupertinoFileSystemIconProvider(
-        folderColor: Color(0xFF3B82F6),
+        folderColor: const Color(0xFF3B82F6),
       ),
       sidebarColor: const Color(0xFF1E293B),
       brightness: Brightness.dark,

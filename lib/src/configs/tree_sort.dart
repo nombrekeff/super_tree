@@ -1,5 +1,5 @@
-import '../models/tree_node.dart';
-import '../models/super_tree_data.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
+import 'package:super_tree/src/models/tree_node.dart';
 
 /// Pre-made sorting comparators for the Super Tree.
 class TreeSort {

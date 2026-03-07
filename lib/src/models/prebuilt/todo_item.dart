@@ -1,4 +1,4 @@
-import '../super_tree_data.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
 
 /// A prebuilt data item representing a generic todo task.
 class TodoItem with SuperTreeData {

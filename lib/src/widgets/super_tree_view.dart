@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import '../models/tree_node.dart';
-import '../controllers/tree_controller.dart';
-import '../configs/tree_view_style.dart';
-import '../configs/tree_view_logic.dart';
-import 'super_tree_node_widget.dart';
-import 'context_menu_overlay.dart';
+import 'package:super_tree/src/configs/tree_view_logic.dart';
+import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_node_widget.dart';
 
 /// The entry point for rendering the tree view.
 /// 
@@ -317,6 +317,24 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     return true;
   }
 
+  Widget _buildNodeItem(TreeNode<T> node) {
+    return SuperTreeNodeWidget<T>(
+      key: ValueKey(node.id),
+      node: node,
+      controller: _internalController,
+      style: widget.style,
+      logic: widget.logic,
+      expansionBuilder: widget.expansionBuilder,
+      prefixBuilder: widget.prefixBuilder,
+      labelProvider: widget.labelProvider,
+      contentBuilder: (context, currentNode, renameField) {
+        return widget.contentBuilder(context, currentNode, renameField);
+      },
+      trailingBuilder: widget.trailingBuilder,
+      contextMenuBuilder: widget.contextMenuBuilder,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -345,29 +363,13 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           builder: (context, _) {
             final nodes = _internalController.flatVisibleNodes;
 
-            Widget buildItem(int index) {
-              return SuperTreeNodeWidget<T>(
-                key: ValueKey(nodes[index].id),
-                node: nodes[index],
-                controller: _internalController,
-                style: widget.style,
-                logic: widget.logic,
-                expansionBuilder: widget.expansionBuilder,
-                prefixBuilder: widget.prefixBuilder,
-                labelProvider: widget.labelProvider,
-                contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
-                trailingBuilder: widget.trailingBuilder,
-                contextMenuBuilder: widget.contextMenuBuilder,
-              );
-            }
-
             if (widget._separatorBuilder != null) {
               return ListView.separated(
                 controller: widget.scrollController,
                 physics: widget.physics,
                 itemCount: nodes.length,
                 separatorBuilder: widget._separatorBuilder!,
-                itemBuilder: (context, index) => buildItem(index),
+                itemBuilder: (context, index) => _buildNodeItem(nodes[index]),
               );
             }
 
@@ -375,7 +377,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
               controller: widget.scrollController,
               physics: widget.physics,
               itemCount: nodes.length,
-              itemBuilder: (context, index) => buildItem(index),
+              itemBuilder: (context, index) => _buildNodeItem(nodes[index]),
             );
           },
         ),

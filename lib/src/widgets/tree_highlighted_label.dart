@@ -21,8 +21,9 @@ class TreeHighlightedLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle baseStyle =
-        style ?? Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final TextStyle themeBaseStyle =
+      Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    final TextStyle baseStyle = themeBaseStyle.merge(style);
     final TextStyle computedHighlightStyle =
         highlightStyle ??
         baseStyle.copyWith(

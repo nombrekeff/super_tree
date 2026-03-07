@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/tree_node.dart';
-import '../models/prebuilt/file_system_item.dart';
+import 'package:super_tree/src/models/prebuilt/file_system_item.dart';
+import 'package:super_tree/src/models/tree_node.dart';
 import 'icon_provider.dart';
 
 /// Defines an interface for providing icons to a FileSystemSuperTree.
