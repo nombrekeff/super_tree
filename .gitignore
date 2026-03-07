@@ -15,6 +15,9 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+.github/skills/
+.github/agents/
+.github/instructions/
 docs/
 
 # The .vscode folder contains launch configuration and tasks you configure in
