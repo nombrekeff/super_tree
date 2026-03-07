@@ -228,6 +228,59 @@ void main() {
       expect(target?.id, 'node_beta');
     });
 
+    testWidgets('Drag and drop honors configurable edge drop bands', (
+      WidgetTester tester,
+    ) async {
+      NodeDropPosition? observedPosition;
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: [
+          TreeNode(id: 'node_alpha', data: 'Alpha'),
+          TreeNode(id: 'node_beta', data: 'Beta'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            style: const TreeViewStyle(padding: EdgeInsets.zero),
+            prefixBuilder: (context, node) => const SizedBox.shrink(),
+            contentBuilder: (context, node, renameField) => Text(node.data),
+            logic: TreeViewConfig<String>(
+              enableDragAndDrop: true,
+              dropEdgeBandFraction: 0.3,
+              dropPositionHysteresisPx: 0,
+              canAcceptDrop: (draggedNode, targetNode, position) {
+                if (targetNode.id == 'node_beta') {
+                  observedPosition = position;
+                }
+                return true;
+              },
+            ),
+          ),
+        ),
+      );
+
+      final Offset alphaCenter = tester.getCenter(find.text('Alpha'));
+      final Finder betaDragTarget = find.ancestor(
+        of: find.text('Beta'),
+        matching: find.byWidgetPredicate(
+          (Widget widget) => widget is DragTarget<TreeNode<String>>,
+        ),
+      );
+      final Rect betaRect = tester.getRect(betaDragTarget);
+      final Offset betaTwentyPercent = Offset(
+        betaRect.center.dx,
+        betaRect.top + (betaRect.height * 0.2),
+      );
+
+      await tester.dragFrom(alphaCenter, betaTwentyPercent - alphaCenter);
+      await tester.pumpAndSettle();
+
+      expect(observedPosition, NodeDropPosition.above);
+    });
+
     testWidgets('Drag and drop falls back to edge when inside is not allowed', (
       WidgetTester tester,
     ) async {

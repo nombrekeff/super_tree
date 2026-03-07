@@ -22,6 +22,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   final bool enabled;
   final Widget child;
   final TreeViewStyle style;
+  final double edgeDropBandFraction;
+  final double edgeDropBandFractionForLeaf;
+  final double dropPositionHysteresisPx;
   final bool Function(
     TreeNode<T> draggedNode,
     TreeNode<T> targetNode,
@@ -41,6 +44,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
     required this.enabled,
     required this.child,
     required this.style,
+    this.edgeDropBandFraction = 0.05,
+    this.edgeDropBandFractionForLeaf = 0.2,
+    this.dropPositionHysteresisPx = 4.0,
     this.canAcceptDrop,
     required this.onDrop,
   });
@@ -50,19 +56,56 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
 }
 
 class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
-  static const double _edgeDropBandFraction = 0.05;
-
   NodeDropPosition? _currentHoverPosition;
+
+  double _clampEdgeFraction(double value) {
+    return value.clamp(0.0, 0.49);
+  }
+
+  double _edgeBandFractionForTarget() {
+    final Object? targetData = widget.node.data;
+    if (targetData is SuperTreeData && !targetData.canHaveChildren) {
+      return _clampEdgeFraction(widget.edgeDropBandFractionForLeaf);
+    }
+
+    return _clampEdgeFraction(widget.edgeDropBandFraction);
+  }
 
   NodeDropPosition _calculateRawDropPosition(Offset globalOffset) {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final Offset localPosition = renderBox.globalToLocal(globalOffset);
     final double height = renderBox.size.height;
 
-    if (localPosition.dy < height * _edgeDropBandFraction) {
+    final double edgeBand = _edgeBandFractionForTarget();
+    final double topBoundary = height * edgeBand;
+    final double bottomBoundary = height * (1 - edgeBand);
+    final double hysteresisPx = widget.dropPositionHysteresisPx.clamp(0.0, height / 2);
+
+    if (_currentHoverPosition != null) {
+      switch (_currentHoverPosition!) {
+        case NodeDropPosition.above:
+          if (localPosition.dy <= topBoundary + hysteresisPx) {
+            return NodeDropPosition.above;
+          }
+          break;
+        case NodeDropPosition.below:
+          if (localPosition.dy >= bottomBoundary - hysteresisPx) {
+            return NodeDropPosition.below;
+          }
+          break;
+        case NodeDropPosition.inside:
+          if (localPosition.dy >= topBoundary - hysteresisPx &&
+              localPosition.dy <= bottomBoundary + hysteresisPx) {
+            return NodeDropPosition.inside;
+          }
+          break;
+      }
+    }
+
+    if (localPosition.dy < topBoundary) {
       return NodeDropPosition.above;
     }
-    if (localPosition.dy > height * (1 - _edgeDropBandFraction)) {
+    if (localPosition.dy > bottomBoundary) {
       return NodeDropPosition.below;
     }
     return NodeDropPosition.inside;

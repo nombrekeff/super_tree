@@ -234,6 +234,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       node: widget.node,
       enabled: widget.logic.enableDragAndDrop,
       style: widget.style,
+      edgeDropBandFraction: widget.logic.dropEdgeBandFraction,
+      edgeDropBandFractionForLeaf: widget.logic.dropEdgeBandFractionForLeaf,
+      dropPositionHysteresisPx: widget.logic.dropPositionHysteresisPx,
       canAcceptDrop: widget.logic.canAcceptDrop,
       onDrop: (TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position) {
         if (position == NodeDropPosition.inside) {

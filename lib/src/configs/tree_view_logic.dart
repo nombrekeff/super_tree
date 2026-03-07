@@ -5,10 +5,10 @@ import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
 enum ExpansionTrigger {
   /// Node expands only when tapping the explicit expand/collapse icon (prefix).
   iconTap,
-  
+
   /// Node expands when clicking anywhere on the node row.
   tap,
-  
+
   /// Node expands when double-clicking the node row.
   doubleTap,
 }
@@ -65,10 +65,29 @@ class TreeViewConfig<T> {
 
   /// Callback to determine if a node can be dropped at a specific position.
   /// If null, all drops not forming cycles are accepted.
-  final bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop;
+  final bool Function(
+    TreeNode<T> draggedNode,
+    TreeNode<T> targetNode,
+    NodeDropPosition position,
+  )?
+  canAcceptDrop;
 
   /// Callback generated when a node is double-tapped.
   final void Function(String id)? onNodeDoubleTap;
+
+  /// Top/bottom edge band ratio used to classify drops as above/below.
+  ///
+  /// Example: `0.05` means top 5% and bottom 5% are edge zones,
+  /// while the middle 90% is treated as inside.
+  final double dropEdgeBandFraction;
+
+  /// Edge band ratio to use for nodes that cannot have children.
+  ///
+  /// This allows stricter above/below targeting on file-like nodes.
+  final double dropEdgeBandFractionForLeaf;
+
+  /// Pixel hysteresis around drop-zone boundaries to reduce flicker while dragging.
+  final double dropPositionHysteresisPx;
 
   /// Whether to print debug logs for lifecycle and state changes.
   final bool debugMode;
@@ -82,6 +101,9 @@ class TreeViewConfig<T> {
     this.onNodeTap,
     this.onNodeDoubleTap,
     this.canAcceptDrop,
+    this.dropEdgeBandFraction = 0.05,
+    this.dropEdgeBandFractionForLeaf = 0.2,
+    this.dropPositionHysteresisPx = 4.0,
     this.debugMode = false,
   });
 
@@ -93,7 +115,11 @@ class TreeViewConfig<T> {
     void Function(String id)? onNodeDoubleTap,
     TreeNamingStrategy? namingStrategy,
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
-    bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop,
+    bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)?
+    canAcceptDrop,
+    double? dropEdgeBandFraction,
+    double? dropEdgeBandFractionForLeaf,
+    double? dropPositionHysteresisPx,
     bool? debugMode,
   }) {
     return TreeViewConfig<T>(
@@ -105,6 +131,10 @@ class TreeViewConfig<T> {
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,
+      dropEdgeBandFraction: dropEdgeBandFraction ?? this.dropEdgeBandFraction,
+      dropEdgeBandFractionForLeaf:
+          dropEdgeBandFractionForLeaf ?? this.dropEdgeBandFractionForLeaf,
+      dropPositionHysteresisPx: dropPositionHysteresisPx ?? this.dropPositionHysteresisPx,
       debugMode: debugMode ?? this.debugMode,
     );
   }
