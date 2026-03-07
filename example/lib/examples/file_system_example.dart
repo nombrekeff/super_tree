@@ -100,6 +100,18 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           isExpanded: true,
           children: [
             TreeNode(
+              id: 'assets',
+              data: FolderItem('assets'),
+              children: [
+                TreeNode(id: 'logo.png', data: FileItem('logo.png')),
+                TreeNode(id: 'intro.mp4', data: FileItem('intro.mp4')),
+                TreeNode(id: 'theme.mp3', data: FileItem('theme.mp3')),
+                TreeNode(id: 'archive.zip', data: FileItem('archive.zip')),
+                TreeNode(id: 'data.csv', data: FileItem('data.csv')),
+                TreeNode(id: 'presentation.pptx', data: FileItem('presentation.pptx')),
+              ],
+            ),
+            TreeNode(
               id: 'lib',
               data: FolderItem('lib'),
               isExpanded: true,
@@ -150,9 +162,13 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   }
 
   void _showContextMenu(BuildContext context, TreeNode<FileSystemItem> node, Offset position) {
+    _controller.setContextMenuNodeId(node.id);
     ContextMenuOverlay.show(
       context: context,
       position: position,
+      onDismissed: () {
+        _controller.setContextMenuNodeId(null);
+      },
       items: [
         ContextMenuItem(
           child: const Text('Rename'),
@@ -260,16 +276,15 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               border: Border(right: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
               color: _getSidebarColor(),
             ),
-            child: SuperTreeView<FileSystemItem>(
+            child: FileSystemSuperTree(
               controller: _controller,
               style: _getTreeStyle(),
-              logic: TreeViewLogic(
+              logic: const TreeViewLogic(
                 enableDragAndDrop: true,
                 expansionTrigger: ExpansionTrigger.tap,
               ),
+              iconProvider: _getIconProvider(),
               onContextMenu: _showContextMenu,
-              prefixBuilder: _buildPrefix,
-              contentBuilder: _buildContent,
             ),
           ),
           
@@ -347,160 +362,26 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     }
   }
 
-  Widget _buildPrefix(BuildContext context, TreeNode<FileSystemItem> node) {
+  FileSystemIconProvider _getIconProvider() {
     switch (widget.currentTheme) {
       case ThemeOption.vscode:
-        if (node.data.isFolder) {
-          return Icon(
-            node.isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
-            color: Colors.white54,
-            size: 18,
-          );
-        }
-        return const SizedBox(width: 18);
-        
-      case ThemeOption.finder:
-        if (node.data.isFolder) {
-          return Icon(
-            node.isExpanded ? Icons.expand_more : Icons.chevron_right,
-            color: Colors.black54,
-            size: 20,
-          );
-        }
-        return const SizedBox(width: 20);
-
-      case ThemeOption.colorful:
-        if (node.data.isFolder) {
-          return AnimatedRotation(
-            turns: node.isExpanded ? 0.25 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: const Icon(
-              Icons.chevron_right,
-              color: Colors.white,
-              size: 20,
-            ),
-          );
-        }
-        return const SizedBox(width: 20);
-    }
-  }
-
-  Widget _buildContent(BuildContext context, TreeNode<FileSystemItem> node) {
-    switch (widget.currentTheme) {
-      case ThemeOption.vscode:
-        return Padding(
-          padding: const EdgeInsets.only(left: 6.0),
-          child: Row(
-            children: [
-              if (node.data.isFolder)
-                Icon(
-                  node.isExpanded ? Icons.folder_open : Icons.folder,
-                  color: Colors.blueAccent,
-                  size: 18,
-                )
-              else
-                Icon(
-                  _getFileIcon(node.data.name),
-                  color: _getFileColor(node.data.name),
-                  size: 18,
-                ),
-              const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    node.data.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    style: TextStyle(
-                      color: node.data.isFolder ? Colors.white : Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        return MaterialFileSystemIconProvider(
+          folderColor: Colors.blueAccent,
+          defaultFileColor: Colors.white54,
         );
-        
       case ThemeOption.finder:
-        return Padding(
-          padding: const EdgeInsets.only(left: 6.0),
-          child: Row(
-            children: [
-              if (node.data.isFolder)
-                const Icon(
-                  Icons.folder,
-                  color: Color(0xFF7CB342),
-                  size: 20,
-                )
-              else
-                const Icon(
-                  Icons.insert_drive_file_outlined,
-                  color: Colors.black45,
-                  size: 18,
-                ),
-              const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    node.data.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        return CupertinoFileSystemIconProvider(
+          folderColor: const Color(0xFF3B82F6),
         );
-        
       case ThemeOption.colorful:
-        return Padding(
-          padding: const EdgeInsets.only(left: 6.0),
-          child: Row(
-            children: [
-              if (node.data.isFolder)
-                Icon(
-                  Icons.folder_rounded,
-                  color: Colors.amber[400],
-                  size: 22,
-                )
-              else
-                Icon(
-                  Icons.text_snippet_rounded,
-                  color: Colors.blue[300],
-                  size: 22,
-                ),
-              const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    node.data.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        return MaterialFileSystemIconProvider(
+          folderIcon: Icons.folder_rounded,
+          folderExpandedIcon: Icons.folder_open_rounded,
+          folderColor: Colors.amber[400]!,
+          defaultFileIcon: Icons.text_snippet_rounded,
+          defaultFileColor: Colors.blue[300]!,
         );
     }
-  }
-
-  IconData _getFileIcon(String name) {
-    if (name.endsWith('.dart')) return Icons.code;
-    if (name.endsWith('.yaml')) return Icons.settings;
-    if (name.endsWith('.md')) return Icons.description;
-    return Icons.insert_drive_file;
-  }
-
-  Color _getFileColor(String name) {
-    if (name.endsWith('.dart')) return Colors.blue[300]!;
-    if (name.endsWith('.yaml')) return Colors.red[300]!;
-    if (name.endsWith('.md')) return Colors.yellow[300]!;
-    return Colors.white54;
   }
 }
+

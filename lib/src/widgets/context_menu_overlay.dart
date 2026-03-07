@@ -26,6 +26,7 @@ class ContextMenuOverlay {
     required Offset position,
     required List<ContextMenuItem> items,
     double width = 200.0,
+    VoidCallback? onDismissed,
   }) {
     hide(); // Dismiss existing if any
 
@@ -49,14 +50,19 @@ class ContextMenuOverlay {
           dy = screenSize.height - estimatedHeight - 8.0;
         }
 
+        void dismiss() {
+          hide();
+          onDismissed?.call();
+        }
+
         return Stack(
           children: [
             // Invisible barrier to catch taps outside the context menu
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: hide,
-                onSecondaryTapDown: (_) => hide(),
+                onTap: dismiss,
+                onSecondaryTapDown: (_) => dismiss(),
                 child: const SizedBox.expand(),
               ),
             ),
@@ -86,7 +92,7 @@ class ContextMenuOverlay {
                     children: items.map((item) {
                       return InkWell(
                         onTap: () {
-                          hide();
+                          dismiss();
                           item.onTap();
                         },
                         child: Container(

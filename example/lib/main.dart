@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'examples/file_system_example.dart';
 import 'examples/checkbox_example.dart';
 import 'examples/complex_node_example.dart';
+import 'examples/todo_list_example.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,6 +60,12 @@ class ExampleHubScreen extends StatelessWidget {
       description: 'A task management board showing rich custom node content, avatars, and inline actions.',
       icon: Icons.dashboard_customize,
       screen: ComplexNodeExample(),
+    ),
+    ExampleInfo(
+      title: 'Todo List Tree',
+      description: 'A prebuilt convenience tree view demonstrating default checkboxes, data models, and sorting logic for a hierarchical todo list.',
+      icon: Icons.checklist_rtl,
+      screen: TodoListExample(),
     ),
   ];
 

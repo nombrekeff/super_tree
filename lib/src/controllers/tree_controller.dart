@@ -145,6 +145,21 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+
+
+  /// The node ID that currently has a context menu open for it, if any.
+  /// Used by the UI to retain hover/focus styling while the menu is open.
+  String? _contextMenuNodeId;
+  String? get contextMenuNodeId => _contextMenuNodeId;
+
+  /// Update the current context menu node ID directly.
+  void setContextMenuNodeId(String? id) {
+    if (_contextMenuNodeId != id) {
+      _contextMenuNodeId = id;
+      notifyListeners();
+    }
+  }
+
   /// Adds a new root node to the tree.
   void addRoot(TreeNode<T> node) {
     _roots.add(node);

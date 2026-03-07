@@ -115,7 +115,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
             ),
             color: widget.node.isSelected
                 ? widget.style.selectedColor
-                : _isHovering
+                : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
                     ? widget.style.hoverColor
                     : widget.style.idleColor,
             child: Row(
