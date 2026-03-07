@@ -49,21 +49,18 @@ void main() {
     });
 
     testWidgets('Expansion/Collapse via icon tap', (WidgetTester tester) async {
-      // Start with root_2 collapsed (default)
+      final nodeToExpand = TreeNode<String>(
+        id: 'test_root',
+        data: 'Test Root',
+        children: [TreeNode(id: 'test_child', data: 'Test Child')],
+      );
+      final controller = TreeController<String>(roots: [nodeToExpand]);
+
       await tester.pumpWidget(
         createTestableWidget(
           SuperTreeView<String>(
-            roots: [
-              TreeNode(
-                id: 'root_1',
-                data: 'Root 1',
-                children: [TreeNode(id: 'child_1', data: 'Child 1')],
-              ),
-            ],
-            prefixBuilder: (context, node) => Icon(
-              Icons.chevron_right, 
-              key: Key('expansion_icon_${node.id}'),
-            ),
+            controller: controller,
+            prefixBuilder: (context, node) => const Icon(Icons.person),
             contentBuilder: (context, node, renameField) => Text(node.data),
             logic: const TreeViewConfig(
               expansionTrigger: ExpansionTrigger.iconTap,
@@ -72,19 +69,19 @@ void main() {
         ),
       );
 
-      expect(find.text('Child 1'), findsNothing);
+      expect(find.text('Test Child'), findsNothing);
 
-      // Tap the expansion icon of root_1
-      await tester.tap(find.byKey(const Key('expansion_icon_root_1')));
+      // Tap the expansion icon
+      await tester.tap(find.byKey(Key('expansion_caret_${nodeToExpand.id}')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Child 1'), findsOneWidget);
+      expect(find.text('Test Child'), findsOneWidget);
 
       // Tap again to collapse
-      await tester.tap(find.byKey(const Key('expansion_icon_root_1')));
+      await tester.tap(find.byKey(Key('expansion_caret_${nodeToExpand.id}')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Child 1'), findsNothing);
+      expect(find.text('Test Child'), findsNothing);
     });
 
     testWidgets('Expansion/Collapse via full row tap', (WidgetTester tester) async {

@@ -17,52 +17,43 @@ class _TodoListExampleState extends State<TodoListExample> {
     _controller = TreeController<TodoItem>(
       roots: [
         TreeNode(
-          id: 'work',
           data: TodoItem('Work Tasks'),
           isExpanded: true,
           children: [
             TreeNode(
-              id: 'w1',
               data: TodoItem('Review PRs', isCompleted: true),
             ),
             TreeNode(
-              id: 'w2',
               data: TodoItem('Write Documentation'),
               children: [
                 TreeNode(
-                  id: 'w2_1',
                   data: TodoItem('Update README'),
                 ),
                 TreeNode(
-                  id: 'w2_2',
                   data: TodoItem('Add inline comments', isCompleted: true),
                 ),
               ],
               isExpanded: true,
             ),
             TreeNode(
-              id: 'w3',
               data: TodoItem('Fix issue #42'),
             ),
           ],
         ),
         TreeNode(
-          id: 'personal',
           data: TodoItem('Personal'),
           isExpanded: true,
           children: [
             TreeNode(
-              id: 'p1',
               data: TodoItem('Buy groceries'),
               children: [
-                TreeNode(id: 'p1_1', data: TodoItem('Milk')),
-                TreeNode(id: 'p1_2', data: TodoItem('Eggs')),
-                TreeNode(id: 'p1_3', data: TodoItem('Bread', isCompleted: true)),
+                TreeNode(data: TodoItem('Milk')),
+                TreeNode(data: TodoItem('Eggs')),
+                TreeNode(data: TodoItem('Bread', isCompleted: true)),
               ],
               isExpanded: true,
             ),
             TreeNode(
-              id: 'p2',
               data: TodoItem('Call mom'),
             ),
           ],

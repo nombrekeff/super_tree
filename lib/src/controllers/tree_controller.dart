@@ -429,7 +429,6 @@ class TreeController<T> extends ChangeNotifier {
     if (nestInside) {
       final targetData = actualTarget.data;
       if (targetData is SuperTreeData && !targetData.canHaveChildren) {
-        assert(false, 'Cannot nest inside a node that returns canHaveChildren = false');
         return;
       }
       addChild(actualTarget, dragged);

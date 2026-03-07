@@ -270,7 +270,6 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Expansion Caret
                 if (widget.node.hasChildren)
                   GestureDetector(
                     onTap: _handleIconTap,
@@ -278,8 +277,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
                     child: RotationTransition(
                       turns: _caretRotation,
                       child: widget.expansionBuilder?.call(context, widget.node) ?? 
-                        const Icon(
+                        Icon(
                           Icons.keyboard_arrow_right,
+                          key: Key('expansion_caret_${widget.node.id}'),
                           color: Colors.grey,
                           size: 20,
                         ),
