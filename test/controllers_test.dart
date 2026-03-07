@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:super_tree/src/controllers/tree_search_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/models/tree_filtering.dart';
 
 void main() {
   group('TreeController Traversal & DFS Tests', () {
@@ -198,6 +200,72 @@ void main() {
       expect(controller.roots.length, 2);
       expect(controller.roots[1].id, 'root_2');
       expect(controller.findNodeById('root_2'), isNotNull);
+    });
+  });
+
+  group('TreeController Filtering and Search', () {
+    test('applyFilter predicate keeps ancestor context', () {
+      final controller = TreeController<String>(
+        roots: [
+          TreeNode(
+            id: 'root',
+            data: 'Workspace',
+            children: [
+              TreeNode(id: 'a', data: 'README.md'),
+              TreeNode(id: 'b', data: 'lib'),
+            ],
+          ),
+        ],
+      );
+
+      controller.applyFilter(
+        predicate: (TreeNode<String> node) => node.id == 'a',
+      );
+
+      expect(controller.flatVisibleNodes.map((node) => node.id).toList(), ['root', 'a']);
+      expect(controller.hasMatchedIndices('a'), isFalse);
+    });
+
+    test('TreeSearchController supports custom matcher and restores expansion on clear', () {
+      final TreeNode<String> docs = TreeNode<String>(
+        id: 'docs',
+        data: 'docs',
+        isExpanded: false,
+        children: <TreeNode<String>>[
+          TreeNode<String>(id: 'guide', data: 'guide.md'),
+          TreeNode<String>(id: 'api', data: 'api.md'),
+        ],
+      );
+
+      final controller = TreeController<String>(roots: <TreeNode<String>>[docs]);
+      final searchController = TreeSearchController<String>(
+        treeController: controller,
+        labelProvider: (String value) => value,
+        expansionBehavior: TreeSearchExpansionBehavior.expandMatchesAndAncestors,
+        searchMatcher: (String query, TreeNode<String> node, String candidate) {
+          if (query == 'md' && candidate.endsWith('.md')) {
+            final int start = candidate.length - 2;
+            return TreeFuzzyMatchResult(
+              score: 0,
+              matchedIndices: <int>[start, start + 1],
+            );
+          }
+          return defaultTreeFuzzyMatcher(query, candidate);
+        },
+      );
+
+      expect(docs.isExpanded, isFalse);
+
+      searchController.search('md');
+
+      expect(controller.flatVisibleNodes.map((node) => node.id).toList(), ['docs', 'guide', 'api']);
+      expect(docs.isExpanded, isTrue);
+      expect(controller.getMatchedIndices('guide').isNotEmpty, isTrue);
+
+      searchController.clearSearch();
+
+      expect(controller.hasActiveFilter, isFalse);
+      expect(docs.isExpanded, isFalse);
     });
   });
 }

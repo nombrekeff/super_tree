@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_tree/super_tree.dart';
+import 'shared/example_tree_search_bar.dart';
+import 'shared/example_tree_search_logic.dart';
+import 'shared/example_tree_search_shortcuts.dart';
 
 enum ThemeOption {
   vscode,
@@ -68,6 +71,8 @@ class FileSystemTreeScreen extends StatefulWidget {
 
 class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   late TreeController<FileSystemItem> _controller;
+  late TreeSearchController<FileSystemItem> _searchController;
+  late ExampleTreeSearchLogic<FileSystemItem> _searchUi;
   SortOption _currentSort = SortOption.none;
 
   @override
@@ -145,6 +150,67 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         ),
       ],
     );
+    _searchController = TreeSearchController<FileSystemItem>(
+      treeController: _controller,
+      labelProvider: (FileSystemItem item) => item.name,
+      expansionBehavior: TreeSearchExpansionBehavior.expandMatchesAndAncestors,
+      searchMatcher: _fileSearchMatcher,
+    );
+    _searchUi = ExampleTreeSearchLogic<FileSystemItem>(
+      searchController: _searchController,
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchUi.dispose();
+    _searchController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  TreeFuzzyMatchResult? _fileSearchMatcher(
+    String query,
+    TreeNode<FileSystemItem> node,
+    String candidate,
+  ) {
+    final String normalized = query.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
+    }
+
+    // If user types an extension query (e.g. ".dart"), prefer suffix matches.
+    if (normalized.startsWith('.') && !node.data.isFolder) {
+      final String lowerCandidate = candidate.toLowerCase();
+      if (lowerCandidate.endsWith(normalized)) {
+        final int start = lowerCandidate.length - normalized.length;
+        return TreeFuzzyMatchResult(
+          score: 0,
+          matchedIndices: List<int>.generate(normalized.length, (int i) => start + i),
+        );
+      }
+    }
+
+    return defaultTreeFuzzyMatcher(normalized, candidate);
+  }
+
+  void _openSearch() {
+    _searchUi.open(refresh: _refreshSearchUi);
+  }
+
+  void _closeSearch() {
+    _searchUi.close(refresh: _refreshSearchUi);
+  }
+
+  void _onSearchChanged(String value) {
+    _searchUi.handleChanged(value);
+  }
+
+  void _refreshSearchUi() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
   }
 
   List<ContextMenuItem> _buildRootContextMenu(BuildContext context) {
@@ -250,14 +316,23 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final Widget searchField = _buildSearchField();
 
-    return Scaffold(
+    return ExampleTreeSearchShortcuts(
+      onOpenSearch: _openSearch,
+      onCloseSearch: _closeSearch,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('File System Tree'),
         backgroundColor: theme.colorScheme.surface,
         foregroundColor: isDark ? Colors.white : Colors.black87,
         elevation: 1,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _openSearch,
+            tooltip: 'Search (Cmd/Ctrl+F)',
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: DropdownButton<SortOption>(
@@ -316,7 +391,11 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           ),
         ],
       ),
-      body: Row(
+      body: Column(
+        children: [
+          if (_searchUi.isSearchVisible) searchField,
+          Expanded(
+            child: Row(
         children: [
           Container(
             width: 320,
@@ -353,6 +432,31 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                 listenable: _controller,
                 builder: (context, _) {
                   final selectedIds = _controller.selectedNodeIds;
+                  final bool hasSearch = _searchController.hasQuery;
+                  final bool noSearchResults = hasSearch && _controller.flatVisibleNodes.isEmpty;
+
+                  if (noSearchResults) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 72,
+                          color: isDark ? Colors.white24 : Colors.black26,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No results for "${_searchController.query}"',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        TextButton(
+                          onPressed: _closeSearch,
+                          child: const Text('Clear search'),
+                        ),
+                      ],
+                    );
+                  }
                   
                   if (selectedIds.isEmpty) {
                     return Column(
@@ -383,7 +487,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                         Icon(
                           Icons.copy_all,
                           size: 80,
-                          color: theme.colorScheme.primary.withOpacity(0.5),
+                          color: theme.colorScheme.primary.withAlpha(128),
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -403,7 +507,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                           icon: const Icon(Icons.delete_sweep),
                           label: const Text('Delete Selected Items'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withOpacity(0.8),
+                            backgroundColor: Colors.red.withAlpha(204),
                             foregroundColor: Colors.white,
                           ),
                         ),
@@ -418,7 +522,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                       Icon(
                         selectedNode.data.isFolder ? Icons.folder : Icons.insert_drive_file,
                         size: 80,
-                        color: theme.colorScheme.primary.withOpacity(0.5),
+                        color: theme.colorScheme.primary.withAlpha(128),
                       ),
                       const SizedBox(height: 24),
                       Text(
@@ -450,6 +554,21 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           )
         ],
       ),
+          ),
+        ],
+      ),
+    ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return ExampleTreeSearchBar(
+      controller: _searchUi.textController,
+      focusNode: _searchUi.focusNode,
+      onChanged: _onSearchChanged,
+      onClose: _closeSearch,
+      hasQuery: _searchController.hasQuery,
+      hintText: 'Search files and folders',
     );
   }
 

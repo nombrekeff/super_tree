@@ -1,6 +1,17 @@
 import 'package:flutter/foundation.dart';
-import '../models/tree_node.dart';
-import '../models/super_tree_data.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
+import 'package:super_tree/src/models/tree_filtering.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+
+class _FilterTraversalResult<T> {
+  const _FilterTraversalResult({
+    required this.visibleNodes,
+    required this.hasMatch,
+  });
+
+  final List<TreeNode<T>> visibleNodes;
+  final bool hasMatch;
+}
 
 /// Manages the state and structure of the tree.
 /// 
@@ -16,6 +27,12 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Cache of the flat visible nodes computed from the current tree state.
   final List<TreeNode<T>> _flatVisibleNodes = [];
+
+  /// Match metadata for the currently active query by node ID.
+  final Map<String, List<int>> _matchedIndicesByNodeId = <String, List<int>>{};
+
+  /// Active filtering predicate.
+  TreeNodeFilter<T>? _activeFilter;
 
   /// Index for O(1) node lookup by ID.
   final Map<String, TreeNode<T>> _nodeIndex = {};
@@ -73,12 +90,114 @@ class TreeController<T> extends ChangeNotifier {
   /// This list is pre-calculated and highly efficient for `ListView.builder`.
   List<TreeNode<T>> get flatVisibleNodes => List.unmodifiable(_flatVisibleNodes);
 
+  /// Whether a filter is currently active.
+  bool get hasActiveFilter => _activeFilter != null;
+
+  /// Returns highlighted character indices for [nodeId] under the active query.
+  List<int> getMatchedIndices(String nodeId) {
+    final List<int>? value = _matchedIndicesByNodeId[nodeId];
+    if (value == null) {
+      return const <int>[];
+    }
+    return List<int>.unmodifiable(value);
+  }
+
+  /// Returns true when [nodeId] has matched query indices for highlighting.
+  bool hasMatchedIndices(String nodeId) {
+    return _matchedIndicesByNodeId.containsKey(nodeId);
+  }
+
   /// Re-calculates the flat visible lists using Depth First Traversal.
   void _rebuildFlatList() {
     _flatVisibleNodes.clear();
-    for (var root in _roots) {
-      _flattenNode(root);
+
+    if (!hasActiveFilter) {
+      _matchedIndicesByNodeId.clear();
+      for (var root in _roots) {
+        _flattenNode(root);
+      }
+      return;
     }
+
+    for (var root in _roots) {
+      final _FilterTraversalResult<T> result = _collectFiltered(root, ancestorMatched: false);
+      _flatVisibleNodes.addAll(result.visibleNodes);
+    }
+  }
+
+  _FilterTraversalResult<T> _collectFiltered(TreeNode<T> node, {required bool ancestorMatched}) {
+    final bool selfMatches = _nodeMatchesFilter(node);
+    final bool nextAncestorMatched = ancestorMatched || selfMatches;
+
+    bool descendantMatches = false;
+    final List<TreeNode<T>> visibleChildren = <TreeNode<T>>[];
+
+    for (var child in node.children) {
+      final _FilterTraversalResult<T> childResult = _collectFiltered(
+        child,
+        ancestorMatched: nextAncestorMatched,
+      );
+      descendantMatches = descendantMatches || childResult.hasMatch;
+      visibleChildren.addAll(childResult.visibleNodes);
+    }
+
+    final bool includeNode = ancestorMatched || selfMatches || descendantMatches;
+    if (!includeNode) {
+      return _FilterTraversalResult<T>(
+        visibleNodes: <TreeNode<T>>[],
+        hasMatch: selfMatches || descendantMatches,
+      );
+    }
+
+    return _FilterTraversalResult<T>(
+      visibleNodes: <TreeNode<T>>[node, ...visibleChildren],
+      hasMatch: selfMatches || descendantMatches,
+    );
+  }
+
+  bool _nodeMatchesFilter(TreeNode<T> node) {
+    if (_activeFilter == null) {
+      return true;
+    }
+    return _activeFilter!.call(node);
+  }
+
+  /// Applies a visibility filter predicate.
+  ///
+  /// Optional [matchedIndicesByNodeId] is used by UI layers that render
+  /// highlighted text for search matches.
+  void applyFilter({
+    required TreeNodeFilter<T> predicate,
+    Map<String, List<int>>? matchedIndicesByNodeId,
+  }) {
+    _activeFilter = predicate;
+    _setMatchedIndices(matchedIndicesByNodeId);
+    _rebuildFlatList();
+    notifyListeners();
+  }
+
+  void _setMatchedIndices(Map<String, List<int>>? matchedIndicesByNodeId) {
+    _matchedIndicesByNodeId
+      ..clear()
+      ..addAll(
+        matchedIndicesByNodeId == null
+            ? const <String, List<int>>{}
+            : matchedIndicesByNodeId.map(
+                (String key, List<int> value) => MapEntry<String, List<int>>(key, List<int>.from(value)),
+              ),
+      );
+  }
+
+  /// Clears the active filter and restores default visibility behavior.
+  void clearFilter() {
+    if (!hasActiveFilter && _matchedIndicesByNodeId.isEmpty) {
+      return;
+    }
+
+    _activeFilter = null;
+    _matchedIndicesByNodeId.clear();
+    _rebuildFlatList();
+    notifyListeners();
   }
 
   void _flattenNode(TreeNode<T> node) {

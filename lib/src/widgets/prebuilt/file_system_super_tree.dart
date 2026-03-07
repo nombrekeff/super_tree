@@ -8,6 +8,7 @@ import 'package:super_tree/src/models/prebuilt/file_system_item.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/widgets/context_menu_overlay.dart';
 import 'package:super_tree/src/widgets/super_tree_view.dart';
+import 'package:super_tree/src/widgets/tree_highlighted_label.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [FileSystemItem]s.
 class FileSystemSuperTree extends StatelessWidget {
@@ -56,12 +57,21 @@ class FileSystemSuperTree extends StatelessWidget {
   }
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {
+    if (renameField != null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 6.0),
+        child: renameField,
+      );
+    }
+
+    final List<int> matchedIndices =
+        controller?.getMatchedIndices(node.id) ?? const <int>[];
+
     return Padding(
       padding: const EdgeInsets.only(left: 6.0),
-      child: renameField ?? Text(
-        node.data.name,
-        maxLines: 1,
-        overflow: TextOverflow.clip,
+      child: TreeHighlightedLabel(
+        text: node.data.name,
+        matchedIndices: matchedIndices,
         style: style.labelStyle ?? style.textStyle,
       ),
     );

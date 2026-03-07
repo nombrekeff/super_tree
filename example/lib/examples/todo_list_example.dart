@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:super_tree/super_tree.dart';
+import 'shared/example_tree_search_bar.dart';
+import 'shared/example_tree_search_logic.dart';
+import 'shared/example_tree_search_shortcuts.dart';
 
 class TodoListExample extends StatefulWidget {
   const TodoListExample({super.key});
@@ -10,6 +13,8 @@ class TodoListExample extends StatefulWidget {
 
 class _TodoListExampleState extends State<TodoListExample> {
   late final TreeController<TodoItem> _controller;
+  late final TreeSearchController<TodoItem> _searchController;
+  late final ExampleTreeSearchLogic<TodoItem> _searchUi;
 
   @override
   void initState() {
@@ -60,21 +65,89 @@ class _TodoListExampleState extends State<TodoListExample> {
         ),
       ],
     );
+
+    _searchController = TreeSearchController<TodoItem>(
+      treeController: _controller,
+      labelProvider: (TodoItem item) => item.title,
+      expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
+      searchMatcher: _todoSearchMatcher,
+    );
+    _searchUi = ExampleTreeSearchLogic<TodoItem>(
+      searchController: _searchController,
+    );
   }
 
   @override
   void dispose() {
+    _searchUi.dispose();
+    _searchController.dispose();
     _controller.dispose();
     super.dispose();
   }
 
+  TreeFuzzyMatchResult? _todoSearchMatcher(
+    String query,
+    TreeNode<TodoItem> node,
+    String candidate,
+  ) {
+    final TreeFuzzyMatchResult? match = defaultTreeFuzzyMatcher(query, candidate);
+    if (match != null) {
+      return match;
+    }
+
+    // Support quick status search terms.
+    final String normalized = query.trim().toLowerCase();
+    if (normalized == 'done' || normalized == 'completed') {
+      if (node.data.isCompleted) {
+        return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
+      }
+    }
+
+    if (normalized == 'open' || normalized == 'pending') {
+      if (!node.data.isCompleted) {
+        return const TreeFuzzyMatchResult(score: 0, matchedIndices: <int>[]);
+      }
+    }
+
+    return null;
+  }
+
+  void _openSearch() {
+    _searchUi.open(refresh: _refreshSearchUi);
+  }
+
+  void _closeSearch() {
+    _searchUi.close(refresh: _refreshSearchUi);
+  }
+
+  void _handleSearchChanged(String value) {
+    _searchUi.handleChanged(value);
+  }
+
+  void _refreshSearchUi() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final bool noSearchResults = _searchController.hasQuery && _controller.flatVisibleNodes.isEmpty;
+
+    return ExampleTreeSearchShortcuts(
+      onOpenSearch: _openSearch,
+      onCloseSearch: _closeSearch,
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Todo List Tree'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search todos (Cmd/Ctrl+F)',
+            onPressed: _openSearch,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Re-sort Tree',
@@ -85,7 +158,20 @@ class _TodoListExampleState extends State<TodoListExample> {
           ),
         ],
       ),
-      body: Row(
+      body: Column(
+        children: [
+          if (_searchUi.isSearchVisible)
+            ExampleTreeSearchBar(
+              controller: _searchUi.textController,
+              focusNode: _searchUi.focusNode,
+              onChanged: _handleSearchChanged,
+              onClose: _closeSearch,
+              hasQuery: _searchController.hasQuery,
+              hintText: 'Search todo title, done, or pending',
+              hideBorder: true,
+            ),
+          Expanded(
+            child: Row(
         children: [
           Expanded(
             flex: 2,
@@ -124,6 +210,17 @@ class _TodoListExampleState extends State<TodoListExample> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (noSearchResults) ...[
+                    const Icon(Icons.search_off, size: 64),
+                    const SizedBox(height: 12),
+                    Text('No results for "${_searchController.query}"'),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: _closeSearch,
+                      child: const Text('Clear search'),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                   Icon(
                     Icons.checklist,
                     size: 64,
@@ -147,6 +244,10 @@ class _TodoListExampleState extends State<TodoListExample> {
           ),
         ],
       ),
+          ),
+        ],
+      ),
+    ),
     );
   }
 }

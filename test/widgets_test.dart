@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_tree/super_tree.dart';
 
@@ -238,6 +239,48 @@ void main() {
       expect(target?.id, 'node_beta');
     });
 
+    testWidgets('Keyboard interactions work after tapping tree content', (WidgetTester tester) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode(id: 'root_1', data: 'Root 1'),
+          TreeNode(id: 'root_2', data: 'Root 2'),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Root 1'));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyA);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyA);
+      await tester.pump();
+
+      expect(controller.selectedNodeId, 'root_1');
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump();
+
+      expect(controller.selectedNodeId, 'root_2');
+    });
+
     testWidgets('FileSystemSuperTree uses icon provider in default prefix builder', (WidgetTester tester) async {
       await tester.pumpWidget(
         createTestableWidget(
@@ -290,6 +333,20 @@ void main() {
       expect(vscodePreset.treeStyle.indentAmount, 16.0);
       expect(materialPreset.treeStyle.indentAmount, 20.0);
       expect(compactPreset.treeStyle.indentAmount, 14.0);
+    });
+
+    testWidgets('TreeHighlightedLabel renders RichText when there are matched indices', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          const TreeHighlightedLabel(
+            text: 'README.md',
+            matchedIndices: <int>[0, 1, 2, 3],
+          ),
+        ),
+      );
+
+      expect(find.byType(RichText), findsOneWidget);
+      expect(find.text('README.md'), findsNothing);
     });
   });
 }

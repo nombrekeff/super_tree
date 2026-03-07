@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import '../models/tree_node.dart';
 import '../controllers/tree_controller.dart';
 import '../configs/tree_view_style.dart';
@@ -217,16 +218,20 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
 
   // TODO: Refactor this into reusable widget or utility. As there will be more places that will use shortctus.
   //  check if we could do this with flutter shortcuts or something.
-  void _handleKeyEvent(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return false;
+    }
 
     final controller = _internalController;
     final logicalKey = event.logicalKey;
 
     if (logicalKey == LogicalKeyboardKey.arrowDown) {
       controller.selectNext();
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.arrowUp) {
       controller.selectPrevious();
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.arrowRight) {
       final selectedId = controller.selectedNodeId;
       if (selectedId != null) {
@@ -241,6 +246,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           }
         }
       }
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.arrowLeft) {
       final selectedId = controller.selectedNodeId;
       if (selectedId != null) {
@@ -253,10 +259,13 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           }
         }
       }
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.home) {
       controller.selectFirst();
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.end) {
       controller.selectLast();
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.enter) {
       final selectedId = controller.selectedNodeId;
       if (selectedId != null) {
@@ -269,6 +278,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           }
         }
       }
+      return true;
     } else if (logicalKey == LogicalKeyboardKey.space) {
       final selectedId = controller.selectedNodeId;
       if (selectedId != null) {
@@ -277,12 +287,40 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           controller.toggleNodeExpansion(node);
         }
       }
+      return true;
     }
+
+    return false;
+  }
+
+  bool _shouldSuppressUnhandledPrintableKey(KeyEvent event) {
+    if (defaultTargetPlatform != TargetPlatform.macOS || event is! KeyDownEvent) {
+      return false;
+    }
+
+    final bool hasModifier =
+        HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isAltPressed;
+
+    if (hasModifier) {
+      return false;
+    }
+
+    final String? character = event.character;
+    if (character == null || character.isEmpty) {
+      return false;
+    }
+
+    return true;
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTapDown: (_) {
+        _focusNode.requestFocus();
+      },
       onTap: () {
         _internalController.deselectAll();
       },
@@ -291,9 +329,14 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       behavior: HitTestBehavior.opaque,
       child: Focus(
         focusNode: _focusNode,
+        autofocus: true,
         onKeyEvent: (node, event) {
-          _handleKeyEvent(event);
-          return KeyEventResult.handled;
+          final bool handled = _handleKeyEvent(event);
+          if (handled || _shouldSuppressUnhandledPrintableKey(event)) {
+            return KeyEventResult.handled;
+          }
+
+          return KeyEventResult.ignored;
         },
         child: ListenableBuilder(
           listenable: _internalController,

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../models/tree_node.dart';
-import '../../models/prebuilt/todo_item.dart';
-import '../../configs/tree_view_style.dart';
-import '../../configs/tree_view_logic.dart';
-import '../../controllers/tree_controller.dart';
-import '../super_tree_view.dart';
-import '../context_menu_overlay.dart';
+import 'package:super_tree/src/configs/tree_view_logic.dart';
+import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/models/prebuilt/todo_item.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_view.dart';
+import 'package:super_tree/src/widgets/tree_highlighted_label.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [TodoItem]s.
 /// It provides a checkbox out-of-the-box and sorts uncompleted items first by default.
@@ -75,12 +76,22 @@ class TodoListSuperTree extends StatelessWidget {
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node, Widget? renameField) {
     final baseStyle = style.labelStyle ?? style.textStyle;
-    return renameField ?? Text(
-      node.data.title,
-      style: (baseStyle ?? const TextStyle()).copyWith(
-        decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
-        color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
-      ),
+    final TextStyle finalStyle = (baseStyle ?? const TextStyle()).copyWith(
+      decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
+      color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
+    );
+
+    if (renameField != null) {
+      return renameField;
+    }
+
+    final List<int> matchedIndices =
+        controller?.getMatchedIndices(node.id) ?? const <int>[];
+
+    return TreeHighlightedLabel(
+      text: node.data.title,
+      matchedIndices: matchedIndices,
+      style: finalStyle,
     );
   }
 
