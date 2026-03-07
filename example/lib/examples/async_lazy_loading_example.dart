@@ -21,7 +21,8 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
         TreeNode<FileSystemItem>(
           id: 'workspace',
           data: FolderItem('workspace'),
-          isExpanded: true,
+          // Start collapsed so caret direction matches initial visual state.
+          isExpanded: false,
           canLoadChildren: true,
         ),
       ],

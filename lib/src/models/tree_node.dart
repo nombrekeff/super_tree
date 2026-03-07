@@ -1,6 +1,9 @@
 /// Signature for providing a string label from a data object of type [T].
 typedef TreeLabelProvider<T> = String Function(T data);
 
+/// Lazy-loading lifecycle state for a tree node.
+enum TreeNodeState { idle, loading, error, loaded }
+
 /// Represents a single node in the [SuperTreeView].
 ///
 /// The generic type [T] allows the node to hold custom business data.
@@ -26,6 +29,12 @@ class TreeNode<T> {
   /// When true, UI may show an expansion affordance even if [children] is empty.
   bool canLoadChildren;
 
+  /// Current lazy-loading lifecycle state.
+  TreeNodeState nodeState;
+
+  /// Last lazy-loading error associated with this node.
+  Object? loadError;
+
   /// Reference to the parent node. Null if this is a root node.
   TreeNode<T>? parent;
 
@@ -44,11 +53,30 @@ class TreeNode<T> {
     this.isExpanded = false,
     this.isSelected = false,
     this.canLoadChildren = false,
+    TreeNodeState? nodeState,
+    this.loadError,
     this.isNew = false,
     this.parent,
   }) : id = id ?? 'node_${++_idCounter}',
-       _children = children ?? <TreeNode<T>>[] {
+       _children = children ?? <TreeNode<T>>[],
+       nodeState =
+           nodeState ??
+           _resolveInitialState(
+             canLoadChildren: canLoadChildren,
+             childCount: children?.length ?? 0,
+           ) {
     _bindChildren();
+  }
+
+  static TreeNodeState _resolveInitialState({
+    required bool canLoadChildren,
+    required int childCount,
+  }) {
+    if (!canLoadChildren || childCount > 0) {
+      return TreeNodeState.loaded;
+    }
+
+    return TreeNodeState.idle;
   }
 
   /// Iterates over initial children and sets this node as their parent.
@@ -91,6 +119,8 @@ class TreeNode<T> {
     bool? isExpanded,
     bool? isSelected,
     bool? canLoadChildren,
+    TreeNodeState? nodeState,
+    Object? loadError,
     bool? isNew,
     TreeNode<T>? parent,
   }) {
@@ -101,6 +131,8 @@ class TreeNode<T> {
       isExpanded: isExpanded ?? this.isExpanded,
       isSelected: isSelected ?? this.isSelected,
       canLoadChildren: canLoadChildren ?? this.canLoadChildren,
+      nodeState: nodeState ?? this.nodeState,
+      loadError: loadError ?? this.loadError,
       isNew: isNew ?? this.isNew,
       parent: parent ?? this.parent,
     );

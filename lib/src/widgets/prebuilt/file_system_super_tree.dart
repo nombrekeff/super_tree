@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:super_tree/src/configs/file_system_icon_provider.dart';
+import 'package:super_tree/src/configs/file_system_tree_theme.dart';
 import 'package:super_tree/src/configs/icon_provider.dart';
 import 'package:super_tree/src/configs/tree_view_logic.dart';
 import 'package:super_tree/src/configs/tree_view_style.dart';
@@ -14,19 +15,32 @@ import 'package:super_tree/src/widgets/tree_highlighted_label.dart';
 class FileSystemSuperTree extends StatelessWidget {
   final TreeController<FileSystemItem>? controller;
   final List<TreeNode<FileSystemItem>>? roots;
-  final int Function(TreeNode<FileSystemItem> a, TreeNode<FileSystemItem> b)? sortComparator;
-  
+  final int Function(TreeNode<FileSystemItem> a, TreeNode<FileSystemItem> b)?
+  sortComparator;
+
   final TreeViewStyle style;
   final TreeViewConfig<FileSystemItem> logic;
-  
+
+  /// Theme tokens for reusable file-system visuals.
+  final FileSystemTreeTheme? fileSystemTheme;
+
   final FileSystemIconProvider? iconProvider;
 
   /// Optional builder overrides if the default file system layout is insufficient.
   final Widget Function(BuildContext, TreeNode<FileSystemItem>)? prefixBuilder;
-  final Widget Function(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField)? contentBuilder;
-  final Widget Function(BuildContext, TreeNode<FileSystemItem>)? trailingBuilder;
+  final Widget Function(
+    BuildContext context,
+    TreeNode<FileSystemItem> node,
+    Widget? renameField,
+  )?
+  contentBuilder;
+  final Widget Function(BuildContext, TreeNode<FileSystemItem>)?
+  trailingBuilder;
+
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
-  final List<ContextMenuItem> Function(BuildContext, TreeNode<FileSystemItem>)? contextMenuBuilder;
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<FileSystemItem>)?
+  contextMenuBuilder;
+
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the background.
   final List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder;
   final ScrollController? scrollController;
@@ -39,6 +53,7 @@ class FileSystemSuperTree extends StatelessWidget {
     this.sortComparator,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewConfig(),
+    this.fileSystemTheme,
     this.iconProvider,
     this.prefixBuilder,
     this.contentBuilder,
@@ -49,26 +64,40 @@ class FileSystemSuperTree extends StatelessWidget {
     this.physics,
   });
 
-  Widget _defaultPrefixBuilder(BuildContext context, TreeNode<FileSystemItem> node) {
-    final FileSystemIconProvider provider = iconProvider ?? MaterialFileSystemIconProvider();
+  FileSystemTreeTheme _resolveTheme() {
+    if (fileSystemTheme != null) {
+      return fileSystemTheme!;
+    }
+
+    return FileSystemTreeTheme.material(iconProvider: iconProvider);
+  }
+
+  Widget _defaultPrefixBuilder(
+    BuildContext context,
+    TreeNode<FileSystemItem> node,
+  ) {
+    final FileSystemTreeTheme resolvedTheme = _resolveTheme();
+    final FileSystemIconProvider provider = resolvedTheme.iconProvider;
     final Widget Function(BuildContext, TreeNode<FileSystemItem>) builder =
         prefixBuilderFromIconProvider<FileSystemItem>(iconProvider: provider);
     return builder(context, node);
   }
 
-  Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {
+  Widget _defaultContentBuilder(
+    BuildContext context,
+    TreeNode<FileSystemItem> node,
+    Widget? renameField,
+  ) {
+    final FileSystemTreeTheme resolvedTheme = _resolveTheme();
     if (renameField != null) {
-      return Padding(
-        padding: const EdgeInsets.only(left: 6.0),
-        child: renameField,
-      );
+      return Padding(padding: resolvedTheme.labelPadding, child: renameField);
     }
 
     final List<int> matchedIndices =
         controller?.getMatchedIndices(node.id) ?? const <int>[];
 
     return Padding(
-      padding: const EdgeInsets.only(left: 6.0),
+      padding: resolvedTheme.labelPadding,
       child: TreeHighlightedLabel(
         text: node.data.name,
         matchedIndices: matchedIndices,

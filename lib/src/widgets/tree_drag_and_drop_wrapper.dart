@@ -46,21 +46,49 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   });
 
   @override
-  State<TreeDragAndDropWrapper<T>> createState() =>
-      _TreeDragAndDropWrapperState<T>();
+  State<TreeDragAndDropWrapper<T>> createState() => _TreeDragAndDropWrapperState<T>();
 }
 
 class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
+  static const double _edgeDropBandFraction = 0.05;
+
   NodeDropPosition? _currentHoverPosition;
 
-  NodeDropPosition _calculateDropPosition(Offset globalOffset) {
+  NodeDropPosition _calculateRawDropPosition(Offset globalOffset) {
     final RenderBox renderBox = context.findRenderObject() as RenderBox;
     final Offset localPosition = renderBox.globalToLocal(globalOffset);
     final double height = renderBox.size.height;
 
-    if (localPosition.dy < height * 0.35) return NodeDropPosition.above;
-    if (localPosition.dy > height * 0.65) return NodeDropPosition.below;
+    if (localPosition.dy < height * _edgeDropBandFraction) {
+      return NodeDropPosition.above;
+    }
+    if (localPosition.dy > height * (1 - _edgeDropBandFraction)) {
+      return NodeDropPosition.below;
+    }
     return NodeDropPosition.inside;
+  }
+
+  NodeDropPosition? _resolveDropPosition(TreeNode<T> draggedNode, Offset globalOffset) {
+    final NodeDropPosition rawPosition = _calculateRawDropPosition(globalOffset);
+    if (_isValidDrop(draggedNode, rawPosition)) {
+      return rawPosition;
+    }
+
+    // If inside is invalid (for example on files), degrade to nearest edge.
+    if (rawPosition == NodeDropPosition.inside) {
+      final RenderBox renderBox = context.findRenderObject() as RenderBox;
+      final Offset localPosition = renderBox.globalToLocal(globalOffset);
+      final double height = renderBox.size.height;
+      final NodeDropPosition nearestEdge = localPosition.dy < height / 2
+          ? NodeDropPosition.above
+          : NodeDropPosition.below;
+
+      if (_isValidDrop(draggedNode, nearestEdge)) {
+        return nearestEdge;
+      }
+    }
+
+    return null;
   }
 
   bool _isValidDrop(TreeNode<T> draggedNode, NodeDropPosition position) {
@@ -92,11 +120,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
 
     // Let the logic override if needed
     if (widget.canAcceptDrop != null) {
-      return widget.canAcceptDrop!(
-        draggedNode,
-        widget.node,
-        position,
-      );
+      return widget.canAcceptDrop!(draggedNode, widget.node, position);
     }
 
     return true;
@@ -110,12 +134,14 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
       builder: (context, constraints) {
         return DragTarget<TreeNode<T>>(
           onWillAcceptWithDetails: (details) {
-            final position = _calculateDropPosition(details.offset);
-            return _isValidDrop(details.data, position);
+            return _resolveDropPosition(details.data, details.offset) != null;
           },
           onAcceptWithDetails: (details) {
-            final position = _calculateDropPosition(details.offset);
-            if (_isValidDrop(details.data, position)) {
+            final NodeDropPosition? position = _resolveDropPosition(
+              details.data,
+              details.offset,
+            );
+            if (position != null) {
               widget.onDrop(details.data, widget.node, position);
             }
             setState(() => _currentHoverPosition = null);
@@ -124,7 +150,10 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             setState(() => _currentHoverPosition = null);
           },
           onMove: (details) {
-            final computedPosition = _calculateDropPosition(details.offset);
+            final NodeDropPosition? computedPosition = _resolveDropPosition(
+              details.data,
+              details.offset,
+            );
             if (_currentHoverPosition != computedPosition) {
               setState(() {
                 _currentHoverPosition = computedPosition;
@@ -153,7 +182,8 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
               } else {
                 final targetData = widget.node.data;
                 if (targetData is SuperTreeData) {
-                  if (validatedPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
+                  if (validatedPosition == NodeDropPosition.inside &&
+                      !targetData.canHaveChildren) {
                     validatedPosition = null;
                   } else if (!targetData.canAcceptDrop(draggedNode.data, validatedPosition)) {
                     validatedPosition = null;
@@ -161,11 +191,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                 }
 
                 if (validatedPosition != null && widget.canAcceptDrop != null) {
-                  if (!widget.canAcceptDrop!(
-                    draggedNode,
-                    widget.node,
-                    validatedPosition,
-                  )) {
+                  if (!widget.canAcceptDrop!(draggedNode, widget.node, validatedPosition)) {
                     validatedPosition = null;
                   }
                 }
@@ -187,16 +213,14 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
               builder: (context, constraints) {
                 return Draggable<TreeNode<T>>(
                   data: widget.node,
+                  dragAnchorStrategy: pointerDragAnchorStrategy,
                   feedback: Material(
                     elevation: 8,
                     color: Colors.transparent,
                     child: Opacity(
                       opacity: 0.8,
                       // Constrain width so it matches the general tree view visually
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: widget.child,
-                      ),
+                      child: SizedBox(width: constraints.maxWidth, child: widget.child),
                     ),
                   ),
                   childWhenDragging: Opacity(opacity: 0.3, child: widget.child),
@@ -241,11 +265,7 @@ class _DropIndictorPainter extends CustomPainter {
         canvas.drawLine(const Offset(0, 0), Offset(size.width, 0), paint);
         break;
       case NodeDropPosition.below:
-        canvas.drawLine(
-          Offset(0, size.height),
-          Offset(size.width, size.height),
-          paint,
-        );
+        canvas.drawLine(Offset(0, size.height), Offset(size.width, size.height), paint);
         break;
       case NodeDropPosition.inside:
         paint.style = PaintingStyle.stroke;

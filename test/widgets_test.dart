@@ -61,9 +61,7 @@ void main() {
             controller: controller,
             prefixBuilder: (context, node) => const Icon(Icons.person),
             contentBuilder: (context, node, renameField) => Text(node.data),
-            logic: const TreeViewConfig(
-              expansionTrigger: ExpansionTrigger.iconTap,
-            ),
+            logic: const TreeViewConfig(expansionTrigger: ExpansionTrigger.iconTap),
           ),
         ),
       );
@@ -83,9 +81,7 @@ void main() {
       expect(find.text('Test Child'), findsNothing);
     });
 
-    testWidgets('Expansion/Collapse via full row tap', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('Expansion/Collapse via full row tap', (WidgetTester tester) async {
       await tester.pumpWidget(
         createTestableWidget(
           SuperTreeView<String>(
@@ -132,16 +128,13 @@ void main() {
             builder: (context, setState) {
               return SuperTreeView<String>(
                 controller: controller,
-                prefixBuilder: (context, node) =>
-                    const Icon(Icons.chevron_right),
+                prefixBuilder: (context, node) => const Icon(Icons.chevron_right),
                 contentBuilder: (context, node, renameField) {
                   if (renameField != null) return renameField;
                   // Handle data update manually for test simplicity if not using a real model
                   return Text(renamedId == node.id ? renamedValue! : node.data);
                 },
-                logic: const TreeViewConfig(
-                  namingStrategy: TreeNamingStrategy.click,
-                ),
+                logic: const TreeViewConfig(namingStrategy: TreeNamingStrategy.click),
               );
             },
           ),
@@ -180,9 +173,7 @@ void main() {
             contentBuilder: (context, node, renameField) => Text(node.data),
             contextMenuBuilder: (context, node) {
               menuBuilt = true;
-              return [
-                ContextMenuItem(child: const Text('Action'), onTap: () {}),
-              ];
+              return [ContextMenuItem(child: const Text('Action'), onTap: () {})];
             },
           ),
         ),
@@ -237,6 +228,67 @@ void main() {
       expect(target?.id, 'node_beta');
     });
 
+    testWidgets('Drag and drop falls back to edge when inside is not allowed', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<FileSystemItem> controller = TreeController<FileSystemItem>(
+        roots: <TreeNode<FileSystemItem>>[
+          TreeNode<FileSystemItem>(id: 'file', data: FileItem('README.md')),
+          TreeNode<FileSystemItem>(id: 'folder', data: FolderItem('folder')),
+        ],
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<FileSystemItem>(
+            controller: controller,
+            style: const TreeViewStyle(padding: EdgeInsets.zero),
+            prefixBuilder: (BuildContext context, TreeNode<FileSystemItem> node) {
+              return const SizedBox.shrink();
+            },
+            contentBuilder:
+                (BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {
+                  return Text(node.data.name);
+                },
+            logic: TreeViewConfig<FileSystemItem>(
+              enableDragAndDrop: true,
+              canAcceptDrop:
+                  (
+                    TreeNode<FileSystemItem> draggedNode,
+                    TreeNode<FileSystemItem> targetNode,
+                    NodeDropPosition position,
+                  ) => true,
+            ),
+          ),
+        ),
+      );
+
+      final Finder folderDragTarget = find.ancestor(
+        of: find.text('folder'),
+        matching: find.byWidgetPredicate(
+          (Widget widget) => widget is DragTarget<TreeNode<FileSystemItem>>,
+        ),
+      );
+      final Rect folderRect = tester.getRect(folderDragTarget);
+      final Offset folderCenter = folderRect.center;
+      final Finder fileDragTarget = find.ancestor(
+        of: find.text('README.md'),
+        matching: find.byWidgetPredicate(
+          (Widget widget) => widget is DragTarget<TreeNode<FileSystemItem>>,
+        ),
+      );
+      final Rect fileRect = tester.getRect(fileDragTarget);
+      final Offset fileMiddle = Offset(fileRect.center.dx, fileRect.center.dy);
+
+      await tester.dragFrom(folderCenter, fileMiddle - folderCenter);
+      await tester.pumpAndSettle();
+
+      expect(controller.roots.length, 2);
+      expect(controller.roots.first.id, 'file');
+      expect(controller.roots.last.id, 'folder');
+      expect(controller.roots.first.children, isEmpty);
+    });
+
     testWidgets('Keyboard interactions work after tapping tree content', (
       WidgetTester tester,
     ) async {
@@ -258,14 +310,9 @@ void main() {
             prefixBuilder: (BuildContext context, TreeNode<String> node) {
               return const Icon(Icons.chevron_right);
             },
-            contentBuilder:
-                (
-                  BuildContext context,
-                  TreeNode<String> node,
-                  Widget? renameField,
-                ) {
-                  return Text(node.data);
-                },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
           ),
         ),
       );
@@ -286,71 +333,16 @@ void main() {
       expect(controller.selectedNodeId, 'root_2');
     });
 
-    testWidgets(
-      'Arrow right expands selected node and arrow left collapses it',
-      (WidgetTester tester) async {
-        final TreeController<String> controller = TreeController<String>(
-          roots: <TreeNode<String>>[
-            TreeNode<String>(
-              id: 'root_1',
-              data: 'Root 1',
-              children: <TreeNode<String>>[
-                TreeNode<String>(id: 'child_1', data: 'Child 1'),
-              ],
-            ),
-          ],
-        );
-
-        addTearDown(() {
-          controller.dispose();
-        });
-
-        await tester.pumpWidget(
-          createTestableWidget(
-            SuperTreeView<String>(
-              controller: controller,
-              prefixBuilder: (BuildContext context, TreeNode<String> node) {
-                return const Icon(Icons.chevron_right);
-              },
-              contentBuilder:
-                  (
-                    BuildContext context,
-                    TreeNode<String> node,
-                    Widget? renameField,
-                  ) {
-                    return Text(node.data);
-                  },
-            ),
-          ),
-        );
-
-        await tester.tap(find.text('Root 1'));
-        await tester.pumpAndSettle();
-
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
-        await tester.pumpAndSettle();
-
-        expect(find.text('Child 1'), findsOneWidget);
-
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
-        await tester.pumpAndSettle();
-
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
-        await tester.pumpAndSettle();
-
-        expect(find.text('Child 1'), findsNothing);
-      },
-    );
-
-    testWidgets('Enter starts renaming when naming strategy is enabled', (
+    testWidgets('Arrow right expands selected node and arrow left collapses it', (
       WidgetTester tester,
     ) async {
       final TreeController<String> controller = TreeController<String>(
         roots: <TreeNode<String>>[
-          TreeNode<String>(id: 'root_1', data: 'Root 1'),
+          TreeNode<String>(
+            id: 'root_1',
+            data: 'Root 1',
+            children: <TreeNode<String>>[TreeNode<String>(id: 'child_1', data: 'Child 1')],
+          ),
         ],
       );
 
@@ -362,20 +354,58 @@ void main() {
         createTestableWidget(
           SuperTreeView<String>(
             controller: controller,
-            logic: const TreeViewConfig<String>(
-              namingStrategy: TreeNamingStrategy.contextMenu,
-            ),
             prefixBuilder: (BuildContext context, TreeNode<String> node) {
               return const Icon(Icons.chevron_right);
             },
-            contentBuilder:
-                (
-                  BuildContext context,
-                  TreeNode<String> node,
-                  Widget? renameField,
-                ) {
-                  return renameField ?? Text(node.data);
-                },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Root 1'));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Child 1'), findsOneWidget);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Child 1'), findsNothing);
+    });
+
+    testWidgets('Enter starts renaming when naming strategy is enabled', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[TreeNode<String>(id: 'root_1', data: 'Root 1')],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            logic: const TreeViewConfig<String>(namingStrategy: TreeNamingStrategy.contextMenu),
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
           ),
         ),
       );
@@ -391,136 +421,120 @@ void main() {
       expect(controller.renamingNodeId, 'root_1');
     });
 
-    testWidgets(
-      'Shift+Arrow extends selection range in multiple selection mode',
-      (WidgetTester tester) async {
-        final TreeController<String> controller = TreeController<String>(
-          roots: <TreeNode<String>>[
-            TreeNode<String>(id: 'root_1', data: 'Root 1'),
-            TreeNode<String>(id: 'root_2', data: 'Root 2'),
-            TreeNode<String>(id: 'root_3', data: 'Root 3'),
-          ],
-        );
+    testWidgets('Shift+Arrow extends selection range in multiple selection mode', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(id: 'root_1', data: 'Root 1'),
+          TreeNode<String>(id: 'root_2', data: 'Root 2'),
+          TreeNode<String>(id: 'root_3', data: 'Root 3'),
+        ],
+      );
 
-        addTearDown(() {
-          controller.dispose();
-        });
+      addTearDown(() {
+        controller.dispose();
+      });
 
-        await tester.pumpWidget(
-          createTestableWidget(
-            SuperTreeView<String>(
-              controller: controller,
-              logic: const TreeViewConfig<String>(
-                selectionMode: SelectionMode.multiple,
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            logic: const TreeViewConfig<String>(selectionMode: SelectionMode.multiple),
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Root 1'));
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pumpAndSettle();
+
+      expect(controller.selectedNodeIds, <String>{'root_1', 'root_2'});
+    });
+
+    testWidgets('FileSystemSuperTree uses icon provider in default prefix builder', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          FileSystemSuperTree(
+            roots: <TreeNode<FileSystemItem>>[
+              TreeNode<FileSystemItem>(
+                data: FolderItem('lib'),
+                isExpanded: true,
+                children: <TreeNode<FileSystemItem>>[
+                  TreeNode<FileSystemItem>(data: FileItem('README.md')),
+                ],
               ),
-              prefixBuilder: (BuildContext context, TreeNode<String> node) {
-                return const Icon(Icons.chevron_right);
-              },
-              contentBuilder:
-                  (
-                    BuildContext context,
-                    TreeNode<String> node,
-                    Widget? renameField,
-                  ) {
-                    return Text(node.data);
-                  },
-            ),
+            ],
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Root 1'));
-        await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.folder_open), findsOneWidget);
+      expect(find.byIcon(Icons.description), findsOneWidget);
+      expect(find.text('lib'), findsOneWidget);
+      expect(find.text('README.md'), findsOneWidget);
+    });
 
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
-        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-        await tester.pumpAndSettle();
-
-        expect(controller.selectedNodeIds, <String>{'root_1', 'root_2'});
-      },
-    );
-
-    testWidgets(
-      'FileSystemSuperTree uses icon provider in default prefix builder',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          createTestableWidget(
-            FileSystemSuperTree(
-              roots: <TreeNode<FileSystemItem>>[
-                TreeNode<FileSystemItem>(
-                  data: FolderItem('lib'),
-                  isExpanded: true,
-                  children: <TreeNode<FileSystemItem>>[
-                    TreeNode<FileSystemItem>(data: FileItem('README.md')),
-                  ],
-                ),
-              ],
-            ),
+    testWidgets('FileSystemSuperTree keeps custom prefixBuilder override precedence', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          FileSystemSuperTree(
+            roots: <TreeNode<FileSystemItem>>[
+              TreeNode<FileSystemItem>(data: FolderItem('src')),
+            ],
+            prefixBuilder: (BuildContext context, TreeNode<FileSystemItem> node) {
+              return const Icon(Icons.star);
+            },
           ),
-        );
+        ),
+      );
 
-        expect(find.byIcon(Icons.folder_open), findsOneWidget);
-        expect(find.byIcon(Icons.description), findsOneWidget);
-        expect(find.text('lib'), findsOneWidget);
-        expect(find.text('README.md'), findsOneWidget);
-      },
-    );
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.text('src'), findsOneWidget);
+    });
 
-    testWidgets(
-      'FileSystemSuperTree keeps custom prefixBuilder override precedence',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          createTestableWidget(
-            FileSystemSuperTree(
-              roots: <TreeNode<FileSystemItem>>[
-                TreeNode<FileSystemItem>(data: FolderItem('src')),
-              ],
-              prefixBuilder:
-                  (BuildContext context, TreeNode<FileSystemItem> node) {
-                    return const Icon(Icons.star);
-                  },
-            ),
-          ),
-        );
+    testWidgets('SuperTreeThemes presets expose usable style and icon providers', (
+      WidgetTester tester,
+    ) async {
+      final SuperTreeThemePreset vscodePreset = SuperTreeThemes.vscode();
+      final SuperTreeThemePreset materialPreset = SuperTreeThemes.material();
+      final SuperTreeThemePreset compactPreset = SuperTreeThemes.compact();
 
-        expect(find.byIcon(Icons.star), findsOneWidget);
-        expect(find.text('src'), findsOneWidget);
-      },
-    );
+      expect(vscodePreset.fileSystemIconProvider, isNotNull);
+      expect(materialPreset.fileSystemIconProvider, isNotNull);
+      expect(compactPreset.fileSystemIconProvider, isNotNull);
+      expect(vscodePreset.treeStyle.indentAmount, 16.0);
+      expect(materialPreset.treeStyle.indentAmount, 20.0);
+      expect(compactPreset.treeStyle.indentAmount, 14.0);
+    });
 
-    testWidgets(
-      'SuperTreeThemes presets expose usable style and icon providers',
-      (WidgetTester tester) async {
-        final SuperTreeThemePreset vscodePreset = SuperTreeThemes.vscode();
-        final SuperTreeThemePreset materialPreset = SuperTreeThemes.material();
-        final SuperTreeThemePreset compactPreset = SuperTreeThemes.compact();
+    testWidgets('TreeHighlightedLabel renders RichText when there are matched indices', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          const TreeHighlightedLabel(text: 'README.md', matchedIndices: <int>[0, 1, 2, 3]),
+        ),
+      );
 
-        expect(vscodePreset.fileSystemIconProvider, isNotNull);
-        expect(materialPreset.fileSystemIconProvider, isNotNull);
-        expect(compactPreset.fileSystemIconProvider, isNotNull);
-        expect(vscodePreset.treeStyle.indentAmount, 16.0);
-        expect(materialPreset.treeStyle.indentAmount, 20.0);
-        expect(compactPreset.treeStyle.indentAmount, 14.0);
-      },
-    );
-
-    testWidgets(
-      'TreeHighlightedLabel renders RichText when there are matched indices',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          createTestableWidget(
-            const TreeHighlightedLabel(
-              text: 'README.md',
-              matchedIndices: <int>[0, 1, 2, 3],
-            ),
-          ),
-        );
-
-        expect(find.byType(RichText), findsOneWidget);
-        expect(find.text('README.md'), findsNothing);
-      },
-    );
+      expect(find.byType(RichText), findsOneWidget);
+      expect(find.text('README.md'), findsNothing);
+    });
 
     testWidgets(
       'TreeHighlightedLabel keeps non-highlight style color readable when custom style omits color',
@@ -538,93 +552,70 @@ void main() {
           ),
         );
 
-        final RichText richText = tester.widget<RichText>(
-          find.byType(RichText),
-        );
+        final RichText richText = tester.widget<RichText>(find.byType(RichText));
         final TextSpan rootSpan = richText.text as TextSpan;
-        final List<InlineSpan> children =
-            rootSpan.children ?? const <InlineSpan>[];
+        final List<InlineSpan> children = rootSpan.children ?? const <InlineSpan>[];
         final TextSpan nonHighlight = children.whereType<TextSpan>().last;
 
         expect(nonHighlight.style?.color, isNotNull);
       },
     );
 
-    testWidgets(
-      'TodoListSuperTree applies tri-state parent checkbox synchronization',
-      (WidgetTester tester) async {
-        final TreeController<TodoItem> controller = TreeController<TodoItem>(
-          roots: <TreeNode<TodoItem>>[
-            TreeNode<TodoItem>(
-              id: 'parent',
-              data: TodoItem('Parent Task'),
-              isExpanded: true,
-              children: <TreeNode<TodoItem>>[
-                TreeNode<TodoItem>(id: 'child_a', data: TodoItem('Child A')),
-                TreeNode<TodoItem>(id: 'child_b', data: TodoItem('Child B')),
-              ],
-            ),
-          ],
-        );
+    testWidgets('TodoListSuperTree applies tri-state parent checkbox synchronization', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<TodoItem> controller = TreeController<TodoItem>(
+        roots: <TreeNode<TodoItem>>[
+          TreeNode<TodoItem>(
+            id: 'parent',
+            data: TodoItem('Parent Task'),
+            isExpanded: true,
+            children: <TreeNode<TodoItem>>[
+              TreeNode<TodoItem>(id: 'child_a', data: TodoItem('Child A')),
+              TreeNode<TodoItem>(id: 'child_b', data: TodoItem('Child B')),
+            ],
+          ),
+        ],
+      );
 
-        addTearDown(() {
-          controller.dispose();
-        });
+      addTearDown(() {
+        controller.dispose();
+      });
 
-        await tester.pumpWidget(
-          createTestableWidget(TodoListSuperTree(controller: controller)),
-        );
+      await tester.pumpWidget(createTestableWidget(TodoListSuperTree(controller: controller)));
 
-        final Finder checkboxes = find.byType(Checkbox);
-        await tester.tap(checkboxes.at(1));
-        await tester.pumpAndSettle();
+      final Finder checkboxes = find.byType(Checkbox);
+      await tester.tap(checkboxes.at(1));
+      await tester.pumpAndSettle();
 
-        final Checkbox parentAfterPartial = tester.widget<Checkbox>(
-          checkboxes.at(0),
-        );
-        final Checkbox childAAfterToggle = tester.widget<Checkbox>(
-          checkboxes.at(1),
-        );
-        final Checkbox childBAfterToggle = tester.widget<Checkbox>(
-          checkboxes.at(2),
-        );
+      final Checkbox parentAfterPartial = tester.widget<Checkbox>(checkboxes.at(0));
+      final Checkbox childAAfterToggle = tester.widget<Checkbox>(checkboxes.at(1));
+      final Checkbox childBAfterToggle = tester.widget<Checkbox>(checkboxes.at(2));
 
-        expect(parentAfterPartial.value, isNull);
-        expect(childAAfterToggle.value, isTrue);
-        expect(childBAfterToggle.value, isFalse);
+      expect(parentAfterPartial.value, isNull);
+      expect(childAAfterToggle.value, isTrue);
+      expect(childBAfterToggle.value, isFalse);
 
-        await tester.tap(checkboxes.at(0));
-        await tester.pumpAndSettle();
+      await tester.tap(checkboxes.at(0));
+      await tester.pumpAndSettle();
 
-        final Checkbox parentAfterParentTap = tester.widget<Checkbox>(
-          checkboxes.at(0),
-        );
-        final Checkbox childAAfterParentTap = tester.widget<Checkbox>(
-          checkboxes.at(1),
-        );
-        final Checkbox childBAfterParentTap = tester.widget<Checkbox>(
-          checkboxes.at(2),
-        );
+      final Checkbox parentAfterParentTap = tester.widget<Checkbox>(checkboxes.at(0));
+      final Checkbox childAAfterParentTap = tester.widget<Checkbox>(checkboxes.at(1));
+      final Checkbox childBAfterParentTap = tester.widget<Checkbox>(checkboxes.at(2));
 
-        expect(parentAfterParentTap.value, isTrue);
-        expect(childAAfterParentTap.value, isTrue);
-        expect(childBAfterParentTap.value, isTrue);
-      },
-    );
+      expect(parentAfterParentTap.value, isTrue);
+      expect(childAAfterParentTap.value, isTrue);
+      expect(childBAfterParentTap.value, isTrue);
+    });
 
     testWidgets('Lazy loading exposes spinner state via prefixBuilder', (
       WidgetTester tester,
     ) async {
-      final Completer<List<TreeNode<String>>> completer =
-          Completer<List<TreeNode<String>>>();
+      final Completer<List<TreeNode<String>>> completer = Completer<List<TreeNode<String>>>();
 
       final TreeController<String> controller = TreeController<String>(
         roots: <TreeNode<String>>[
-          TreeNode<String>(
-            id: 'lazy_root',
-            data: 'Lazy Root',
-            canLoadChildren: true,
-          ),
+          TreeNode<String>(id: 'lazy_root', data: 'Lazy Root', canLoadChildren: true),
         ],
         loadChildren: (TreeNode<String> node) => completer.future,
       );
@@ -644,14 +635,9 @@ void main() {
               }
               return const Icon(Icons.chevron_right);
             },
-            contentBuilder:
-                (
-                  BuildContext context,
-                  TreeNode<String> node,
-                  Widget? renameField,
-                ) {
-                  return Text(node.data);
-                },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
           ),
         ),
       );
@@ -670,45 +656,36 @@ void main() {
       expect(find.text('Lazy Child'), findsOneWidget);
     });
 
-    testWidgets(
-      'Node row shows warning icon when controller reports integrity issue',
-      (WidgetTester tester) async {
-        final TreeNode<String> root = TreeNode<String>(
-          id: 'root',
-          data: 'Root',
-        );
-        final TreeController<String> controller = TreeController<String>(
-          roots: <TreeNode<String>>[root],
-        );
+    testWidgets('Node row shows warning icon when controller reports integrity issue', (
+      WidgetTester tester,
+    ) async {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'Root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
 
-        addTearDown(() {
-          controller.dispose();
-        });
+      addTearDown(() {
+        controller.dispose();
+      });
 
-        await tester.pumpWidget(
-          createTestableWidget(
-            SuperTreeView<String>(
-              controller: controller,
-              prefixBuilder: (BuildContext context, TreeNode<String> node) {
-                return const Icon(Icons.chevron_right);
-              },
-              contentBuilder:
-                  (
-                    BuildContext context,
-                    TreeNode<String> node,
-                    Widget? renameField,
-                  ) {
-                    return Text(node.data);
-                  },
-            ),
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
           ),
-        );
+        ),
+      );
 
-        controller.addChild(root, root);
-        await tester.pumpAndSettle();
+      controller.addChild(root, root);
+      await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.error_outline), findsOneWidget);
-      },
-    );
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+    });
   });
 }

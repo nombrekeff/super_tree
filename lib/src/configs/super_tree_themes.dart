@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:super_tree/src/configs/cupertino_file_system_icon_provider.dart';
 import 'package:super_tree/src/configs/file_system_icon_provider.dart';
+import 'package:super_tree/src/configs/file_system_tree_theme.dart';
 import 'package:super_tree/src/configs/tree_view_style.dart';
 
 /// A reusable bundle of style and icon defaults for a SuperTree experience.
@@ -8,8 +9,12 @@ class SuperTreeThemePreset {
   /// Tree row and interaction visuals.
   final TreeViewStyle treeStyle;
 
-  /// Optional file-system icon mapping used by [FileSystemSuperTree].
-  final FileSystemIconProvider? fileSystemIconProvider;
+  /// Optional file-system specific tokens used by [FileSystemSuperTree].
+  final FileSystemTreeTheme? fileSystemTheme;
+
+  /// Backward-compatible file-system icon mapping.
+  FileSystemIconProvider? get fileSystemIconProvider =>
+      fileSystemTheme?.iconProvider;
 
   /// Optional suggested sidebar color for host layouts.
   final Color? sidebarColor;
@@ -28,7 +33,7 @@ class SuperTreeThemePreset {
 
   const SuperTreeThemePreset({
     required this.treeStyle,
-    this.fileSystemIconProvider,
+    this.fileSystemTheme,
     this.sidebarColor,
     required this.brightness,
     required this.scaffoldBackgroundColor,
@@ -73,9 +78,12 @@ class SuperTreeThemes {
         dropIndicatorColor: Colors.blue,
         padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       ),
-      fileSystemIconProvider: MaterialFileSystemIconProvider(
-        folderColor: Colors.blueAccent,
-        defaultFileColor: Colors.white54,
+      fileSystemTheme: FileSystemTreeTheme(
+        iconProvider: MaterialFileSystemIconProvider(
+          folderColor: Colors.blueAccent,
+          defaultFileColor: Colors.white54,
+        ),
+        labelPadding: const EdgeInsets.only(left: 6.0),
       ),
       sidebarColor: const Color(0xFF1E1E1E),
       brightness: Brightness.dark,
@@ -95,8 +103,11 @@ class SuperTreeThemes {
         dropIndicatorColor: Color(0xFF0066CC),
         padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       ),
-      fileSystemIconProvider: MaterialFileSystemIconProvider(
-        folderColor: const Color(0xFF3B82F6),
+      fileSystemTheme: FileSystemTreeTheme(
+        iconProvider: MaterialFileSystemIconProvider(
+          folderColor: const Color(0xFF3B82F6),
+        ),
+        labelPadding: const EdgeInsets.only(left: 6.0),
       ),
       sidebarColor: const Color(0xFFF3F4F6),
       brightness: Brightness.light,
@@ -116,8 +127,11 @@ class SuperTreeThemes {
         dropIndicatorColor: Color(0xFF3B82F6),
         padding: EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
       ),
-      fileSystemIconProvider: CupertinoFileSystemIconProvider(
-        folderColor: const Color(0xFF3B82F6),
+      fileSystemTheme: FileSystemTreeTheme(
+        iconProvider: CupertinoFileSystemIconProvider(
+          folderColor: const Color(0xFF3B82F6),
+        ),
+        labelPadding: const EdgeInsets.only(left: 4.0),
       ),
       sidebarColor: const Color(0xFF1E293B),
       brightness: Brightness.dark,

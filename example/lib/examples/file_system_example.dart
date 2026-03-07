@@ -4,17 +4,9 @@ import 'package:example/examples/shared/example_tree_search_logic.dart';
 import 'package:example/examples/shared/example_tree_search_shortcuts.dart';
 import 'package:super_tree/super_tree.dart';
 
-enum ThemeOption {
-  vscode,
-  material,
-  compact,
-}
+enum ThemeOption { vscode, material, compact }
 
-enum SortOption {
-  none,
-  alphabetical,
-  foldersFirst,
-}
+enum SortOption { none, alphabetical, foldersFirst }
 
 class FileSystemExample extends StatefulWidget {
   const FileSystemExample({super.key});
@@ -83,14 +75,14 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         setState(() {
           node.data.name = newName;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Renamed to $newName')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Renamed to $newName')));
       },
       onNodeDeleted: (node) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item deleted')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Item deleted')));
       },
       roots: [
         TreeNode(
@@ -118,9 +110,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                   children: [
                     TreeNode(
                       data: FolderItem('models'),
-                      children: [
-                        TreeNode(data: FileItem('tree_node.dart')),
-                      ],
+                      children: [TreeNode(data: FileItem('tree_node.dart'))],
                     ),
                     TreeNode(
                       data: FolderItem('configs'),
@@ -138,9 +128,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               children: [
                 TreeNode(
                   data: FolderItem('lib'),
-                  children: [
-                    TreeNode(data: FileItem('main.dart')),
-                  ],
+                  children: [TreeNode(data: FileItem('main.dart'))],
                 ),
               ],
             ),
@@ -187,7 +175,10 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         final int start = lowerCandidate.length - normalized.length;
         return TreeFuzzyMatchResult(
           score: 0,
-          matchedIndices: List<int>.generate(normalized.length, (int i) => start + i),
+          matchedIndices: List<int>.generate(
+            normalized.length,
+            (int i) => start + i,
+          ),
         );
       }
     }
@@ -228,10 +219,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           _controller.createNewRoot(FolderItem(''));
         },
       ),
-      const ContextMenuItem(
-        child: Divider(),
-        onTap: _noOp,
-      ),
+      const ContextMenuItem(child: Divider(), onTap: _noOp),
       ContextMenuItem(
         child: const Text('Expand All'),
         onTap: () => _controller.expandAll(),
@@ -245,7 +233,10 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
 
   static void _noOp() {}
 
-  List<ContextMenuItem> _buildContextMenu(BuildContext context, TreeNode<FileSystemItem> node) {
+  List<ContextMenuItem> _buildContextMenu(
+    BuildContext context,
+    TreeNode<FileSystemItem> node,
+  ) {
     return [
       if (node.data.isFolder) ...[
         ContextMenuItem(
@@ -260,10 +251,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
             _controller.createNewChild(node, FolderItem(''));
           },
         ),
-        const ContextMenuItem(
-          child: Divider(),
-          onTap: _noOp,
-        ),
+        const ContextMenuItem(child: Divider(), onTap: _noOp),
       ],
       ContextMenuItem(
         child: const Text('Rename'),
@@ -288,13 +276,16 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           _controller.sortComparator = null;
           break;
         case SortOption.alphabetical:
-          _controller.sortComparator = (a, b) => a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
+          _controller.sortComparator = (a, b) =>
+              a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
           break;
         case SortOption.foldersFirst:
           _controller.sortComparator = (a, b) {
             if (a.data.isFolder && !b.data.isFolder) return -1;
             if (!a.data.isFolder && b.data.isFolder) return 1;
-            return a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
+            return a.data.name.toLowerCase().compareTo(
+              b.data.name.toLowerCase(),
+            );
           };
           break;
       }
@@ -306,11 +297,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     required VoidCallback onPressed,
     required String tooltip,
   }) {
-    return IconButton(
-      icon: Icon(icon),
-      onPressed: onPressed,
-      tooltip: tooltip,
-    );
+    return IconButton(icon: Icon(icon), onPressed: onPressed, tooltip: tooltip);
   }
 
   @override
@@ -323,242 +310,301 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
       onOpenSearch: _openSearch,
       onCloseSearch: _closeSearch,
       child: Scaffold(
-      appBar: AppBar(
-        title: const Text('File System Tree'),
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: isDark ? Colors.white : Colors.black87,
-        elevation: 1,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: _openSearch,
-            tooltip: 'Search (Cmd/Ctrl+F)',
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: DropdownButton<SortOption>(
-              value: _currentSort,
-              dropdownColor: theme.colorScheme.surface,
-              underline: const SizedBox(),
-              icon: Icon(Icons.sort, color: isDark ? Colors.white70 : Colors.black54),
-              items: const [
-                DropdownMenuItem(value: SortOption.none, child: Text('No Sort')),
-                DropdownMenuItem(value: SortOption.alphabetical, child: Text('Alphabetical')),
-                DropdownMenuItem(value: SortOption.foldersFirst, child: Text('Folders First')),
-              ],
-              onChanged: (val) {
-                if (val != null) _updateSorting(val);
-              },
+        appBar: AppBar(
+          title: const Text('File System Tree'),
+          backgroundColor: theme.colorScheme.surface,
+          foregroundColor: isDark ? Colors.white : Colors.black87,
+          elevation: 1,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: _openSearch,
+              tooltip: 'Search (Cmd/Ctrl+F)',
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: DropdownButton<ThemeOption>(
-              value: widget.currentTheme,
-              dropdownColor: theme.colorScheme.surface,
-              underline: const SizedBox(),
-              icon: Icon(Icons.palette, color: isDark ? Colors.white70 : Colors.black54),
-              items: const [
-                DropdownMenuItem(value: ThemeOption.vscode, child: Text('VS Code Dark')),
-                DropdownMenuItem(value: ThemeOption.material, child: Text('Material')),
-                DropdownMenuItem(value: ThemeOption.compact, child: Text('Compact')),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  widget.onThemeChanged(val);
-                }
-              },
-            ),
-          ),
-          _buildActionButton(
-            icon: Icons.create_new_folder,
-            onPressed: () => _controller.createNewRoot(FolderItem('')),
-            tooltip: 'New Root Folder',
-          ),
-          _buildActionButton(
-            icon: Icons.note_add,
-            onPressed: () => _controller.createNewRoot(FileItem('')),
-            tooltip: 'New Root File',
-          ),
-          _buildActionButton(
-            icon: Icons.unfold_more,
-            onPressed: () => _controller.expandAll(),
-            tooltip: 'Expand All',
-          ),
-          IconButton(
-            icon: const Icon(Icons.unfold_less),
-            onPressed: _controller.collapseAll,
-            tooltip: 'Collapse All',
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_searchUi.isSearchVisible) searchField,
-          Expanded(
-            child: Row(
-        children: [
-          Container(
-            width: 320,
-            decoration: BoxDecoration(
-              border: Border(right: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
-              color: _getSidebarColor(),
-            ),
-              child: FileSystemSuperTree(
-                controller: _controller,
-                style: _getTreeStyle(),
-                logic: TreeViewConfig(
-                  enableDragAndDrop: true,
-                  expansionTrigger: ExpansionTrigger.tap,
-                  selectionMode: SelectionMode.multiple,
-                  namingStrategy: TreeNamingStrategy.contextMenu,
-                  onNodeTap: (id) {
-                    setState(() {
-                      // We keep track of the last selected node for the detail view if only one is selected
-                      // or just to show the "focused" one.
-                    });
-                  },
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: DropdownButton<SortOption>(
+                value: _currentSort,
+                dropdownColor: theme.colorScheme.surface,
+                underline: const SizedBox(),
+                icon: Icon(
+                  Icons.sort,
+                  color: isDark ? Colors.white70 : Colors.black54,
                 ),
-                iconProvider: _getIconProvider(),
-                contextMenuBuilder: _buildContextMenu,
-                rootContextMenuBuilder: _buildRootContextMenu,
-              ),
-            ),
-          
-          Expanded(
-            child: Container(
-              color: theme.scaffoldBackgroundColor,
-              child: Center(
-              child: ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) {
-                  final selectedIds = _controller.selectedNodeIds;
-                  final bool hasSearch = _searchController.hasQuery;
-                  final bool noSearchResults = hasSearch && _controller.flatVisibleNodes.isEmpty;
-
-                  if (noSearchResults) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 72,
-                          color: isDark ? Colors.white24 : Colors.black26,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No results for "${_searchController.query}"',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 12),
-                        TextButton(
-                          onPressed: _closeSearch,
-                          child: const Text('Clear search'),
-                        ),
-                      ],
-                    );
-                  }
-                  
-                  if (selectedIds.isEmpty) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.account_tree,
-                          size: 64,
-                          color: isDark ? Colors.white24 : Colors.black26,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Select a file to view\nDrag and Drop nodes to move them',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDark ? Colors.white54 : Colors.black54,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-
-                  if (selectedIds.length > 1) {
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.copy_all,
-                          size: 80,
-                          color: theme.colorScheme.primary.withAlpha(128),
-                        ),
-                        const SizedBox(height: 24),
-                        Text(
-                          '${selectedIds.length} items selected',
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            color: isDark ? Colors.white : Colors.black87,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            for (var id in selectedIds) {
-                              _controller.removeNode(_controller.findNodeById(id)!);
-                            }
-                          },
-                          icon: const Icon(Icons.delete_sweep),
-                          label: const Text('Delete Selected Items'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withAlpha(204),
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-
-                  final selectedNode = _controller.findNodeById(selectedIds.first)!;
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        selectedNode.data.isFolder ? Icons.folder : Icons.insert_drive_file,
-                        size: 80,
-                        color: theme.colorScheme.primary.withAlpha(128),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        selectedNode.data.name,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        selectedNode.data.isFolder ? 'Folder' : 'File',
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: isDark ? Colors.white54 : Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      ElevatedButton.icon(
-                        onPressed: () => _controller.setRenamingNodeId(selectedNode.id),
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Rename Item'),
-                      ),
-                    ],
-                  );
+                items: const [
+                  DropdownMenuItem(
+                    value: SortOption.none,
+                    child: Text('No Sort'),
+                  ),
+                  DropdownMenuItem(
+                    value: SortOption.alphabetical,
+                    child: Text('Alphabetical'),
+                  ),
+                  DropdownMenuItem(
+                    value: SortOption.foldersFirst,
+                    child: Text('Folders First'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) _updateSorting(val);
                 },
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: DropdownButton<ThemeOption>(
+                value: widget.currentTheme,
+                dropdownColor: theme.colorScheme.surface,
+                underline: const SizedBox(),
+                icon: Icon(
+                  Icons.palette,
+                  color: isDark ? Colors.white70 : Colors.black54,
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: ThemeOption.vscode,
+                    child: Text('VS Code Dark'),
+                  ),
+                  DropdownMenuItem(
+                    value: ThemeOption.material,
+                    child: Text('Material'),
+                  ),
+                  DropdownMenuItem(
+                    value: ThemeOption.compact,
+                    child: Text('Compact'),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    widget.onThemeChanged(val);
+                  }
+                },
               ),
             ),
-          )
-        ],
+            _buildActionButton(
+              icon: Icons.create_new_folder,
+              onPressed: () => _controller.createNewRoot(FolderItem('')),
+              tooltip: 'New Root Folder',
+            ),
+            _buildActionButton(
+              icon: Icons.note_add,
+              onPressed: () => _controller.createNewRoot(FileItem('')),
+              tooltip: 'New Root File',
+            ),
+            _buildActionButton(
+              icon: Icons.unfold_more,
+              onPressed: () => _controller.expandAll(),
+              tooltip: 'Expand All',
+            ),
+            IconButton(
+              icon: const Icon(Icons.unfold_less),
+              onPressed: _controller.collapseAll,
+              tooltip: 'Collapse All',
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (_searchUi.isSearchVisible) searchField,
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 320,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        right: BorderSide(
+                          color: isDark ? Colors.white12 : Colors.black12,
+                        ),
+                      ),
+                      color: _getSidebarColor(),
+                    ),
+                    child: FileSystemSuperTree(
+                      controller: _controller,
+                      style: _getTreeStyle(),
+                      logic: TreeViewConfig(
+                        enableDragAndDrop: true,
+                        expansionTrigger: ExpansionTrigger.tap,
+                        selectionMode: SelectionMode.multiple,
+                        namingStrategy: TreeNamingStrategy.contextMenu,
+                        onNodeTap: (id) {
+                          setState(() {
+                            // We keep track of the last selected node for the detail view if only one is selected
+                            // or just to show the "focused" one.
+                          });
+                        },
+                      ),
+                      fileSystemTheme: _getFileSystemTheme(),
+                      contextMenuBuilder: _buildContextMenu,
+                      rootContextMenuBuilder: _buildRootContextMenu,
+                    ),
+                  ),
+
+                  Expanded(
+                    child: Container(
+                      color: theme.scaffoldBackgroundColor,
+                      child: Center(
+                        child: ListenableBuilder(
+                          listenable: _controller,
+                          builder: (context, _) {
+                            final selectedIds = _controller.selectedNodeIds;
+                            final bool hasSearch = _searchController.hasQuery;
+                            final bool noSearchResults =
+                                hasSearch &&
+                                _controller.flatVisibleNodes.isEmpty;
+
+                            if (noSearchResults) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 72,
+                                    color: isDark
+                                        ? Colors.white24
+                                        : Colors.black26,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No results for "${_searchController.query}"',
+                                    style: theme.textTheme.titleMedium,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextButton(
+                                    onPressed: _closeSearch,
+                                    child: const Text('Clear search'),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            if (selectedIds.isEmpty) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.account_tree,
+                                    size: 64,
+                                    color: isDark
+                                        ? Colors.white24
+                                        : Colors.black26,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Select a file to view\nDrag and Drop nodes to move them',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black54,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            if (selectedIds.length > 1) {
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.copy_all,
+                                    size: 80,
+                                    color: theme.colorScheme.primary.withAlpha(
+                                      128,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    '${selectedIds.length} items selected',
+                                    style: theme.textTheme.headlineMedium
+                                        ?.copyWith(
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 40),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      for (var id in selectedIds) {
+                                        _controller.removeNode(
+                                          _controller.findNodeById(id)!,
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.delete_sweep),
+                                    label: const Text('Delete Selected Items'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red.withAlpha(
+                                        204,
+                                      ),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+
+                            final selectedNode = _controller.findNodeById(
+                              selectedIds.first,
+                            )!;
+                            return Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  selectedNode.data.isFolder
+                                      ? Icons.folder
+                                      : Icons.insert_drive_file,
+                                  size: 80,
+                                  color: theme.colorScheme.primary.withAlpha(
+                                    128,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  selectedNode.data.name,
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  selectedNode.data.isFolder
+                                      ? 'Folder'
+                                      : 'File',
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 40),
+                                ElevatedButton.icon(
+                                  onPressed: () => _controller
+                                      .setRenamingNodeId(selectedNode.id),
+                                  icon: const Icon(Icons.edit),
+                                  label: const Text('Rename Item'),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-          ),
-        ],
-      ),
-    ),
     );
   }
 
@@ -581,13 +627,8 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     return _getPreset().treeStyle;
   }
 
-  FileSystemIconProvider _getIconProvider() {
-    final FileSystemIconProvider? provider = _getPreset().fileSystemIconProvider;
-    if (provider != null) {
-      return provider;
-    }
-
-    return MaterialFileSystemIconProvider();
+  FileSystemTreeTheme _getFileSystemTheme() {
+    return _getPreset().fileSystemTheme ?? FileSystemTreeTheme.material();
   }
 
   SuperTreeThemePreset _getPreset() {
@@ -601,4 +642,3 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     }
   }
 }
-

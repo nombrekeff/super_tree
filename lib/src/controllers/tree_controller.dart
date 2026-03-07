@@ -9,7 +9,13 @@ typedef TreeLoadChildrenCallback<T> =
 
 /// Read-only async UI state for a node.
 class TreeNodeAsyncState {
-  const TreeNodeAsyncState({required this.isLoading, required this.error});
+  const TreeNodeAsyncState({
+    required this.state,
+    required this.isLoading,
+    required this.error,
+  });
+
+  final TreeNodeState state;
 
   final bool isLoading;
   final Object? error;
@@ -73,15 +79,6 @@ class TreeController<T> extends ChangeNotifier {
   /// Index for O(1) node lookup by ID.
   final Map<String, TreeNode<T>> _nodeIndex = {};
 
-  /// Node IDs that have completed lazy loading at least once.
-  final Set<String> _lazyLoadedNodeIds = <String>{};
-
-  /// Node IDs that currently have a pending lazy-loading request.
-  final Set<String> _loadingNodeIds = <String>{};
-
-  /// Last loading error by node ID.
-  final Map<String, Object> _loadErrorsByNodeId = <String, Object>{};
-
   /// Last integrity issue emitted by validation guards.
   TreeIntegrityIssue? _lastIntegrityIssue;
 
@@ -122,8 +119,13 @@ class TreeController<T> extends ChangeNotifier {
 
   void _markInitialLoadedState(TreeNode<T> node) {
     if (node.hasChildren || !node.canLoadChildren) {
-      _lazyLoadedNodeIds.add(node.id);
+      node.nodeState = TreeNodeState.loaded;
+      node.loadError = null;
+    } else if (node.nodeState != TreeNodeState.loading) {
+      node.nodeState = TreeNodeState.idle;
+      node.loadError = null;
     }
+
     for (final TreeNode<T> child in node.children) {
       _markInitialLoadedState(child);
     }
@@ -419,9 +421,10 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Clears lazy-loading state for a node subtree.
   void _clearLazyStateForSubtree(TreeNode<T> node) {
-    _loadingNodeIds.remove(node.id);
-    _lazyLoadedNodeIds.remove(node.id);
-    _loadErrorsByNodeId.remove(node.id);
+    node.nodeState = node.canLoadChildren
+        ? TreeNodeState.idle
+        : TreeNodeState.loaded;
+    node.loadError = null;
     for (final TreeNode<T> child in node.children) {
       _clearLazyStateForSubtree(child);
     }
@@ -450,37 +453,69 @@ class TreeController<T> extends ChangeNotifier {
   }
 
   /// Returns `true` if [nodeId] is currently loading children.
-  bool isNodeLoading(String nodeId) => _loadingNodeIds.contains(nodeId);
+  bool isNodeLoading(String nodeId) {
+    final TreeNode<T>? node = findNodeById(nodeId);
+    return node?.nodeState == TreeNodeState.loading;
+  }
 
   /// Returns the last lazy-loading error for [nodeId], if any.
-  Object? getNodeLoadError(String nodeId) => _loadErrorsByNodeId[nodeId];
+  Object? getNodeLoadError(String nodeId) {
+    final TreeNode<T>? node = findNodeById(nodeId);
+    return node?.loadError;
+  }
 
   /// Returns `true` if [nodeId] has a captured lazy-loading error.
-  bool hasNodeLoadError(String nodeId) =>
-      _loadErrorsByNodeId.containsKey(nodeId);
+  bool hasNodeLoadError(String nodeId) {
+    final TreeNode<T>? node = findNodeById(nodeId);
+    return node?.nodeState == TreeNodeState.error;
+  }
+
+  /// Returns enum-based lazy-loading state for [nodeId].
+  TreeNodeState getNodeState(String nodeId) {
+    final TreeNode<T>? node = findNodeById(nodeId);
+    return node?.nodeState ?? TreeNodeState.loaded;
+  }
 
   /// Returns whether a node can trigger lazy loading.
   bool canNodeLoadChildren(TreeNode<T> node) {
     return _loadChildren != null &&
         node.canLoadChildren &&
         !node.hasChildren &&
-        !_lazyLoadedNodeIds.contains(node.id);
+        node.nodeState != TreeNodeState.loaded;
   }
 
   /// Gets an immutable async state snapshot for [nodeId].
   TreeNodeAsyncState getNodeAsyncState(String nodeId) {
+    final TreeNode<T>? node = findNodeById(nodeId);
+    if (node == null) {
+      return const TreeNodeAsyncState(
+        state: TreeNodeState.loaded,
+        isLoading: false,
+        error: null,
+      );
+    }
+
     return TreeNodeAsyncState(
-      isLoading: isNodeLoading(nodeId),
-      error: getNodeLoadError(nodeId),
+      state: node.nodeState,
+      isLoading: node.nodeState == TreeNodeState.loading,
+      error: node.loadError,
     );
   }
 
   /// Clears the lazy-loading error for [nodeId].
   void clearNodeLoadError(String nodeId) {
-    final bool removed = _loadErrorsByNodeId.remove(nodeId) != null;
-    if (removed) {
-      notifyListeners();
+    final TreeNode<T>? node = findNodeById(nodeId);
+    if (node == null || node.loadError == null) {
+      return;
     }
+
+    node.loadError = null;
+    if (node.nodeState == TreeNodeState.error) {
+      node.nodeState = node.canLoadChildren
+          ? TreeNodeState.idle
+          : TreeNodeState.loaded;
+    }
+    notifyListeners();
   }
 
   /// Ensures lazy children are loaded for [node] if needed.
@@ -492,12 +527,12 @@ class TreeController<T> extends ChangeNotifier {
     }
 
     final String nodeId = node.id;
-    if (_loadingNodeIds.contains(nodeId)) {
+    if (node.nodeState == TreeNodeState.loading) {
       return;
     }
 
-    _loadingNodeIds.add(nodeId);
-    _loadErrorsByNodeId.remove(nodeId);
+    node.nodeState = TreeNodeState.loading;
+    node.loadError = null;
     notifyListeners();
 
     try {
@@ -507,7 +542,8 @@ class TreeController<T> extends ChangeNotifier {
       }
 
       final List<TreeNode<T>> children = await loadChildren(node);
-      if (findNodeById(nodeId) == null) {
+      final TreeNode<T>? refreshedNode = findNodeById(nodeId);
+      if (refreshedNode == null) {
         return;
       }
 
@@ -517,7 +553,8 @@ class TreeController<T> extends ChangeNotifier {
         targetNodeId: nodeId,
         notify: false,
       )) {
-        _loadErrorsByNodeId[nodeId] = StateError(
+        refreshedNode.nodeState = TreeNodeState.error;
+        refreshedNode.loadError = StateError(
           'Duplicate node IDs were returned while loading children for "$nodeId".',
         );
         return;
@@ -525,23 +562,33 @@ class TreeController<T> extends ChangeNotifier {
 
       for (final TreeNode<T> child in children) {
         _indexSubtree(child);
-        node.internalAddChild(child);
+        refreshedNode.internalAddChild(child);
       }
 
       if (_sortComparator != null) {
-        node.internalSortChildren(_sortComparator!);
+        refreshedNode.internalSortChildren(_sortComparator!);
       }
 
-      node.canLoadChildren = false;
-      _lazyLoadedNodeIds.add(nodeId);
-      _loadErrorsByNodeId.remove(nodeId);
-      if (node.isExpanded) {
+      refreshedNode.canLoadChildren = false;
+      refreshedNode.nodeState = TreeNodeState.loaded;
+      refreshedNode.loadError = null;
+      if (refreshedNode.isExpanded) {
         _rebuildFlatList();
       }
     } catch (error) {
-      _loadErrorsByNodeId[nodeId] = error;
+      final TreeNode<T>? refreshedNode = findNodeById(nodeId);
+      if (refreshedNode != null) {
+        refreshedNode.nodeState = TreeNodeState.error;
+        refreshedNode.loadError = error;
+      }
     } finally {
-      _loadingNodeIds.remove(nodeId);
+      final TreeNode<T>? refreshedNode = findNodeById(nodeId);
+      if (refreshedNode != null &&
+          refreshedNode.nodeState == TreeNodeState.loading) {
+        refreshedNode.nodeState = refreshedNode.canLoadChildren
+            ? TreeNodeState.idle
+            : TreeNodeState.loaded;
+      }
       notifyListeners();
     }
   }

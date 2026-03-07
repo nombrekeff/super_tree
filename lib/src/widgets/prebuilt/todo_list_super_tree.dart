@@ -13,22 +13,29 @@ import 'package:super_tree/src/widgets/tree_highlighted_label.dart';
 class TodoListSuperTree extends StatefulWidget {
   final TreeController<TodoItem>? controller;
   final List<TreeNode<TodoItem>>? roots;
-  
+
   /// Sort comparator. Defaults to uncompleted first, then alphabetical.
-  final int Function(TreeNode<TodoItem> a, TreeNode<TodoItem> b)? sortComparator;
-  
+  final int Function(TreeNode<TodoItem> a, TreeNode<TodoItem> b)?
+  sortComparator;
+
   final TreeViewStyle style;
   final TreeViewConfig<TodoItem> logic;
-  
+
   final void Function(TodoItem item)? onTodoChanged;
 
   /// Optional builder overrides.
   final Widget Function(BuildContext, TreeNode<TodoItem>)? prefixBuilder;
-  final Widget Function(BuildContext context, TreeNode<TodoItem> node, Widget? renameField)? contentBuilder;
+  final Widget Function(
+    BuildContext context,
+    TreeNode<TodoItem> node,
+    Widget? renameField,
+  )?
+  contentBuilder;
   final Widget Function(BuildContext, TreeNode<TodoItem>)? trailingBuilder;
-  
+
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
-  final List<ContextMenuItem> Function(BuildContext, TreeNode<TodoItem>)? contextMenuBuilder;
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<TodoItem>)?
+  contextMenuBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -124,7 +131,11 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
   Widget _defaultPrefixBuilder(BuildContext context, TreeNode<TodoItem> node) {
     final TreeNodeAsyncState asyncState =
         widget.controller?.getNodeAsyncState(node.id) ??
-        const TreeNodeAsyncState(isLoading: false, error: null);
+        const TreeNodeAsyncState(
+          state: TreeNodeState.loaded,
+          isLoading: false,
+          error: null,
+        );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -150,8 +161,13 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
     );
   }
 
-  Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node, Widget? renameField) {
-    final TextStyle? baseStyle = widget.style.labelStyle ?? widget.style.textStyle;
+  Widget _defaultContentBuilder(
+    BuildContext context,
+    TreeNode<TodoItem> node,
+    Widget? renameField,
+  ) {
+    final TextStyle? baseStyle =
+        widget.style.labelStyle ?? widget.style.textStyle;
     final TextStyle finalStyle = (baseStyle ?? const TextStyle()).copyWith(
       decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
       color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
@@ -162,7 +178,7 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
     }
 
     final List<int> matchedIndices =
-    widget.controller?.getMatchedIndices(node.id) ?? const <int>[];
+        widget.controller?.getMatchedIndices(node.id) ?? const <int>[];
 
     return TreeHighlightedLabel(
       text: node.data.title,
@@ -176,11 +192,17 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
     return SuperTreeView<TodoItem>(
       controller: widget.controller,
       roots: widget.roots,
-      sortComparator: widget.sortComparator ?? TodoListSuperTree.defaultTodoComparator,
+      sortComparator:
+          widget.sortComparator ?? TodoListSuperTree.defaultTodoComparator,
       style: widget.style,
       logic: widget.logic,
       prefixBuilder: widget.prefixBuilder ?? _defaultPrefixBuilder,
-      contentBuilder: (context, node, renameField) => (widget.contentBuilder ?? _defaultContentBuilder)(context, node, renameField),
+      contentBuilder: (context, node, renameField) =>
+          (widget.contentBuilder ?? _defaultContentBuilder)(
+            context,
+            node,
+            renameField,
+          ),
       trailingBuilder: widget.trailingBuilder,
       contextMenuBuilder: widget.contextMenuBuilder,
       scrollController: widget.scrollController,

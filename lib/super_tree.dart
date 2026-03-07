@@ -1,4 +1,3 @@
-
 export 'src/models/tree_node.dart';
 export 'src/models/tree_filtering.dart';
 export 'src/models/super_tree_data.dart';
@@ -15,6 +14,7 @@ export 'src/widgets/tree_drag_and_drop_wrapper.dart' show NodeDropPosition;
 export 'src/models/prebuilt/todo_item.dart';
 export 'src/configs/icon_provider.dart';
 export 'src/configs/file_system_icon_provider.dart';
+export 'src/configs/file_system_tree_theme.dart';
 export 'src/configs/cupertino_file_system_icon_provider.dart';
 export 'src/widgets/prebuilt/file_system_super_tree.dart';
 export 'src/widgets/prebuilt/todo_list_super_tree.dart';
