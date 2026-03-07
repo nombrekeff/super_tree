@@ -32,6 +32,10 @@ class SuperTreeView<T> extends StatefulWidget {
   /// Builds the prefix widget (e.g. expandable caret icon or file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
 
+  /// Optional provider to extract a display label from node data.
+  /// Used as a fallback if no [contentBuilder] is provided or in default implementations.
+  final TreeLabelProvider<T>? labelProvider;
+
   /// Builds the main content area of the node (e.g. text label, checkbox).
   /// 
   /// The [renameField] is provided when the node is in renaming mode. 
@@ -62,6 +66,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.sortComparator,
     required this.prefixBuilder,
     required this.contentBuilder,
+    this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
     this.scrollController,
@@ -79,6 +84,7 @@ class SuperTreeView<T> extends StatefulWidget {
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
     required Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
+    TreeLabelProvider<T>? labelProvider,
     Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
     List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder,
     ScrollController? scrollController,
@@ -93,6 +99,7 @@ class SuperTreeView<T> extends StatefulWidget {
       sortComparator: sortComparator,
       prefixBuilder: prefixBuilder,
       contentBuilder: contentBuilder,
+      labelProvider: labelProvider,
       separatorBuilder: separatorBuilder,
       trailingBuilder: trailingBuilder,
       contextMenuBuilder: contextMenuBuilder,
@@ -112,6 +119,7 @@ class SuperTreeView<T> extends StatefulWidget {
     required this.prefixBuilder,
     required this.contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
+    this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
     this.scrollController,
@@ -141,18 +149,35 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
           roots: widget.roots,
           sortComparator: widget.sortComparator ?? widget.logic.defaultSortComparator,
         );
+    
+    if (widget.logic.debugMode) {
+      debugPrint('[SuperTreeView] Initialized with ${_ownsController ? "internal" : "external"} controller: ${_internalController.hashCode}');
+    }
   }
 
   @override
   void didUpdateWidget(SuperTreeView<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.controller != oldWidget.controller) {
+    
+    final controllerChanged = widget.controller != oldWidget.controller;
+    
+    if (controllerChanged) {
+      if (widget.logic.debugMode) {
+        debugPrint('[SuperTreeView] Controller changed. Old: ${oldWidget.controller?.hashCode}, New: ${widget.controller?.hashCode}');
+      }
+      
       if (_ownsController) {
+        if (widget.logic.debugMode) {
+          debugPrint('[SuperTreeView] Disposing internal controller: ${_internalController.hashCode}');
+        }
         _internalController.dispose();
       }
       _initController();
     } else if (_ownsController) {
       if (widget.sortComparator != oldWidget.sortComparator) {
+        if (widget.logic.debugMode) {
+          debugPrint('[SuperTreeView] Updating internal controller sort comparator');
+        }
         _internalController.sortComparator = widget.sortComparator;
       }
     }
@@ -160,7 +185,14 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
 
   @override
   void dispose() {
+    if (widget.logic.debugMode) {
+      debugPrint('[SuperTreeView] Disposing widget state. Owns controller: $_ownsController');
+    }
+    
     if (_ownsController) {
+      if (widget.logic.debugMode) {
+        debugPrint('[SuperTreeView] Disposing internal controller in dispose(): ${_internalController.hashCode}');
+      }
       _internalController.dispose();
     }
     super.dispose();
@@ -187,6 +219,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
                 style: widget.style,
                 logic: widget.logic,
                 prefixBuilder: widget.prefixBuilder,
+                labelProvider: widget.labelProvider,
                 contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
                 trailingBuilder: widget.trailingBuilder,
                 contextMenuBuilder: widget.contextMenuBuilder,
@@ -207,6 +240,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
               style: widget.style,
               logic: widget.logic,
               prefixBuilder: widget.prefixBuilder,
+              labelProvider: widget.labelProvider,
               contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
               trailingBuilder: widget.trailingBuilder,
               contextMenuBuilder: widget.contextMenuBuilder,

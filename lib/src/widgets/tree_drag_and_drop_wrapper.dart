@@ -64,16 +64,18 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             // Cannot drop on oneself
             if (details.data.id == widget.node.id) return false;
 
-            // Cannot drop a parent into its own child (infinite cycle prevention)
+            // Cannot drop a parent into its own descendant (infinite cycle prevention)
             bool createsCycle = false;
-            TreeNode<T>? parentCursor = widget.node.parent;
-            while (parentCursor != null) {
-              if (parentCursor.id == details.data.id) {
+            TreeNode<T>? cursor = widget.node.parent;
+            while (cursor != null) {
+              if (cursor.id == details.data.id) {
                 createsCycle = true;
                 break;
               }
-              parentCursor = parentCursor.parent;
+              cursor = cursor.parent;
             }
+
+            if (createsCycle) return false;
 
             // Let the data model override if it implements SuperTreeData
             final targetData = widget.node.data;
@@ -87,8 +89,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             }
 
             // Let the logic override if needed
-            if (!createsCycle &&
-                widget.canAcceptDrop != null &&
+            if (widget.canAcceptDrop != null &&
                 _currentHoverPosition != null) {
               return widget.canAcceptDrop!(
                 details.data,
@@ -97,7 +98,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
               );
             }
 
-            return !createsCycle;
+            return true;
           },
           onAcceptWithDetails: (details) {
             if (_currentHoverPosition != null) {
@@ -146,23 +147,38 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             NodeDropPosition? validatedPosition = _currentHoverPosition;
             if (validatedPosition != null && candidateData.isNotEmpty) {
               final draggedNode = candidateData.first!;
-              final targetData = widget.node.data;
-              
-              if (targetData is SuperTreeData) {
-                if (validatedPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
-                  validatedPosition = null;
-                } else if (!targetData.canAcceptDrop(draggedNode.data, validatedPosition)) {
-                  validatedPosition = null;
+
+              // Cycle check in builder for visual feedback
+              bool createsCycle = false;
+              TreeNode<T>? cursor = widget.node.parent;
+              while (cursor != null) {
+                if (cursor.id == draggedNode.id) {
+                  createsCycle = true;
+                  break;
                 }
+                cursor = cursor.parent;
               }
 
-              if (validatedPosition != null && widget.canAcceptDrop != null) {
-                if (!widget.canAcceptDrop!(
-                  draggedNode,
-                  widget.node,
-                  validatedPosition,
-                )) {
-                  validatedPosition = null;
+              if (createsCycle) {
+                validatedPosition = null;
+              } else {
+                final targetData = widget.node.data;
+                if (targetData is SuperTreeData) {
+                  if (validatedPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
+                    validatedPosition = null;
+                  } else if (!targetData.canAcceptDrop(draggedNode.data, validatedPosition)) {
+                    validatedPosition = null;
+                  }
+                }
+
+                if (validatedPosition != null && widget.canAcceptDrop != null) {
+                  if (!widget.canAcceptDrop!(
+                    draggedNode,
+                    widget.node,
+                    validatedPosition,
+                  )) {
+                    validatedPosition = null;
+                  }
                 }
               }
             }

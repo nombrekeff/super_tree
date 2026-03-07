@@ -147,4 +147,40 @@ void main() {
       expect(root.children.map((c) => c.data).toList(), ['a', 'b', 'c']);
     });
   });
+
+  group('TreeController Drag and Drop Ancestry Check', () {
+    test('isDescendantOf correctly identifies descendants', () {
+      final controller = TreeController<String>(
+        roots: [
+          TreeNode(id: 'root', data: 'root', children: [
+            TreeNode(id: 'child', data: 'child', children: [
+              TreeNode(id: 'grandchild', data: 'grandchild'),
+            ]),
+          ]),
+        ],
+      );
+
+      expect(controller.isDescendantOf('child', 'root'), true);
+      expect(controller.isDescendantOf('grandchild', 'root'), true);
+      expect(controller.isDescendantOf('grandchild', 'child'), true);
+      expect(controller.isDescendantOf('root', 'child'), false);
+      expect(controller.isDescendantOf('child', 'grandchild'), false);
+    });
+
+    test('moveNode prevents circular references', () {
+      final root = TreeNode(id: 'root', data: 'root');
+      final child = TreeNode(id: 'child', data: 'child');
+      final controller = TreeController<String>(roots: [root]);
+      controller.addChild(root, child);
+
+      // Attempt to move root into child
+      controller.moveNode(dragged: root, target: child, insertBefore: false, nestInside: true);
+
+      // Root should still be a root, child should still be its child
+      expect(controller.roots.length, 1);
+      expect(controller.roots[0].id, 'root');
+      expect(controller.roots[0].children[0].id, 'child');
+      expect(child.parent?.id, 'root');
+    });
+  });
 }

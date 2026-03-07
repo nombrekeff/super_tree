@@ -1,3 +1,6 @@
+/// Signature for providing a string label from a data object of type [T].
+typedef TreeLabelProvider<T> = String Function(T data);
+
 /// Represents a single node in the [SuperTreeView].
 /// 
 /// The generic type [T] allows the node to hold custom business data.

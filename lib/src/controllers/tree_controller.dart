@@ -17,6 +17,9 @@ class TreeController<T> extends ChangeNotifier {
   /// Cache of the flat visible nodes computed from the current tree state.
   final List<TreeNode<T>> _flatVisibleNodes = [];
 
+  /// Index for O(1) node lookup by ID.
+  final Map<String, TreeNode<T>> _nodeIndex = {};
+
   /// Creates a new [TreeController] initialized with optional [roots].
   /// 
   /// [sortComparator] can be used to keep the tree automatically sorted.
@@ -29,6 +32,9 @@ class TreeController<T> extends ChangeNotifier {
     this.onNodeDeleted,
   }) : _roots = roots ?? <TreeNode<T>>[],
        _sortComparator = sortComparator {
+    for (var root in _roots) {
+      _indexNode(root);
+    }
     _rebuildFlatList();
   }
 
@@ -84,11 +90,40 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+  /// Indexes a node and all its descendants recursively.
+  void _indexNode(TreeNode<T> node) {
+    _nodeIndex[node.id] = node;
+    for (var child in node.children) {
+      _indexNode(child);
+    }
+  }
+
+  /// Unindexes a node and all its descendants recursively.
+  void _unindexNode(TreeNode<T> node) {
+    _nodeIndex.remove(node.id);
+    for (var child in node.children) {
+      _unindexNode(child);
+    }
+  }
+
   /// Expands a specific node and updates the UI.
   void expandNode(TreeNode<T> node) {
     if (!node.isExpanded) {
       node.isExpanded = true;
-      _rebuildFlatList();
+      
+      // Delta update: Insert visible descendants
+      final index = _flatVisibleNodes.indexOf(node);
+      if (index != -1) {
+        final descendants = <TreeNode<T>>[];
+        for (var child in node.children) {
+          _getVisibleDescendants(child, descendants);
+        }
+        _flatVisibleNodes.insertAll(index + 1, descendants);
+      } else {
+        // Fallback if node is not in flat list for some reason
+        _rebuildFlatList();
+      }
+      
       notifyListeners();
     }
   }
@@ -97,8 +132,31 @@ class TreeController<T> extends ChangeNotifier {
   void collapseNode(TreeNode<T> node) {
     if (node.isExpanded) {
       node.isExpanded = false;
-      _rebuildFlatList();
+      
+      // Delta update: Remove visible descendants
+      final index = _flatVisibleNodes.indexOf(node);
+      if (index != -1) {
+        final descendants = <TreeNode<T>>[];
+        for (var child in node.children) {
+          _getVisibleDescendants(child, descendants);
+        }
+        _flatVisibleNodes.removeRange(index + 1, index + 1 + descendants.length);
+      } else {
+        // Fallback
+        _rebuildFlatList();
+      }
+      
       notifyListeners();
+    }
+  }
+
+  /// Recursively gets all visible descendants of a node.
+  void _getVisibleDescendants(TreeNode<T> node, List<TreeNode<T>> result) {
+    result.add(node);
+    if (node.isExpanded) {
+      for (var child in node.children) {
+        _getVisibleDescendants(child, result);
+      }
     }
   }
 
@@ -195,6 +253,7 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Adds a new root node to the tree.
   void addRoot(TreeNode<T> node) {
+    _indexNode(node);
     _roots.add(node);
     if (_sortComparator != null) {
       _roots.sort(_sortComparator!);
@@ -210,6 +269,7 @@ class TreeController<T> extends ChangeNotifier {
       assert(false, 'Cannot add a child to a node that returns canHaveChildren = false');
       return;
     }
+    _indexNode(child);
     parent.internalAddChild(child);
     if (_sortComparator != null) {
       parent.internalSortChildren(_sortComparator!);
@@ -222,6 +282,7 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Removes a node from the tree entirely.
   void removeNode(TreeNode<T> node) {
+    _unindexNode(node);
     if (node.isRoot) {
       _roots.remove(node);
     } else {
@@ -241,19 +302,30 @@ class TreeController<T> extends ChangeNotifier {
   }) {
     if (dragged.id == target.id) return;
 
+    // Preventive check: Cannot drop a node into its own descendant
+    if (isDescendantOf(target.id, dragged.id)) {
+      debugPrint('Circular move detected: Cannot move ${dragged.id} into its own descendant ${target.id}');
+      return;
+    }
+
     // First, detach from current parent
     removeNode(dragged);
 
+    // Re-find target in case node removal (if target was a descendant of a sibling)
+    // though removeNode only removes the dragged node and its descendants.
+    final actualTarget = findNodeById(target.id);
+    if (actualTarget == null) return;
+
     if (nestInside) {
-      final targetData = target.data;
+      final targetData = actualTarget.data;
       if (targetData is SuperTreeData && !targetData.canHaveChildren) {
         assert(false, 'Cannot nest inside a node that returns canHaveChildren = false');
         return;
       }
-      addChild(target, dragged);
-      expandNode(target); // Auto expand to show the dropped child
+      addChild(actualTarget, dragged);
+      expandNode(actualTarget); // Auto expand to show the dropped child
     } else {
-      final parent = target.parent;
+      final parent = actualTarget.parent;
       int index = 0;
 
       if (parent != null) {
@@ -261,7 +333,7 @@ class TreeController<T> extends ChangeNotifier {
           parent.internalAddChild(dragged);
           parent.internalSortChildren(_sortComparator!);
         } else {
-          index = parent.children.indexOf(target);
+          index = parent.children.indexOf(actualTarget);
           if (!insertBefore) index++;
           parent.internalInsertChild(index, dragged);
         }
@@ -270,7 +342,7 @@ class TreeController<T> extends ChangeNotifier {
           _roots.add(dragged);
           _roots.sort(_sortComparator!);
         } else {
-          index = _roots.indexOf(target);
+          index = _roots.indexOf(actualTarget);
           if (!insertBefore) index++;
           _roots.insert(index, dragged);
         }
@@ -280,17 +352,21 @@ class TreeController<T> extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Finds a node by its ID using BFS. Returns null if not found.
-  TreeNode<T>? findNodeById(String id) {
-    final List<TreeNode<T>> queue = List.from(_roots);
+  /// Returns true if the node with [childId] is a descendant of the node with [parentId].
+  bool isDescendantOf(String childId, String parentId) {
+    final TreeNode<T>? child = findNodeById(childId);
+    if (child == null) return false;
     
-    while (queue.isNotEmpty) {
-      final current = queue.removeAt(0);
-      if (current.id == id) {
-        return current;
-      }
-      queue.addAll(current.children);
+    TreeNode<T>? cursor = child.parent;
+    while (cursor != null) {
+      if (cursor.id == parentId) return true;
+      cursor = cursor.parent;
     }
-    return null;
+    return false;
+  }
+
+  /// Finds a node by its ID. Returns null if not found.
+  TreeNode<T>? findNodeById(String id) {
+    return _nodeIndex[id];
   }
 }

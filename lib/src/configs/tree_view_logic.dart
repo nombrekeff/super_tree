@@ -58,6 +58,9 @@ class TreeViewConfig<T> {
   /// Callback generated when a node is double-tapped.
   final void Function(String id)? onNodeDoubleTap;
 
+  /// Whether to print debug logs for lifecycle and state changes.
+  final bool debugMode;
+
   const TreeViewConfig({
     this.expansionTrigger = ExpansionTrigger.tap,
     this.enableDragAndDrop = true,
@@ -67,6 +70,7 @@ class TreeViewConfig<T> {
     this.onNodeTap,
     this.onNodeDoubleTap,
     this.canAcceptDrop,
+    this.debugMode = false,
   });
 
   TreeViewConfig<T> copyWith({
@@ -78,6 +82,7 @@ class TreeViewConfig<T> {
     TreeNamingStrategy? namingStrategy,
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop,
+    bool? debugMode,
   }) {
     return TreeViewConfig<T>(
       expansionTrigger: expansionTrigger ?? this.expansionTrigger,
@@ -88,6 +93,7 @@ class TreeViewConfig<T> {
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,
+      debugMode: debugMode ?? this.debugMode,
     );
   }
 }

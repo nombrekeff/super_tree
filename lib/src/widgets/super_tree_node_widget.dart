@@ -15,6 +15,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final TreeViewConfig<T> logic;
 
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
+  final TreeLabelProvider<T>? labelProvider;
   final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
@@ -28,6 +29,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.style,
     required this.logic,
     required this.prefixBuilder,
+    this.labelProvider,
     required this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
@@ -89,10 +91,16 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
   }
 
   void _initializeRenameText() {
-    String initialText = widget.node.data.toString();
-    try {
-      initialText = (widget.node.data as dynamic).name;
-    } catch (_) {}
+    String initialText = '';
+    
+    if (widget.labelProvider != null) {
+      initialText = widget.labelProvider!(widget.node.data);
+    } else {
+      initialText = widget.node.data.toString();
+      try {
+        initialText = (widget.node.data as dynamic).name;
+      } catch (_) {}
+    }
     
     _renameController.text = initialText;
     
