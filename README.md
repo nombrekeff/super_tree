@@ -1,39 +1,83 @@
-<!--
-This README describes the package. If you publish this package to pub.dev,
-this README's contents appear on the landing page for your package.
+# Super Tree 🌳
 
-For information about how to write a good package README, see the guide for
-[writing package pages](https://dart.dev/tools/pub/writing-package-pages).
+A high-performance, fully customizable, and platform-agnostic hierarchical tree view for Flutter.
 
-For general information about developing packages, see the Dart guide for
-[creating packages](https://dart.dev/guides/libraries/create-packages)
-and the Flutter guide for
-[developing packages and plugins](https://flutter.dev/to/develop-packages).
--->
+Build complex tree structures like **File Explorers**, **Todo Lists**, or **Permission Trees** with ease.
 
-TODO: Put a short description of the package here that helps potential users
-know whether this package might be useful for them.
+## Key Features
 
-## Features
+- ⚡ **High Performance**: Uses a flat list architecture internally for smooth scrolling even with thousands of nodes.
+- 🎨 **Fully Customizable**: Control every pixel with builders for prefixes, content, and trailing actions.
+- 🖱️ **Desktop & Mobile Ready**: Built-in support for context menus (right-click), long-press actions, and drag-and-drop.
+- 🔄 **State Management**: Optional `TreeController` for granular control over expansion, selection, and updates.
+- 📂 **Prebuilt Kits**: includes ready-to-use implementations for common use cases like File Systems and Todo Lists.
+- 🔍 **Search & Selection**: Built-in methods for finding nodes and managing multi-selection.
+- 🧪 **Testable**: Decoupled business logic from UI for easier unit testing.
 
-TODO: List what your package can do. Maybe include images, gifs, or videos.
+## Getting Started
 
-## Getting started
+Add `super_tree` to your `pubspec.yaml`:
 
-TODO: List prerequisites and provide or point to information on how to
-start using the package.
+```yaml
+dependencies:
+  super_tree: ^0.1.0
+```
 
 ## Usage
 
-TODO: Include short and useful examples for package users. Add longer examples
-to `/example` folder.
+### Simple Tree View
+
+Building a tree is as simple as providing a list of nodes:
 
 ```dart
-const like = 'sample';
+import 'package:super_tree/super_tree.dart';
+
+SuperTreeView<String>(
+  roots: [
+    TreeNode(
+      id: 'root',
+      data: 'Documents',
+      children: [
+        TreeNode(id: 'child1', data: 'Resume.pdf'),
+        TreeNode(id: 'child2', data: 'Budget.xlsx'),
+      ],
+    ),
+  ],
+  prefixBuilder: (context, node) => Icon(
+    node.hasChildren ? Icons.folder : Icons.insert_drive_file,
+  ),
+  contentBuilder: (context, node, renameField) => Text(node.data),
+)
 ```
 
-## Additional information
+### Advanced Usage with Controller
 
-TODO: Tell users more about the package: where to find more information, how to
-contribute to the package, how to file issues, what response they can expect
-from the package authors, and more.
+For dynamic updates and interaction handling, use the `TreeController`:
+
+```dart
+final controller = TreeController<MyData>(
+  roots: initialRoots,
+  onNodeRenamed: (node, newName) => print('Renamed to $newName'),
+);
+
+// Toggle programmatically
+controller.expandAll();
+controller.addRoot(newNode);
+```
+
+## Examples
+
+Check the [example project](example/lib/main.dart) for comprehensive demonstrations including:
+
+- **File System Explorer**: VS Code style implementation with themes and icons.
+- **Todo List**: Hierarchical task management with checkboxes.
+- **Checkbox States**: Recursive parent/child checkbox synchronization.
+- **Responsive Menus**: Adaptive interaction patterns for Mobile and Desktop.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request or open an issue.
+
+## License
+
+MIT

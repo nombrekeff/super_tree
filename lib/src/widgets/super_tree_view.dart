@@ -7,10 +7,12 @@ import 'super_tree_node_widget.dart';
 import 'context_menu_overlay.dart';
 
 /// The entry point for rendering the tree view.
-/// This widget observes the [TreeController] and renders nodes in a highly efficient flat List.
+/// 
+/// This widget observes a [TreeController] and renders nodes in a highly efficient 
+/// flat List using `ListView.builder`.
 class SuperTreeView<T> extends StatefulWidget {
   /// The controller used to manipulate the tree.
-  /// If not provided, an internal controller will be created.
+  /// If not provided, an internal controller will be created using [roots] and [sortComparator].
   final TreeController<T>? controller;
 
   /// The root nodes of the tree.
@@ -30,25 +32,29 @@ class SuperTreeView<T> extends StatefulWidget {
   /// Builds the prefix widget (e.g. expandable caret icon or file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
 
-  /// Builds the main content area of the node (e.g. text label).
+  /// Builds the main content area of the node (e.g. text label, checkbox).
+  /// 
+  /// The [renameField] is provided when the node is in renaming mode. 
+  /// If [renameField] is not null, it should be displayed instead of the normal content.
   final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
 
   /// Builds optional trailing widgets (e.g. a 'more options' popup menu icon).
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
-  /// Returns a list of [ContextMenuItem]s to display.
+  /// Returns a list of [ContextMenuItem]s to display in the overlay.
   final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
 
-  /// Custom [ScrollController] if external list wrapping is needed.
+  /// Custom [ScrollController] for the internal ListView.
   final ScrollController? scrollController;
 
-  /// The scroll physics applied to the ListView.
+  /// The scroll physics applied to the internal ListView.
   final ScrollPhysics? physics;
 
   /// Internal separator builder for the separated constructor.
   final Widget Function(BuildContext, int)? _separatorBuilder;
 
+  /// Standard constructor for [SuperTreeView].
   const SuperTreeView({
     super.key,
     this.controller,
@@ -97,6 +103,7 @@ class SuperTreeView<T> extends StatefulWidget {
     );
   }
 
+  /// Private constructor for [SuperTreeView.separated].
   const SuperTreeView._separated({
     super.key,
     this.controller,
@@ -132,7 +139,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     _internalController = widget.controller ??
         TreeController<T>(
           roots: widget.roots,
-          sortComparator: widget.sortComparator,
+          sortComparator: widget.sortComparator ?? widget.logic.defaultSortComparator,
         );
   }
 

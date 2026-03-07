@@ -3,6 +3,8 @@ import 'examples/file_system_example.dart';
 import 'examples/checkbox_example.dart';
 import 'examples/complex_node_example.dart';
 import 'examples/todo_list_example.dart';
+import 'examples/simple_file_system_example.dart';
+import 'examples/responsive_menu_example.dart';
 
 void main() {
   runApp(const MyApp());
@@ -66,6 +68,18 @@ class ExampleHubScreen extends StatelessWidget {
       description: 'A prebuilt convenience tree view demonstrating default checkboxes, data models, and sorting logic for a hierarchical todo list.',
       icon: Icons.checklist_rtl,
       screen: TodoListExample(),
+    ),
+    ExampleInfo(
+      title: 'Minimal File System',
+      description: 'A minimalist example showing how to build a file tree with zero boilerplate and hardcoded data.',
+      icon: Icons.folder,
+      screen: SimpleFileSystemExample(),
+    ),
+    ExampleInfo(
+      title: 'Responsive Menus',
+      description: 'Demonstrates mobile-friendly 3-dot menus versus desktop-friendly right-click context menus.',
+      icon: Icons.menu_open,
+      screen: ResponsiveMenuExample(),
     ),
   ];
 

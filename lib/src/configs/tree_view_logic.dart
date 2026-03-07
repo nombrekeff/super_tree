@@ -3,7 +3,7 @@ import '../widgets/tree_drag_and_drop_wrapper.dart';
 
 /// Behaviors that trigger a node's expansion.
 enum ExpansionTrigger {
-  /// Node expands only when tapping the explicit expand/collapse icon.
+  /// Node expands only when tapping the explicit expand/collapse icon (prefix).
   iconTap,
   
   /// Node expands when clicking anywhere on the node row.
@@ -43,8 +43,11 @@ class TreeViewLogic<T> {
   /// Whether multiple nodes can be selected concurrently (e.g. holding Shift/Ctrl).
   final bool enableMultiSelect;
 
-  /// Strategy for in-tree renaming.
+  /// The node ID that is currently being renamed, if any.
   final TreeNamingStrategy namingStrategy;
+
+  /// Optional comparator to keep the tree sorted.
+  final int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator;
 
   /// Callback generated when a node is single-tapped.
   final void Function(String id)? onNodeTap;
@@ -61,6 +64,7 @@ class TreeViewLogic<T> {
     this.enableDragAndDrop = true,
     this.enableMultiSelect = false,
     this.namingStrategy = TreeNamingStrategy.none,
+    this.defaultSortComparator,
     this.onNodeTap,
     this.onNodeDoubleTap,
     this.canAcceptDrop,
@@ -73,6 +77,7 @@ class TreeViewLogic<T> {
     void Function(String id)? onNodeTap,
     void Function(String id)? onNodeDoubleTap,
     TreeNamingStrategy? namingStrategy,
+    int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop,
   }) {
     return TreeViewLogic<T>(
@@ -80,6 +85,7 @@ class TreeViewLogic<T> {
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       enableMultiSelect: enableMultiSelect ?? this.enableMultiSelect,
       namingStrategy: namingStrategy ?? this.namingStrategy,
+      defaultSortComparator: defaultSortComparator ?? this.defaultSortComparator,
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,

@@ -15,3 +15,4 @@ export 'src/configs/file_system_icon_provider.dart';
 export 'src/configs/cupertino_file_system_icon_provider.dart';
 export 'src/widgets/prebuilt/file_system_super_tree.dart';
 export 'src/widgets/prebuilt/todo_list_super_tree.dart';
+export 'src/configs/tree_sort.dart';

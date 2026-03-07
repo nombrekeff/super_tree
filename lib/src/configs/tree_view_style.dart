@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 /// Configuration for the visual appearance of the [SuperTreeView].
-/// // TODO: Rename to TreeViewTheme
 class TreeViewStyle {
   /// Padding applied to each node row.
   final EdgeInsetsGeometry padding;
@@ -24,12 +23,13 @@ class TreeViewStyle {
   /// Color of the drag-and-drop indicator line/highlight.
   final Color dropIndicatorColor;
 
-  /// Animation duration for expand/collapse.
+  /// Animation duration for expand/collapse (e.g. caret rotation).
   final Duration expandAnimationDuration;
 
   /// TextStyle for the node label.
   final TextStyle? labelStyle;
 
+  /// Creates a [TreeViewStyle] with sensible defaults.
   const TreeViewStyle({
     this.padding = const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
     this.indentAmount = 24.0,

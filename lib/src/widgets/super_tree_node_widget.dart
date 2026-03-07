@@ -37,11 +37,13 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   State<SuperTreeNodeWidget<T>> createState() => _SuperTreeNodeWidgetState<T>();
 }
 
-class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
+class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with SingleTickerProviderStateMixin {
   bool _isHovering = false;
   late final TextEditingController _renameController;
   late final FocusNode _renameFocusNode;
   late final FocusNode _keyboardListenerFocusNode;
+  late final AnimationController _expansionController;
+  late final Animation<double> _caretRotation;
   String? _prevRenamingNodeId;
 
   @override
@@ -51,6 +53,15 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
     _renameFocusNode = FocusNode();
     _keyboardListenerFocusNode = FocusNode();
     _prevRenamingNodeId = widget.controller.renamingNodeId;
+
+    _expansionController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+      value: widget.node.isExpanded ? 1.0 : 0.0,
+    );
+    _caretRotation = Tween<double>(begin: 0.0, end: 0.25).animate(
+      CurvedAnimation(parent: _expansionController, curve: Curves.easeInOut),
+    );
     
     if (_prevRenamingNodeId == widget.node.id) {
       _initializeRenameText();
@@ -66,6 +77,14 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
       _initializeRenameText();
     }
     
+    if (widget.node.isExpanded != oldWidget.node.isExpanded) {
+      if (widget.node.isExpanded) {
+        _expansionController.forward();
+      } else {
+        _expansionController.reverse();
+      }
+    }
+
     _prevRenamingNodeId = currentRenamingId;
   }
 
@@ -94,6 +113,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
     _renameController.dispose();
     _renameFocusNode.dispose();
     _keyboardListenerFocusNode.dispose();
+    _expansionController.dispose();
     super.dispose();
   }
 
@@ -226,7 +246,10 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
                 GestureDetector(
                   onTap: _handleIconTap,
                   behavior: HitTestBehavior.opaque,
-                  child: widget.prefixBuilder(context, widget.node),
+                  child: RotationTransition(
+                    turns: _caretRotation,
+                    child: widget.prefixBuilder(context, widget.node),
+                  ),
                 ),
                 
                 const SizedBox(width: 8),

@@ -18,6 +18,10 @@ class TreeController<T> extends ChangeNotifier {
   final List<TreeNode<T>> _flatVisibleNodes = [];
 
   /// Creates a new [TreeController] initialized with optional [roots].
+  /// 
+  /// [sortComparator] can be used to keep the tree automatically sorted.
+  /// [onNodeRenamed] and [onNodeDeleted] are useful for listening to state changes
+  /// triggered by high-level actions.
   TreeController({
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
