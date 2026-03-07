@@ -3,8 +3,8 @@ import 'package:super_tree/super_tree.dart';
 
 enum ThemeOption {
   vscode,
-  finder,
-  colorful,
+  material,
+  compact,
 }
 
 enum SortOption {
@@ -25,37 +25,7 @@ class _FileSystemExampleState extends State<FileSystemExample> {
 
   @override
   Widget build(BuildContext context) {
-    ThemeData themeData;
-    switch (_currentTheme) {
-      case ThemeOption.vscode:
-        themeData = ThemeData.dark().copyWith(
-          scaffoldBackgroundColor: const Color(0xFF181818),
-          colorScheme: const ColorScheme.dark(
-            surface: Color(0xFF252526),
-          ),
-          cardColor: const Color(0xFF252526),
-        );
-        break;
-      case ThemeOption.finder:
-        themeData = ThemeData.light().copyWith(
-          scaffoldBackgroundColor: Colors.white,
-          colorScheme: const ColorScheme.light(
-            surface: Color(0xFFFFFFFF),
-          ),
-          cardColor: Colors.white,
-        );
-        break;
-      case ThemeOption.colorful:
-        themeData = ThemeData.dark().copyWith(
-          scaffoldBackgroundColor: const Color(0xFF0F172A),
-          colorScheme: const ColorScheme.dark(
-            surface: Color(0xFF1E293B),
-            primary: Color(0xFF3B82F6),
-          ),
-          cardColor: const Color(0xFF1E293B),
-        );
-        break;
-    }
+    final ThemeData themeData = _getPreset().toThemeData();
 
     return Theme(
       data: themeData,
@@ -68,6 +38,17 @@ class _FileSystemExampleState extends State<FileSystemExample> {
         },
       ),
     );
+  }
+
+  SuperTreeThemePreset _getPreset() {
+    switch (_currentTheme) {
+      case ThemeOption.vscode:
+        return SuperTreeThemes.vscode();
+      case ThemeOption.material:
+        return SuperTreeThemes.material();
+      case ThemeOption.compact:
+        return SuperTreeThemes.compact();
+    }
   }
 }
 
@@ -303,8 +284,8 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               icon: Icon(Icons.palette, color: isDark ? Colors.white70 : Colors.black54),
               items: const [
                 DropdownMenuItem(value: ThemeOption.vscode, child: Text('VS Code Dark')),
-                DropdownMenuItem(value: ThemeOption.finder, child: Text('Mac Finder')),
-                DropdownMenuItem(value: ThemeOption.colorful, child: Text('Colorful Custom')),
+                DropdownMenuItem(value: ThemeOption.material, child: Text('Material')),
+                DropdownMenuItem(value: ThemeOption.compact, child: Text('Compact')),
               ],
               onChanged: (val) {
                 if (val != null) {
@@ -473,67 +454,30 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   }
 
   Color _getSidebarColor() {
-    switch (widget.currentTheme) {
-      case ThemeOption.vscode:
-        return const Color(0xFF1E1E1E);
-      case ThemeOption.finder:
-        return const Color(0xFFF3F4F6); // subtle gray
-      case ThemeOption.colorful:
-        return const Color(0xFF1E293B); // dark slate
-    }
+    return _getPreset().sidebarColor ?? Theme.of(context).colorScheme.surface;
   }
 
   TreeViewStyle _getTreeStyle() {
-    switch (widget.currentTheme) {
-      case ThemeOption.vscode:
-        return const TreeViewStyle(
-          indentAmount: 16.0,
-          idleColor: Colors.transparent,
-          hoverColor: Color(0x1AFFFFFF),
-          selectedColor: Color(0x33FFFFFF),
-          dropIndicatorColor: Colors.blue,
-          padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-        );
-      case ThemeOption.finder:
-        return const TreeViewStyle(
-          indentAmount: 20.0,
-          idleColor: Colors.transparent,
-          hoverColor: Color(0x1A000000),
-          selectedColor: Color(0xFF0066CC),
-          dropIndicatorColor: Color(0xFF0066CC),
-          padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-        );
-      case ThemeOption.colorful:
-        return const TreeViewStyle(
-          indentAmount: 24.0,
-          idleColor: Colors.transparent,
-          hoverColor: Color(0x333B82F6),
-          selectedColor: Color(0x663B82F6),
-          dropIndicatorColor: Color(0xFF3B82F6),
-          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-        );
-    }
+    return _getPreset().treeStyle;
   }
 
   FileSystemIconProvider _getIconProvider() {
+    final FileSystemIconProvider? provider = _getPreset().fileSystemIconProvider;
+    if (provider != null) {
+      return provider;
+    }
+
+    return MaterialFileSystemIconProvider();
+  }
+
+  SuperTreeThemePreset _getPreset() {
     switch (widget.currentTheme) {
       case ThemeOption.vscode:
-        return MaterialFileSystemIconProvider(
-          folderColor: Colors.blueAccent,
-          defaultFileColor: Colors.white54,
-        );
-      case ThemeOption.finder:
-        return CupertinoFileSystemIconProvider(
-          folderColor: const Color(0xFF3B82F6),
-        );
-      case ThemeOption.colorful:
-        return MaterialFileSystemIconProvider(
-          folderIcon: Icons.folder_rounded,
-          folderExpandedIcon: Icons.folder_open_rounded,
-          folderColor: Colors.amber[400]!,
-          defaultFileIcon: Icons.text_snippet_rounded,
-          defaultFileColor: Colors.blue[300]!,
-        );
+        return SuperTreeThemes.vscode();
+      case ThemeOption.material:
+        return SuperTreeThemes.material();
+      case ThemeOption.compact:
+        return SuperTreeThemes.compact();
     }
   }
 }

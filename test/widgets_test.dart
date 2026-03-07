@@ -237,5 +237,59 @@ void main() {
       expect(dragged?.id, 'node_alpha');
       expect(target?.id, 'node_beta');
     });
+
+    testWidgets('FileSystemSuperTree uses icon provider in default prefix builder', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          FileSystemSuperTree(
+            roots: <TreeNode<FileSystemItem>>[
+              TreeNode<FileSystemItem>(
+                data: FolderItem('lib'),
+                isExpanded: true,
+                children: <TreeNode<FileSystemItem>>[
+                  TreeNode<FileSystemItem>(data: FileItem('README.md')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.folder_open), findsOneWidget);
+      expect(find.byIcon(Icons.description), findsOneWidget);
+      expect(find.text('lib'), findsOneWidget);
+      expect(find.text('README.md'), findsOneWidget);
+    });
+
+    testWidgets('FileSystemSuperTree keeps custom prefixBuilder override precedence', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          FileSystemSuperTree(
+            roots: <TreeNode<FileSystemItem>>[
+              TreeNode<FileSystemItem>(data: FolderItem('src')),
+            ],
+            prefixBuilder: (BuildContext context, TreeNode<FileSystemItem> node) {
+              return const Icon(Icons.star);
+            },
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.star), findsOneWidget);
+      expect(find.text('src'), findsOneWidget);
+    });
+
+    testWidgets('SuperTreeThemes presets expose usable style and icon providers', (WidgetTester tester) async {
+      final SuperTreeThemePreset vscodePreset = SuperTreeThemes.vscode();
+      final SuperTreeThemePreset materialPreset = SuperTreeThemes.material();
+      final SuperTreeThemePreset compactPreset = SuperTreeThemes.compact();
+
+      expect(vscodePreset.fileSystemIconProvider, isNotNull);
+      expect(materialPreset.fileSystemIconProvider, isNotNull);
+      expect(compactPreset.fileSystemIconProvider, isNotNull);
+      expect(vscodePreset.treeStyle.indentAmount, 16.0);
+      expect(materialPreset.treeStyle.indentAmount, 20.0);
+      expect(compactPreset.treeStyle.indentAmount, 14.0);
+    });
   });
 }

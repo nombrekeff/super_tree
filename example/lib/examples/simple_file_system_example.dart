@@ -6,6 +6,8 @@ class SimpleFileSystemExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final SuperTreeThemePreset preset = SuperTreeThemes.material();
+
     // A hardcoded tree structure using FileSystemItem.
     // FileSystemSuperTree handles icons and layout automatically.
     final List<TreeNode<FileSystemItem>> folderRoots = [
@@ -47,6 +49,8 @@ class SimpleFileSystemExample extends StatelessWidget {
       ),
       body: FileSystemSuperTree(
         roots: folderRoots,
+        style: preset.treeStyle,
+        iconProvider: preset.fileSystemIconProvider,
         logic: const TreeViewConfig(
           defaultSortComparator: TreeSort.foldersFirst,
         ),

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../models/tree_node.dart';
-import '../../models/prebuilt/file_system_item.dart';
-import '../../configs/tree_view_style.dart';
-import '../../configs/tree_view_logic.dart';
-import '../../configs/file_system_icon_provider.dart';
-import '../../controllers/tree_controller.dart';
-import '../super_tree_view.dart';
-import '../context_menu_overlay.dart';
+import 'package:super_tree/src/configs/file_system_icon_provider.dart';
+import 'package:super_tree/src/configs/icon_provider.dart';
+import 'package:super_tree/src/configs/tree_view_logic.dart';
+import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/models/prebuilt/file_system_item.dart';
+import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/widgets/context_menu_overlay.dart';
+import 'package:super_tree/src/widgets/super_tree_view.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [FileSystemItem]s.
 class FileSystemSuperTree extends StatelessWidget {
@@ -48,26 +49,20 @@ class FileSystemSuperTree extends StatelessWidget {
   });
 
   Widget _defaultPrefixBuilder(BuildContext context, TreeNode<FileSystemItem> node) {
-    return const SizedBox(width: 4); // Small gap between caret and icon
+    final FileSystemIconProvider provider = iconProvider ?? MaterialFileSystemIconProvider();
+    final Widget Function(BuildContext, TreeNode<FileSystemItem>) builder =
+        prefixBuilderFromIconProvider<FileSystemItem>(iconProvider: provider);
+    return builder(context, node);
   }
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {
-    final provider = iconProvider ?? MaterialFileSystemIconProvider();
     return Padding(
       padding: const EdgeInsets.only(left: 6.0),
-      child: Row(
-        children: [
-          provider.getIcon(node),
-          const SizedBox(width: 8),
-          Expanded(
-            child: renameField ?? Text(
-              node.data.name,
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-              style: style.labelStyle ?? style.textStyle,
-            ),
-          ),
-        ],
+      child: renameField ?? Text(
+        node.data.name,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
+        style: style.labelStyle ?? style.textStyle,
       ),
     );
   }

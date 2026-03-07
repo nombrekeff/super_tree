@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import '../models/tree_node.dart';
+import 'package:super_tree/src/models/tree_node.dart';
 
 /// A base interface for providing icons to a SuperTree instance based on its Data Class [T].
 /// 
@@ -9,4 +9,26 @@ import '../models/tree_node.dart';
 abstract class SuperTreeIconProvider<T> {
   /// Returns a widget representing the icon for the given [node].
   Widget getIcon(TreeNode<T> node);
+}
+
+/// Builds a standardized `prefixBuilder` for [SuperTreeView] from an icon provider.
+Widget Function(BuildContext, TreeNode<T>) prefixBuilderFromIconProvider<T>({
+  required SuperTreeIconProvider<T> iconProvider,
+  double leadingSpacing = 4.0,
+}) {
+  return (BuildContext context, TreeNode<T> node) {
+    final Widget icon = iconProvider.getIcon(node);
+
+    if (leadingSpacing <= 0) {
+      return icon;
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SizedBox(width: leadingSpacing),
+        icon,
+      ],
+    );
+  };
 }

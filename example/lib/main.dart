@@ -47,7 +47,7 @@ class ExampleHubScreen extends StatelessWidget {
   final List<ExampleInfo> _examples = const [
     ExampleInfo(
       title: 'File System Explorer',
-      description: 'The classic file explorer example with drag & drop and multiple themes (VS Code, Finder, etc).',
+      description: 'The classic file explorer example with drag & drop and multiple presets (VS Code, Material, Compact).',
       icon: Icons.folder_open,
       screen: FileSystemExample(),
     ),
