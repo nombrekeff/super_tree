@@ -392,6 +392,56 @@ void main() {
     });
 
     testWidgets(
+      'Shift+Arrow extends selection range in multiple selection mode',
+      (WidgetTester tester) async {
+        final TreeController<String> controller = TreeController<String>(
+          roots: <TreeNode<String>>[
+            TreeNode<String>(id: 'root_1', data: 'Root 1'),
+            TreeNode<String>(id: 'root_2', data: 'Root 2'),
+            TreeNode<String>(id: 'root_3', data: 'Root 3'),
+          ],
+        );
+
+        addTearDown(() {
+          controller.dispose();
+        });
+
+        await tester.pumpWidget(
+          createTestableWidget(
+            SuperTreeView<String>(
+              controller: controller,
+              logic: const TreeViewConfig<String>(
+                selectionMode: SelectionMode.multiple,
+              ),
+              prefixBuilder: (BuildContext context, TreeNode<String> node) {
+                return const Icon(Icons.chevron_right);
+              },
+              contentBuilder:
+                  (
+                    BuildContext context,
+                    TreeNode<String> node,
+                    Widget? renameField,
+                  ) {
+                    return Text(node.data);
+                  },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Root 1'));
+        await tester.pumpAndSettle();
+
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+        await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+        await tester.pumpAndSettle();
+
+        expect(controller.selectedNodeIds, <String>{'root_1', 'root_2'});
+      },
+    );
+
+    testWidgets(
       'FileSystemSuperTree uses icon provider in default prefix builder',
       (WidgetTester tester) async {
         await tester.pumpWidget(

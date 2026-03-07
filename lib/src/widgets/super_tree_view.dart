@@ -40,6 +40,14 @@ class _TreeToggleExpansionIntent extends Intent {
   const _TreeToggleExpansionIntent();
 }
 
+class _TreeExtendSelectionNextIntent extends Intent {
+  const _TreeExtendSelectionNextIntent();
+}
+
+class _TreeExtendSelectionPreviousIntent extends Intent {
+  const _TreeExtendSelectionPreviousIntent();
+}
+
 /// The entry point for rendering the tree view.
 ///
 /// This widget observes a [TreeController] and renders nodes in a highly efficient
@@ -276,8 +284,12 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
     return <ShortcutActivator, Intent>{
       const SingleActivator(LogicalKeyboardKey.arrowDown):
           const _TreeSelectNextIntent(),
+      const SingleActivator(LogicalKeyboardKey.arrowDown, shift: true):
+          const _TreeExtendSelectionNextIntent(),
       const SingleActivator(LogicalKeyboardKey.arrowUp):
           const _TreeSelectPreviousIntent(),
+      const SingleActivator(LogicalKeyboardKey.arrowUp, shift: true):
+          const _TreeExtendSelectionPreviousIntent(),
       const SingleActivator(LogicalKeyboardKey.arrowRight):
           const _TreeExpandOrTraverseIntent(),
       const SingleActivator(LogicalKeyboardKey.arrowLeft):
@@ -319,6 +331,16 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       _TreeToggleExpansionIntent: CallbackAction<_TreeToggleExpansionIntent>(
         onInvoke: (_TreeToggleExpansionIntent intent) => _onToggleExpansion(),
       ),
+      _TreeExtendSelectionNextIntent:
+          CallbackAction<_TreeExtendSelectionNextIntent>(
+            onInvoke: (_TreeExtendSelectionNextIntent intent) =>
+                _onExtendSelectionNext(),
+          ),
+      _TreeExtendSelectionPreviousIntent:
+          CallbackAction<_TreeExtendSelectionPreviousIntent>(
+            onInvoke: (_TreeExtendSelectionPreviousIntent intent) =>
+                _onExtendSelectionPrevious(),
+          ),
     };
   }
 
@@ -421,6 +443,52 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       _internalController.toggleNodeExpansion(node);
     }
 
+    return null;
+  }
+
+  Object? _onExtendSelectionNext() {
+    final List<TreeNode<T>> nodes = _internalController.flatVisibleNodes;
+    if (nodes.isEmpty) {
+      return null;
+    }
+
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      _internalController.setSelectedNodeId(nodes.first.id);
+      return null;
+    }
+
+    final int currentIndex = nodes.indexWhere(
+      (TreeNode<T> n) => n.id == selectedId,
+    );
+    if (currentIndex == -1 || currentIndex >= nodes.length - 1) {
+      return null;
+    }
+
+    _internalController.selectRange(nodes[currentIndex + 1].id);
+    return null;
+  }
+
+  Object? _onExtendSelectionPrevious() {
+    final List<TreeNode<T>> nodes = _internalController.flatVisibleNodes;
+    if (nodes.isEmpty) {
+      return null;
+    }
+
+    final String? selectedId = _internalController.selectedNodeId;
+    if (selectedId == null) {
+      _internalController.setSelectedNodeId(nodes.last.id);
+      return null;
+    }
+
+    final int currentIndex = nodes.indexWhere(
+      (TreeNode<T> n) => n.id == selectedId,
+    );
+    if (currentIndex <= 0) {
+      return null;
+    }
+
+    _internalController.selectRange(nodes[currentIndex - 1].id);
     return null;
   }
 
