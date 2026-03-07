@@ -50,7 +50,7 @@ class _ResponsiveMenuExampleState extends State<ResponsiveMenuExample> {
       ),
       body: SuperTreeView<String>(
         roots: _roots,
-        logic: const TreeViewLogic(
+        logic: const TreeViewConfig(
           expansionTrigger: ExpansionTrigger.tap,
         ),
         prefixBuilder: (context, node) {

@@ -104,7 +104,7 @@ class _TodoListExampleState extends State<TodoListExample> {
                 indentAmount: 24.0,
                 padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               ),
-              logic: const TreeViewLogic(
+              logic: const TreeViewConfig(
                 enableDragAndDrop: true,
                 expansionTrigger: ExpansionTrigger.tap,
               ),

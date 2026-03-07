@@ -17,7 +17,7 @@ class TodoListSuperTree extends StatelessWidget {
   final int Function(TreeNode<TodoItem> a, TreeNode<TodoItem> b)? sortComparator;
   
   final TreeViewStyle style;
-  final TreeViewLogic<TodoItem> logic;
+  final TreeViewConfig<TodoItem> logic;
   
   final void Function(TodoItem item)? onTodoChanged;
 
@@ -37,7 +37,7 @@ class TodoListSuperTree extends StatelessWidget {
     this.roots,
     this.sortComparator,
     this.style = const TreeViewStyle(),
-    this.logic = const TreeViewLogic(),
+    this.logic = const TreeViewConfig(),
     this.onTodoChanged,
     this.prefixBuilder,
     this.contentBuilder,

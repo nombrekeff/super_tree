@@ -12,7 +12,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final TreeNode<T> node;
   final TreeController<T> controller;
   final TreeViewStyle style;
-  final TreeViewLogic<T> logic;
+  final TreeViewConfig<T> logic;
 
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
   final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;

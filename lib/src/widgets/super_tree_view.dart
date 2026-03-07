@@ -27,7 +27,7 @@ class SuperTreeView<T> extends StatefulWidget {
   final TreeViewStyle style;
 
   /// Defines behavior properties like expansion triggers and selectability.
-  final TreeViewLogic<T> logic;
+  final TreeViewConfig<T> logic;
 
   /// Builds the prefix widget (e.g. expandable caret icon or file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
@@ -67,7 +67,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
-    this.logic = const TreeViewLogic(),
+    this.logic = const TreeViewConfig(),
   })  : _separatorBuilder = null;
 
   /// Convenience constructor to inject dividers between nodes using [ListView.separated].
@@ -84,7 +84,7 @@ class SuperTreeView<T> extends StatefulWidget {
     ScrollController? scrollController,
     ScrollPhysics? physics,
     TreeViewStyle style = const TreeViewStyle(),
-    TreeViewLogic<T> logic = const TreeViewLogic(),
+    TreeViewConfig<T> logic = const TreeViewConfig(),
   }) {
     return SuperTreeView<T>._separated(
       key: key,
@@ -117,7 +117,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
-    this.logic = const TreeViewLogic(),
+    this.logic = const TreeViewConfig(),
   })  : _separatorBuilder = separatorBuilder;
 
   @override

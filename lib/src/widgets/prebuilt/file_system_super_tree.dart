@@ -15,7 +15,7 @@ class FileSystemSuperTree extends StatelessWidget {
   final int Function(TreeNode<FileSystemItem> a, TreeNode<FileSystemItem> b)? sortComparator;
   
   final TreeViewStyle style;
-  final TreeViewLogic<FileSystemItem> logic;
+  final TreeViewConfig<FileSystemItem> logic;
   
   final FileSystemIconProvider? iconProvider;
 
@@ -34,7 +34,7 @@ class FileSystemSuperTree extends StatelessWidget {
     this.roots,
     this.sortComparator,
     this.style = const TreeViewStyle(),
-    this.logic = const TreeViewLogic(),
+    this.logic = const TreeViewConfig(),
     this.iconProvider,
     this.prefixBuilder,
     this.contentBuilder,

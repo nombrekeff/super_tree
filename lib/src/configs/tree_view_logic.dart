@@ -32,8 +32,7 @@ enum TreeNamingStrategy {
 }
 
 /// Configuration for the interaction behaviors of the [SuperTreeView].
-/// // TODO: Rename to TreeViewConfig
-class TreeViewLogic<T> {
+class TreeViewConfig<T> {
   /// What action triggers a node to expand/collapse.
   final ExpansionTrigger expansionTrigger;
 
@@ -59,7 +58,7 @@ class TreeViewLogic<T> {
   /// Callback generated when a node is double-tapped.
   final void Function(String id)? onNodeDoubleTap;
 
-  const TreeViewLogic({
+  const TreeViewConfig({
     this.expansionTrigger = ExpansionTrigger.tap,
     this.enableDragAndDrop = true,
     this.enableMultiSelect = false,
@@ -70,7 +69,7 @@ class TreeViewLogic<T> {
     this.canAcceptDrop,
   });
 
-  TreeViewLogic<T> copyWith({
+  TreeViewConfig<T> copyWith({
     ExpansionTrigger? expansionTrigger,
     bool? enableDragAndDrop,
     bool? enableMultiSelect,
@@ -80,7 +79,7 @@ class TreeViewLogic<T> {
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop,
   }) {
-    return TreeViewLogic<T>(
+    return TreeViewConfig<T>(
       expansionTrigger: expansionTrigger ?? this.expansionTrigger,
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       enableMultiSelect: enableMultiSelect ?? this.enableMultiSelect,

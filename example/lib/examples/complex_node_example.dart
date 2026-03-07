@@ -162,7 +162,7 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
                 hoverColor: Colors.grey.withValues(alpha: 0.05),
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               ),
-              logic: const TreeViewLogic(
+              logic: const TreeViewConfig(
                 expansionTrigger: ExpansionTrigger.tap,
               ),
               prefixBuilder: (context, node) {

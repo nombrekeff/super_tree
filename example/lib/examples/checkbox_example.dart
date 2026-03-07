@@ -164,7 +164,7 @@ class _CheckboxExampleState extends State<CheckboxExample> {
                     indentAmount: 24.0,
                     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
-                  logic: const TreeViewLogic(
+                  logic: const TreeViewConfig(
                     expansionTrigger: ExpansionTrigger.tap,
                   ),
                   prefixBuilder: (context, node) {

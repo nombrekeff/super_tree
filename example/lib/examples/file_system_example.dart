@@ -290,7 +290,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               child: FileSystemSuperTree(
                 controller: _controller,
                 style: _getTreeStyle(),
-                logic: TreeViewLogic(
+                logic: TreeViewConfig(
                   enableDragAndDrop: true,
                   expansionTrigger: ExpansionTrigger.tap,
                   namingStrategy: TreeNamingStrategy.contextMenu,

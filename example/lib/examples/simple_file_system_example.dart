@@ -51,7 +51,7 @@ class SimpleFileSystemExample extends StatelessWidget {
       ),
       body: FileSystemSuperTree(
         roots: folderRoots,
-        logic: const TreeViewLogic(
+        logic: const TreeViewConfig(
           defaultSortComparator: TreeSort.foldersFirst,
         ),
       ),
