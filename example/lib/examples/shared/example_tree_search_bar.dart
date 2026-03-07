@@ -10,6 +10,8 @@ class ExampleTreeSearchBar extends StatelessWidget {
     required this.onClose,
     required this.hasQuery,
     required this.hintText,
+    required this.clearLabel,
+    required this.closeTooltip,
     this.hideBorder = false,
   });
 
@@ -19,6 +21,8 @@ class ExampleTreeSearchBar extends StatelessWidget {
   final VoidCallback onClose;
   final bool hasQuery;
   final String hintText;
+  final String clearLabel;
+  final String closeTooltip;
   final bool hideBorder;
 
   @override
@@ -30,11 +34,11 @@ class ExampleTreeSearchBar extends StatelessWidget {
     final Widget trailing = hasQuery
         ? TextButton(
             onPressed: onClose,
-            child: const Text('Clear'),
+            child: Text(clearLabel),
           )
         : IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Close search (Esc)',
+            tooltip: closeTooltip,
             onPressed: onClose,
           );
 

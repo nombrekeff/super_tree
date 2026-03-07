@@ -108,6 +108,18 @@ Check the [example project](example/lib/main.dart) for comprehensive demonstrati
 - **Checkbox States**: Stateful checkbox behavior and parent-child tree workflows.
 - **Responsive Menus**: Adaptive interaction patterns for Mobile and Desktop.
 
+## Localization
+
+The example app includes Flutter-standard localization setup (`gen_l10n`) with
+English and Spanish resources under `example/lib/l10n/`.
+
+- `example/pubspec.yaml` enables localization code generation.
+- `example/l10n.yaml` controls ARB input/output.
+- `example/lib/main.dart` wires delegates and supported locales.
+
+Use this as a reference integration when adding localized app shells around
+`SuperTreeView` in your own projects.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request or open an issue.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:example/examples/shared/example_tree_search_bar.dart';
 import 'package:example/examples/shared/example_tree_search_logic.dart';
 import 'package:example/examples/shared/example_tree_search_shortcuts.dart';
+import 'package:example/l10n/app_localizations.dart';
 import 'package:super_tree/super_tree.dart';
 
 enum ThemeOption { vscode, material, compact }
@@ -68,6 +69,8 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   late FuzzyTreeFilter<FileSystemItem> _fileSearchFilter;
   SortOption _currentSort = SortOption.none;
 
+  AppLocalizations get _l10n => AppLocalizations.of(context)!;
+
   @override
   void initState() {
     super.initState();
@@ -78,12 +81,16 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Renamed to $newName')));
+        ).showSnackBar(
+          SnackBar(content: Text(_l10n.fileRenamedTo(newName))),
+        );
       },
       onNodeDeleted: (node) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Item deleted')));
+        ).showSnackBar(
+          SnackBar(content: Text(_l10n.fileItemDeleted)),
+        );
       },
       roots: [
         TreeNode(
@@ -187,26 +194,27 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   }
 
   List<ContextMenuItem> _buildRootContextMenu(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     return [
       ContextMenuItem(
-        child: const Text('New File'),
+        child: Text(l10n.fileRootMenuNewFile),
         onTap: () {
           _controller.createNewRoot(FileItem(''));
         },
       ),
       ContextMenuItem(
-        child: const Text('New Folder'),
+        child: Text(l10n.fileRootMenuNewFolder),
         onTap: () {
           _controller.createNewRoot(FolderItem(''));
         },
       ),
       const ContextMenuItem(child: Divider(), onTap: _noOp),
       ContextMenuItem(
-        child: const Text('Expand All'),
+        child: Text(l10n.fileRootMenuExpandAll),
         onTap: () => _controller.expandAll(),
       ),
       ContextMenuItem(
-        child: const Text('Collapse All'),
+        child: Text(l10n.fileRootMenuCollapseAll),
         onTap: () => _controller.collapseAll(),
       ),
     ];
@@ -218,16 +226,17 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     BuildContext context,
     TreeNode<FileSystemItem> node,
   ) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     return [
       if (node.data.isFolder) ...[
         ContextMenuItem(
-          child: const Text('New File'),
+          child: Text(l10n.fileRootMenuNewFile),
           onTap: () {
             _controller.createNewChild(node, FileItem(''));
           },
         ),
         ContextMenuItem(
-          child: const Text('New Folder'),
+          child: Text(l10n.fileRootMenuNewFolder),
           onTap: () {
             _controller.createNewChild(node, FolderItem(''));
           },
@@ -235,13 +244,13 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         const ContextMenuItem(child: Divider(), onTap: _noOp),
       ],
       ContextMenuItem(
-        child: const Text('Rename'),
+        child: Text(l10n.fileNodeMenuRename),
         onTap: () {
           _controller.setRenamingNodeId(node.id);
         },
       ),
       ContextMenuItem(
-        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        child: Text(l10n.fileNodeMenuDelete, style: const TextStyle(color: Colors.red)),
         onTap: () {
           _controller.removeNode(node);
         },
@@ -283,6 +292,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final Widget searchField = _buildSearchField();
@@ -292,7 +302,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
       onCloseSearch: _closeSearch,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('File System Tree'),
+          title: Text(l10n.fileScreenTitle),
           backgroundColor: theme.colorScheme.surface,
           foregroundColor: isDark ? Colors.white : Colors.black87,
           elevation: 1,
@@ -300,7 +310,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: _openSearch,
-              tooltip: 'Search (Cmd/Ctrl+F)',
+              tooltip: l10n.fileSearchTooltip,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -312,18 +322,18 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                   Icons.sort,
                   color: isDark ? Colors.white70 : Colors.black54,
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: SortOption.none,
-                    child: Text('No Sort'),
+                    child: Text(l10n.fileSortNone),
                   ),
                   DropdownMenuItem(
                     value: SortOption.alphabetical,
-                    child: Text('Alphabetical'),
+                    child: Text(l10n.fileSortAlphabetical),
                   ),
                   DropdownMenuItem(
                     value: SortOption.foldersFirst,
-                    child: Text('Folders First'),
+                    child: Text(l10n.fileSortFoldersFirst),
                   ),
                 ],
                 onChanged: (val) {
@@ -341,18 +351,18 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                   Icons.palette,
                   color: isDark ? Colors.white70 : Colors.black54,
                 ),
-                items: const [
+                items: [
                   DropdownMenuItem(
                     value: ThemeOption.vscode,
-                    child: Text('VS Code Dark'),
+                    child: Text(l10n.fileThemeVsCode),
                   ),
                   DropdownMenuItem(
                     value: ThemeOption.material,
-                    child: Text('Material'),
+                    child: Text(l10n.fileThemeMaterial),
                   ),
                   DropdownMenuItem(
                     value: ThemeOption.compact,
-                    child: Text('Compact'),
+                    child: Text(l10n.fileThemeCompact),
                   ),
                 ],
                 onChanged: (val) {
@@ -365,22 +375,22 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
             _buildActionButton(
               icon: Icons.create_new_folder,
               onPressed: () => _controller.createNewRoot(FolderItem('')),
-              tooltip: 'New Root Folder',
+              tooltip: l10n.fileActionNewRootFolder,
             ),
             _buildActionButton(
               icon: Icons.note_add,
               onPressed: () => _controller.createNewRoot(FileItem('')),
-              tooltip: 'New Root File',
+              tooltip: l10n.fileActionNewRootFile,
             ),
             _buildActionButton(
               icon: Icons.unfold_more,
               onPressed: () => _controller.expandAll(),
-              tooltip: 'Expand All',
+              tooltip: l10n.fileActionExpandAll,
             ),
             IconButton(
               icon: const Icon(Icons.unfold_less),
               onPressed: _controller.collapseAll,
-              tooltip: 'Collapse All',
+              tooltip: l10n.fileActionCollapseAll,
             ),
           ],
         ),
@@ -447,13 +457,13 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'No results for "${_searchController.query}"',
+                                    l10n.fileNoResults(_searchController.query),
                                     style: theme.textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: 12),
                                   TextButton(
                                     onPressed: _closeSearch,
-                                    child: const Text('Clear search'),
+                                    child: Text(l10n.searchClearSearch),
                                   ),
                                 ],
                               );
@@ -472,7 +482,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
-                                    'Select a file to view\nDrag and Drop nodes to move them',
+                                    l10n.fileSelectHint,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: isDark
@@ -498,7 +508,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   ),
                                   const SizedBox(height: 24),
                                   Text(
-                                    '${selectedIds.length} items selected',
+                                    l10n.fileItemsSelected(selectedIds.length),
                                     style: theme.textTheme.headlineMedium
                                         ?.copyWith(
                                           color: isDark
@@ -517,7 +527,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                       }
                                     },
                                     icon: const Icon(Icons.delete_sweep),
-                                    label: const Text('Delete Selected Items'),
+                                    label: Text(l10n.fileDeleteSelected),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red.withAlpha(
                                         204,
@@ -558,8 +568,8 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                 const SizedBox(height: 8),
                                 Text(
                                   selectedNode.data.isFolder
-                                      ? 'Folder'
-                                      : 'File',
+                                      ? l10n.fileTypeFolder
+                                      : l10n.fileTypeFile,
                                   style: theme.textTheme.bodyLarge?.copyWith(
                                     color: isDark
                                         ? Colors.white54
@@ -571,7 +581,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   onPressed: () => _controller
                                       .setRenamingNodeId(selectedNode.id),
                                   icon: const Icon(Icons.edit),
-                                  label: const Text('Rename Item'),
+                                  label: Text(l10n.fileRenameItem),
                                 ),
                               ],
                             );
@@ -590,13 +600,16 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   }
 
   Widget _buildSearchField() {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     return ExampleTreeSearchBar(
       controller: _searchUi.textController,
       focusNode: _searchUi.focusNode,
       onChanged: _onSearchChanged,
       onClose: _closeSearch,
       hasQuery: _searchController.hasQuery,
-      hintText: 'Search files and folders',
+      hintText: l10n.fileSearchHint,
+      clearLabel: l10n.searchClear,
+      closeTooltip: l10n.searchCloseTooltip,
     );
   }
 

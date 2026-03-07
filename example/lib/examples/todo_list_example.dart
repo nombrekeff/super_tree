@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:example/examples/shared/example_tree_search_bar.dart';
 import 'package:example/examples/shared/example_tree_search_logic.dart';
 import 'package:example/examples/shared/example_tree_search_shortcuts.dart';
+import 'package:example/l10n/app_localizations.dart';
 import 'package:super_tree/super_tree.dart';
 
 class TodoListExample extends StatefulWidget {
@@ -120,6 +121,7 @@ class _TodoListExampleState extends State<TodoListExample> {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
     final bool noSearchResults = _searchController.hasQuery && _controller.flatVisibleNodes.isEmpty;
 
     return ExampleTreeSearchShortcuts(
@@ -127,17 +129,17 @@ class _TodoListExampleState extends State<TodoListExample> {
       onCloseSearch: _closeSearch,
       child: Scaffold(
       appBar: AppBar(
-        title: const Text('Todo List Tree'),
+        title: Text(l10n.todoScreenTitle),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
-            tooltip: 'Search todos (Cmd/Ctrl+F)',
+            tooltip: l10n.todoSearchTooltip,
             onPressed: _openSearch,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Re-sort Tree',
+            tooltip: l10n.todoResortTooltip,
             onPressed: () {
               // Trigger a rebuild
               setState(() {});
@@ -154,7 +156,9 @@ class _TodoListExampleState extends State<TodoListExample> {
               onChanged: _handleSearchChanged,
               onClose: _closeSearch,
               hasQuery: _searchController.hasQuery,
-              hintText: 'Search todo title, done, or pending',
+              hintText: l10n.todoSearchHint,
+              clearLabel: l10n.searchClear,
+              closeTooltip: l10n.searchCloseTooltip,
               hideBorder: true,
             ),
           Expanded(
@@ -181,7 +185,7 @@ class _TodoListExampleState extends State<TodoListExample> {
               contextMenuBuilder: (context, node) {
                 return [
                   ContextMenuItem(
-                    child: const Text('Delete'),
+                    child: Text(l10n.todoDelete),
                     onTap: () {
                       _controller.removeNode(node);
                     },
@@ -200,11 +204,11 @@ class _TodoListExampleState extends State<TodoListExample> {
                   if (noSearchResults) ...[
                     const Icon(Icons.search_off, size: 64),
                     const SizedBox(height: 12),
-                    Text('No results for "${_searchController.query}"'),
+                    Text(l10n.todoNoResults(_searchController.query)),
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: _closeSearch,
-                      child: const Text('Clear search'),
+                      child: Text(l10n.searchClearSearch),
                     ),
                     const SizedBox(height: 24),
                   ],
@@ -214,14 +218,13 @@ class _TodoListExampleState extends State<TodoListExample> {
                     color: Theme.of(context).colorScheme.primary.withAlpha(100),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Todo List Example',
+                  Text(
+                    l10n.todoDetailTitle,
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Try checking off items to see them strike through.\n'
-                        'Drag and drop items to reorganize your tasks.',
+                    l10n.todoDetailSubtitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,

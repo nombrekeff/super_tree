@@ -1,0 +1,82 @@
+{
+  "@@locale": "es",
+  "appTitle": "Ejemplos de Super Tree",
+  "quickLinksTitle": "Accesos rapidos",
+  "allExamplesTitle": "Todos los ejemplos",
+  "exampleFileSystemTitle": "Explorador de archivos",
+  "exampleFileSystemDescription": "El ejemplo clasico de explorador con arrastrar y soltar y varios presets (VS Code, Material, Compact).",
+  "exampleCheckboxTitle": "Checkboxes y estado",
+  "exampleCheckboxDescription": "Un arbol de permisos que demuestra checkboxes con gestion recursiva de estado padre e hijo.",
+  "exampleComplexNodeTitle": "UI de nodo complejo",
+  "exampleComplexNodeDescription": "Un tablero de tareas con contenido de nodo enriquecido, avatares y acciones en linea.",
+  "exampleTodoTitle": "Arbol de tareas",
+  "exampleTodoDescription": "Un arbol preconstruido que demuestra checkboxes por defecto, modelos de datos y ordenamiento para tareas jerarquicas.",
+  "exampleSimpleFileSystemTitle": "Sistema de archivos minimo",
+  "exampleSimpleFileSystemDescription": "Un ejemplo minimalista para construir un arbol de archivos con cero boilerplate y datos fijos.",
+  "exampleAsyncLazyTitle": "Carga diferida asincrona",
+  "exampleAsyncLazyDescription": "Muestra carga bajo demanda de hijos con spinner y reintento de error al expandir nodos.",
+  "exampleIntegrityTitle": "Protecciones de integridad",
+  "exampleIntegrityDescription": "Demuestra protecciones contra IDs duplicados y referencias circulares con advertencias no fatales.",
+  "searchClear": "Limpiar",
+  "searchClearSearch": "Limpiar busqueda",
+  "searchCloseTooltip": "Cerrar busqueda (Esc)",
+  "todoScreenTitle": "Arbol de tareas",
+  "todoSearchTooltip": "Buscar tareas (Cmd/Ctrl+F)",
+  "todoResortTooltip": "Reordenar arbol",
+  "todoSearchHint": "Buscar titulo, hecho o pendiente",
+  "todoDelete": "Eliminar",
+  "todoNoResults": "Sin resultados para \"{query}\"",
+  "@todoNoResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "todoClearSearch": "Limpiar busqueda",
+  "todoDetailTitle": "Ejemplo de tareas",
+  "todoDetailSubtitle": "Marca tareas para verlas tachadas.\\nArrastra y suelta elementos para reorganizarlos.",
+  "fileScreenTitle": "Arbol del sistema de archivos",
+  "fileSearchHint": "Buscar archivos y carpetas",
+  "fileSearchTooltip": "Buscar (Cmd/Ctrl+F)",
+  "fileSortNone": "Sin ordenar",
+  "fileSortAlphabetical": "Alfabetico",
+  "fileSortFoldersFirst": "Carpetas primero",
+  "fileThemeVsCode": "VS Code oscuro",
+  "fileThemeMaterial": "Material",
+  "fileThemeCompact": "Compacto",
+  "fileActionNewRootFolder": "Nueva carpeta raiz",
+  "fileActionNewRootFile": "Nuevo archivo raiz",
+  "fileActionExpandAll": "Expandir todo",
+  "fileActionCollapseAll": "Colapsar todo",
+  "fileRootMenuNewFile": "Nuevo archivo",
+  "fileRootMenuNewFolder": "Nueva carpeta",
+  "fileRootMenuExpandAll": "Expandir todo",
+  "fileRootMenuCollapseAll": "Colapsar todo",
+  "fileNodeMenuRename": "Renombrar",
+  "fileNodeMenuDelete": "Eliminar",
+  "fileNoResults": "Sin resultados para \"{query}\"",
+  "@fileNoResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "fileSelectHint": "Selecciona un archivo para verlo\\nArrastra y suelta nodos para moverlos",
+  "fileItemsSelected": "{count} elementos seleccionados",
+  "@fileItemsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileDeleteSelected": "Eliminar elementos seleccionados",
+  "fileTypeFolder": "Carpeta",
+  "fileTypeFile": "Archivo",
+  "fileRenameItem": "Renombrar elemento",
+  "fileRenamedTo": "Renombrado a {name}",
+  "@fileRenamedTo": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "fileItemDeleted": "Elemento eliminado"
+}

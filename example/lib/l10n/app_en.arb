@@ -1,0 +1,82 @@
+{
+  "@@locale": "en",
+  "appTitle": "Super Tree Examples",
+  "quickLinksTitle": "Quick Links",
+  "allExamplesTitle": "All Examples",
+  "exampleFileSystemTitle": "File System Explorer",
+  "exampleFileSystemDescription": "The classic file explorer example with drag and drop and multiple presets (VS Code, Material, Compact).",
+  "exampleCheckboxTitle": "Checkboxes and State",
+  "exampleCheckboxDescription": "A permissions tree demonstrating checkboxes with recursive parent and child state management.",
+  "exampleComplexNodeTitle": "Complex Node UI",
+  "exampleComplexNodeDescription": "A task management board showing rich custom node content, avatars, and inline actions.",
+  "exampleTodoTitle": "Todo List Tree",
+  "exampleTodoDescription": "A prebuilt convenience tree view demonstrating default checkboxes, data models, and sorting logic for a hierarchical todo list.",
+  "exampleSimpleFileSystemTitle": "Minimal File System",
+  "exampleSimpleFileSystemDescription": "A minimalist example showing how to build a file tree with zero boilerplate and hardcoded data.",
+  "exampleAsyncLazyTitle": "Async Lazy Loading",
+  "exampleAsyncLazyDescription": "Shows on-demand child loading with spinner and error retry states when expanding nodes.",
+  "exampleIntegrityTitle": "Integrity Guardrails",
+  "exampleIntegrityDescription": "Demonstrates duplicate-ID and circular-reference safety checks with non-fatal UI warnings.",
+  "searchClear": "Clear",
+  "searchClearSearch": "Clear search",
+  "searchCloseTooltip": "Close search (Esc)",
+  "todoScreenTitle": "Todo List Tree",
+  "todoSearchTooltip": "Search todos (Cmd/Ctrl+F)",
+  "todoResortTooltip": "Re-sort Tree",
+  "todoSearchHint": "Search todo title, done, or pending",
+  "todoDelete": "Delete",
+  "todoNoResults": "No results for \"{query}\"",
+  "@todoNoResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "todoClearSearch": "Clear search",
+  "todoDetailTitle": "Todo List Example",
+  "todoDetailSubtitle": "Try checking off items to see them strike through.\\nDrag and drop items to reorganize your tasks.",
+  "fileScreenTitle": "File System Tree",
+  "fileSearchHint": "Search files and folders",
+  "fileSearchTooltip": "Search (Cmd/Ctrl+F)",
+  "fileSortNone": "No Sort",
+  "fileSortAlphabetical": "Alphabetical",
+  "fileSortFoldersFirst": "Folders First",
+  "fileThemeVsCode": "VS Code Dark",
+  "fileThemeMaterial": "Material",
+  "fileThemeCompact": "Compact",
+  "fileActionNewRootFolder": "New Root Folder",
+  "fileActionNewRootFile": "New Root File",
+  "fileActionExpandAll": "Expand All",
+  "fileActionCollapseAll": "Collapse All",
+  "fileRootMenuNewFile": "New File",
+  "fileRootMenuNewFolder": "New Folder",
+  "fileRootMenuExpandAll": "Expand All",
+  "fileRootMenuCollapseAll": "Collapse All",
+  "fileNodeMenuRename": "Rename",
+  "fileNodeMenuDelete": "Delete",
+  "fileNoResults": "No results for \"{query}\"",
+  "@fileNoResults": {
+    "placeholders": {
+      "query": {}
+    }
+  },
+  "fileSelectHint": "Select a file to view\\nDrag and drop nodes to move them",
+  "fileItemsSelected": "{count} items selected",
+  "@fileItemsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileDeleteSelected": "Delete Selected Items",
+  "fileTypeFolder": "Folder",
+  "fileTypeFile": "File",
+  "fileRenameItem": "Rename Item",
+  "fileRenamedTo": "Renamed to {name}",
+  "@fileRenamedTo": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "fileItemDeleted": "Item deleted"
+}
