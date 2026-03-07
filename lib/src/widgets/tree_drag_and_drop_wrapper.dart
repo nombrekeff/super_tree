@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/tree_node.dart';
+import '../models/super_tree_data.dart';
 import '../configs/tree_view_style.dart';
 
 /// The target drop position relative to a node's bounds.
@@ -35,14 +36,14 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   onDrop;
 
   const TreeDragAndDropWrapper({
-    Key? key,
+    super.key,
     required this.node,
     required this.enabled,
     required this.child,
     required this.style,
     this.canAcceptDrop,
     required this.onDrop,
-  }) : super(key: key);
+  });
 
   @override
   State<TreeDragAndDropWrapper<T>> createState() =>
@@ -72,6 +73,17 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                 break;
               }
               parentCursor = parentCursor.parent;
+            }
+
+            // Let the data model override if it implements SuperTreeData
+            final targetData = widget.node.data;
+            if (targetData is SuperTreeData && _currentHoverPosition != null) {
+              if (_currentHoverPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
+                return false;
+              }
+              if (!targetData.canAcceptDrop(details.data.data, _currentHoverPosition!)) {
+                return false;
+              }
             }
 
             // Let the logic override if needed
@@ -132,16 +144,38 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
           builder: (context, candidateData, rejectedData) {
             // Dynamic drop validation
             NodeDropPosition? validatedPosition = _currentHoverPosition;
-            if (validatedPosition != null &&
-                widget.canAcceptDrop != null &&
-                candidateData.isNotEmpty) {
-              if (!widget.canAcceptDrop!(
-                candidateData.first!,
-                widget.node,
-                validatedPosition,
-              )) {
-                validatedPosition = null;
+            if (validatedPosition != null && candidateData.isNotEmpty) {
+              final draggedNode = candidateData.first!;
+              final targetData = widget.node.data;
+              
+              if (targetData is SuperTreeData) {
+                if (validatedPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
+                  validatedPosition = null;
+                } else if (!targetData.canAcceptDrop(draggedNode.data, validatedPosition)) {
+                  validatedPosition = null;
+                }
               }
+
+              if (validatedPosition != null && widget.canAcceptDrop != null) {
+                if (!widget.canAcceptDrop!(
+                  draggedNode,
+                  widget.node,
+                  validatedPosition,
+                )) {
+                  validatedPosition = null;
+                }
+              }
+            }
+
+            // Check if draggable at all
+            final draggedData = widget.node.data;
+            bool canDrag = true;
+            if (draggedData is SuperTreeData) {
+              canDrag = draggedData.canBeDragged;
+            }
+
+            if (!canDrag) {
+              return widget.child;
             }
 
             return LayoutBuilder(

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/tree_node.dart';
+import '../models/super_tree_data.dart';
 
 /// Manages the state and structure of the tree.
 /// 
@@ -156,6 +157,11 @@ class TreeController<T> extends ChangeNotifier {
 
   /// Appends a child to a specific parent node.
   void addChild(TreeNode<T> parent, TreeNode<T> child) {
+    final parentData = parent.data;
+    if (parentData is SuperTreeData && !parentData.canHaveChildren) {
+      assert(false, 'Cannot add a child to a node that returns canHaveChildren = false');
+      return;
+    }
     parent.internalAddChild(child);
     if (_sortComparator != null) {
       parent.internalSortChildren(_sortComparator!);
@@ -190,6 +196,11 @@ class TreeController<T> extends ChangeNotifier {
     removeNode(dragged);
 
     if (nestInside) {
+      final targetData = target.data;
+      if (targetData is SuperTreeData && !targetData.canHaveChildren) {
+        assert(false, 'Cannot nest inside a node that returns canHaveChildren = false');
+        return;
+      }
       addChild(target, dragged);
       expandNode(target); // Auto expand to show the dropped child
     } else {

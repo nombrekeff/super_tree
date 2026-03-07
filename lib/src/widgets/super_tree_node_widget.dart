@@ -20,7 +20,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final void Function(BuildContext, TreeNode<T>, Offset)? onContextMenu;
 
   const SuperTreeNodeWidget({
-    Key? key,
+    super.key,
     required this.node,
     required this.controller,
     required this.style,
@@ -29,7 +29,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.contentBuilder,
     this.trailingBuilder,
     this.onContextMenu,
-  }) : super(key: key);
+  });
 
   @override
   State<SuperTreeNodeWidget<T>> createState() => _SuperTreeNodeWidgetState<T>();

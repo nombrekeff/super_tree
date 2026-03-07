@@ -13,12 +13,6 @@ enum SortOption {
   foldersFirst,
 }
 
-class FileItem {
-  final String name;
-  final bool isFolder;
-  FileItem(this.name, this.isFolder);
-}
-
 class FileSystemExample extends StatefulWidget {
   const FileSystemExample({super.key});
 
@@ -92,70 +86,70 @@ class FileSystemTreeScreen extends StatefulWidget {
 }
 
 class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
-  late TreeController<FileItem> _controller;
+  late TreeController<FileSystemItem> _controller;
   SortOption _currentSort = SortOption.none;
 
   @override
   void initState() {
     super.initState();
-    _controller = TreeController<FileItem>(
+    _controller = TreeController<FileSystemItem>(
       roots: [
         TreeNode(
           id: 'super_tree',
-          data: FileItem('super_tree', true),
+          data: FolderItem('super_tree'),
           isExpanded: true,
           children: [
             TreeNode(
               id: 'lib',
-              data: FileItem('lib', true),
+              data: FolderItem('lib'),
               isExpanded: true,
               children: [
                 TreeNode(
                   id: 'src',
-                  data: FileItem('src', true),
+                  data: FolderItem('src'),
                   children: [
                     TreeNode(
                       id: 'models',
-                      data: FileItem('models', true),
+                      data: FolderItem('models'),
                       children: [
-                        TreeNode(id: 'tree_node.dart', data: FileItem('tree_node.dart', false)),
+                        TreeNode(id: 'tree_node.dart', data: FileItem('tree_node.dart')),
                       ],
                     ),
                     TreeNode(
                       id: 'configs',
-                      data: FileItem('configs', true),
+                      data: FolderItem('configs'),
                       children: [
-                        TreeNode(id: 'tree_view_style.dart', data: FileItem('tree_view_style.dart', false)),
+                        TreeNode(id: 'tree_view_style.dart', data: FileItem('tree_view_style.dart')),
                       ],
                     ),
                   ],
                 ),
-                TreeNode(id: 'super_tree.dart', data: FileItem('super_tree.dart', false)),
+                TreeNode(id: 'super_tree.dart', data: FileItem('super_tree.dart')),
               ],
             ),
             TreeNode(
               id: 'example',
-              data: FileItem('example', true),
+              data: FolderItem('example'),
               children: [
                 TreeNode(
                   id: 'lib',
-                  data: FileItem('lib', true),
+                  data: FolderItem('lib'),
                   children: [
-                    TreeNode(id: 'main.dart', data: FileItem('main.dart', false)),
+                    TreeNode(id: 'main.dart', data: FileItem('main.dart')),
                   ],
                 ),
               ],
             ),
-            TreeNode(id: 'pubspec.yaml', data: FileItem('pubspec.yaml', false)),
-            TreeNode(id: 'README.md', data: FileItem('README.md', false)),
-            TreeNode(id: 'CHANGELOG.md', data: FileItem('CHANGELOG.md', false)),
+            TreeNode(id: 'pubspec.yaml', data: FileItem('pubspec.yaml')),
+            TreeNode(id: 'README.md', data: FileItem('README.md')),
+            TreeNode(id: 'CHANGELOG.md', data: FileItem('CHANGELOG.md')),
           ],
         ),
       ],
     );
   }
 
-  void _showContextMenu(BuildContext context, TreeNode<FileItem> node, Offset position) {
+  void _showContextMenu(BuildContext context, TreeNode<FileSystemItem> node, Offset position) {
     ContextMenuOverlay.show(
       context: context,
       position: position,
@@ -266,19 +260,12 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               border: Border(right: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
               color: _getSidebarColor(),
             ),
-            child: SuperTreeView<FileItem>(
+            child: SuperTreeView<FileSystemItem>(
               controller: _controller,
               style: _getTreeStyle(),
               logic: TreeViewLogic(
                 enableDragAndDrop: true,
                 expansionTrigger: ExpansionTrigger.tap,
-                canAcceptDrop: (draggedNode, targetNode, position) {
-                  // Prevent dropping inside a file
-                  if (position == NodeDropPosition.inside && !targetNode.data.isFolder) {
-                    return false;
-                  }
-                  return true;
-                },
               ),
               onContextMenu: _showContextMenu,
               prefixBuilder: _buildPrefix,
@@ -360,7 +347,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     }
   }
 
-  Widget _buildPrefix(BuildContext context, TreeNode<FileItem> node) {
+  Widget _buildPrefix(BuildContext context, TreeNode<FileSystemItem> node) {
     switch (widget.currentTheme) {
       case ThemeOption.vscode:
         if (node.data.isFolder) {
@@ -398,7 +385,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     }
   }
 
-  Widget _buildContent(BuildContext context, TreeNode<FileItem> node) {
+  Widget _buildContent(BuildContext context, TreeNode<FileSystemItem> node) {
     switch (widget.currentTheme) {
       case ThemeOption.vscode:
         return Padding(

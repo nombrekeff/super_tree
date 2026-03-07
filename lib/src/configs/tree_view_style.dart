@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Configuration for the visual appearance of the [SuperTreeView].
+/// // TODO: Rename to TreeViewTheme
 class TreeViewStyle {
   /// Padding applied to each node row.
   final EdgeInsetsGeometry padding;

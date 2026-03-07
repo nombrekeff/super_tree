@@ -7,9 +7,18 @@ import 'super_tree_node_widget.dart';
 
 /// The entry point for rendering the tree view.
 /// This widget observes the [TreeController] and renders nodes in a highly efficient flat List.
-class SuperTreeView<T> extends StatelessWidget {
+class SuperTreeView<T> extends StatefulWidget {
   /// The controller used to manipulate the tree.
-  final TreeController<T> controller;
+  /// If not provided, an internal controller will be created.
+  final TreeController<T>? controller;
+
+  /// The root nodes of the tree.
+  /// Used to seed the default controller if [controller] is not provided.
+  final List<TreeNode<T>>? roots;
+
+  /// Optional comparator to keep the tree sorted.
+  /// Used by the default controller if [controller] is not provided.
+  final int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator;
 
   /// Defines visual properties like colors, paddings, and indentations.
   final TreeViewStyle style;
@@ -35,9 +44,14 @@ class SuperTreeView<T> extends StatelessWidget {
   /// The scroll physics applied to the ListView.
   final ScrollPhysics? physics;
 
+  /// Internal separator builder for the separated constructor.
+  final Widget Function(BuildContext, int)? _separatorBuilder;
+
   const SuperTreeView({
-    Key? key,
-    required this.controller,
+    super.key,
+    this.controller,
+    this.roots,
+    this.sortComparator,
     required this.prefixBuilder,
     required this.contentBuilder,
     this.trailingBuilder,
@@ -46,12 +60,14 @@ class SuperTreeView<T> extends StatelessWidget {
     this.physics,
     this.style = const TreeViewStyle(),
     this.logic = const TreeViewLogic(),
-  }) : super(key: key);
+  })  : _separatorBuilder = null;
 
   /// Convenience constructor to inject dividers between nodes using [ListView.separated].
   factory SuperTreeView.separated({
     Key? key,
-    required TreeController<T> controller,
+    TreeController<T>? controller,
+    List<TreeNode<T>>? roots,
+    int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
     required Widget Function(BuildContext, TreeNode<T>) contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
@@ -62,9 +78,11 @@ class SuperTreeView<T> extends StatelessWidget {
     TreeViewStyle style = const TreeViewStyle(),
     TreeViewLogic<T> logic = const TreeViewLogic(),
   }) {
-    return _SuperTreeViewSeparated<T>(
+    return SuperTreeView<T>._separated(
       key: key,
       controller: controller,
+      roots: roots,
+      sortComparator: sortComparator,
       prefixBuilder: prefixBuilder,
       contentBuilder: contentBuilder,
       separatorBuilder: separatorBuilder,
@@ -77,85 +95,112 @@ class SuperTreeView<T> extends StatelessWidget {
     );
   }
 
+  const SuperTreeView._separated({
+    super.key,
+    this.controller,
+    this.roots,
+    this.sortComparator,
+    required this.prefixBuilder,
+    required this.contentBuilder,
+    required Widget Function(BuildContext, int) separatorBuilder,
+    this.trailingBuilder,
+    this.onContextMenu,
+    this.scrollController,
+    this.physics,
+    this.style = const TreeViewStyle(),
+    this.logic = const TreeViewLogic(),
+  })  : _separatorBuilder = separatorBuilder;
+
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) {
-        final nodes = controller.flatVisibleNodes;
-        return ListView.builder(
-          controller: scrollController,
-          physics: physics,
-          itemCount: nodes.length,
-          itemBuilder: (context, index) {
-            return SuperTreeNodeWidget<T>(
-              key: ValueKey(nodes[index].id),
-              node: nodes[index],
-              controller: controller,
-              style: style,
-              logic: logic,
-              prefixBuilder: prefixBuilder,
-              contentBuilder: contentBuilder,
-              trailingBuilder: trailingBuilder,
-              onContextMenu: onContextMenu,
-            );
-          },
-        );
-      },
-    );
-  }
+  State<SuperTreeView<T>> createState() => _SuperTreeViewState<T>();
 }
 
-class _SuperTreeViewSeparated<T> extends SuperTreeView<T> {
-  final Widget Function(BuildContext, int) separatorBuilder;
+class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
+  late TreeController<T> _internalController;
+  late bool _ownsController;
 
-  const _SuperTreeViewSeparated({
-    Key? key,
-    required TreeController<T> controller,
-    required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
-    required Widget Function(BuildContext, TreeNode<T>) contentBuilder,
-    required this.separatorBuilder,
-    Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
-    void Function(BuildContext, TreeNode<T>, Offset)? onContextMenu,
-    ScrollController? scrollController,
-    ScrollPhysics? physics,
-    required TreeViewStyle style,
-    required TreeViewLogic<T> logic,
-  }) : super(
-          key: key,
-          controller: controller,
-          prefixBuilder: prefixBuilder,
-          contentBuilder: contentBuilder,
-          trailingBuilder: trailingBuilder,
-          onContextMenu: onContextMenu,
-          scrollController: scrollController,
-          physics: physics,
-          style: style,
-          logic: logic,
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  void _initController() {
+    _ownsController = widget.controller == null;
+    _internalController = widget.controller ??
+        TreeController<T>(
+          roots: widget.roots,
+          sortComparator: widget.sortComparator,
         );
+  }
+
+  @override
+  void didUpdateWidget(SuperTreeView<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      if (_ownsController) {
+        _internalController.dispose();
+      }
+      _initController();
+    } else if (_ownsController) {
+      if (widget.sortComparator != oldWidget.sortComparator) {
+        _internalController.sortComparator = widget.sortComparator;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_ownsController) {
+      _internalController.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: _internalController,
       builder: (context, _) {
-        final nodes = controller.flatVisibleNodes;
-        return ListView.separated(
-          controller: scrollController,
-          physics: physics,
+        final nodes = _internalController.flatVisibleNodes;
+
+        if (widget._separatorBuilder != null) {
+          return ListView.separated(
+            controller: widget.scrollController,
+            physics: widget.physics,
+            itemCount: nodes.length,
+            separatorBuilder: widget._separatorBuilder!,
+            itemBuilder: (context, index) {
+              return SuperTreeNodeWidget<T>(
+                key: ValueKey(nodes[index].id),
+                node: nodes[index],
+                controller: _internalController,
+                style: widget.style,
+                logic: widget.logic,
+                prefixBuilder: widget.prefixBuilder,
+                contentBuilder: widget.contentBuilder,
+                trailingBuilder: widget.trailingBuilder,
+                onContextMenu: widget.onContextMenu,
+              );
+            },
+          );
+        }
+
+        return ListView.builder(
+          controller: widget.scrollController,
+          physics: widget.physics,
           itemCount: nodes.length,
-          separatorBuilder: separatorBuilder,
           itemBuilder: (context, index) {
             return SuperTreeNodeWidget<T>(
               key: ValueKey(nodes[index].id),
               node: nodes[index],
-              controller: controller,
-              style: style,
-              logic: logic,
-              prefixBuilder: prefixBuilder,
-              contentBuilder: contentBuilder,
-              trailingBuilder: trailingBuilder,
-              onContextMenu: onContextMenu,
+              controller: _internalController,
+              style: widget.style,
+              logic: widget.logic,
+              prefixBuilder: widget.prefixBuilder,
+              contentBuilder: widget.contentBuilder,
+              trailingBuilder: widget.trailingBuilder,
+              onContextMenu: widget.onContextMenu,
             );
           },
         );

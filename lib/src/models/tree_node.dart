@@ -77,7 +77,7 @@ class TreeNode<T> {
     return TreeNode<T>(
       id: id ?? this.id,
       data: data ?? this.data,
-      children: children ?? this._children.map((c) => c.copyWith()).toList(),
+      children: children ?? _children.map((c) => c.copyWith()).toList(),
       isExpanded: isExpanded ?? this.isExpanded,
       isSelected: isSelected ?? this.isSelected,
       parent: parent ?? this.parent,

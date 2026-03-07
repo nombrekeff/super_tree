@@ -14,6 +14,7 @@ enum ExpansionTrigger {
 }
 
 /// Configuration for the interaction behaviors of the [SuperTreeView].
+/// // TODO: Rename to TreeViewConfig
 class TreeViewLogic<T> {
   /// What action triggers a node to expand/collapse.
   final ExpansionTrigger expansionTrigger;
