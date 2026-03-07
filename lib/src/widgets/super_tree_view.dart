@@ -74,6 +74,17 @@ class SuperTreeView<T> extends StatefulWidget {
   /// Builds the expansion widget (e.g. caret icon).
   final Widget Function(BuildContext, TreeNode<T>)? expansionBuilder;
 
+  /// Builds the expansion widget while a node is loading children.
+  ///
+  /// If null, a compact [CircularProgressIndicator] is used by default.
+  final Widget Function(BuildContext, TreeNode<T>)? loadingExpansionBuilder;
+
+  /// Fixed width/height reserved for the expansion slot.
+  ///
+  /// Keeping this slot stable avoids row-width jitter while switching between
+  /// caret and loading indicator states.
+  final double expansionSlotSize;
+
   /// Builds the prefix widget (e.g. file icon).
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
 
@@ -120,6 +131,8 @@ class SuperTreeView<T> extends StatefulWidget {
     this.roots,
     this.sortComparator,
     this.expansionBuilder,
+    this.loadingExpansionBuilder,
+    this.expansionSlotSize = 20,
     required this.prefixBuilder,
     required this.contentBuilder,
     this.labelProvider,
@@ -139,6 +152,8 @@ class SuperTreeView<T> extends StatefulWidget {
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
     Widget Function(BuildContext, TreeNode<T>)? expansionBuilder,
+    Widget Function(BuildContext, TreeNode<T>)? loadingExpansionBuilder,
+    double expansionSlotSize = 20,
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
     required Widget Function(
       BuildContext context,
@@ -163,6 +178,8 @@ class SuperTreeView<T> extends StatefulWidget {
       roots: roots,
       sortComparator: sortComparator,
       expansionBuilder: expansionBuilder,
+      loadingExpansionBuilder: loadingExpansionBuilder,
+      expansionSlotSize: expansionSlotSize,
       prefixBuilder: prefixBuilder,
       contentBuilder: contentBuilder,
       labelProvider: labelProvider,
@@ -184,6 +201,8 @@ class SuperTreeView<T> extends StatefulWidget {
     this.roots,
     this.sortComparator,
     this.expansionBuilder,
+    this.loadingExpansionBuilder,
+    this.expansionSlotSize = 20,
     required this.prefixBuilder,
     required this.contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
@@ -500,6 +519,8 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       style: widget.style,
       logic: widget.logic,
       expansionBuilder: widget.expansionBuilder,
+      loadingExpansionBuilder: widget.loadingExpansionBuilder,
+      expansionSlotSize: widget.expansionSlotSize,
       prefixBuilder: widget.prefixBuilder,
       labelProvider: widget.labelProvider,
       contentBuilder: (context, currentNode, renameField) {

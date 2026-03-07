@@ -168,9 +168,12 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
   ) {
     final TextStyle? baseStyle =
         widget.style.labelStyle ?? widget.style.textStyle;
+    final Color fallbackLabelColor = Theme.of(context).colorScheme.onSurface;
     final TextStyle finalStyle = (baseStyle ?? const TextStyle()).copyWith(
       decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
-      color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
+      color: node.data.isCompleted
+          ? Colors.grey
+          : (baseStyle?.color ?? fallbackLabelColor),
     );
 
     if (renameField != null) {

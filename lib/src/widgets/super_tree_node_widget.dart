@@ -18,6 +18,12 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   /// If null, a default [Icons.keyboard_arrow_right] is used.
   final Widget Function(BuildContext, TreeNode<T>)? expansionBuilder;
 
+  /// Builds the expansion widget while a node is loading children.
+  final Widget Function(BuildContext, TreeNode<T>)? loadingExpansionBuilder;
+
+  /// Reserved width/height for the expansion slot.
+  final double expansionSlotSize;
+
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
   final TreeLabelProvider<T>? labelProvider;
   final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField)
@@ -34,6 +40,8 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.style,
     required this.logic,
     this.expansionBuilder,
+    this.loadingExpansionBuilder,
+    this.expansionSlotSize = 20,
     required this.prefixBuilder,
     this.labelProvider,
     required this.contentBuilder,
@@ -193,6 +201,46 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     widget.controller.toggleNodeExpansion(widget.node);
   }
 
+  Widget _buildDefaultExpansionIcon() {
+    return const Icon(
+      Icons.keyboard_arrow_right,
+      color: Colors.grey,
+      size: 20,
+    );
+  }
+
+  Widget _buildDefaultLoadingExpansionIcon() {
+    return const SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+
+  Widget _buildExpansionSlot(BuildContext context) {
+    final TreeNodeAsyncState asyncState = widget.controller.getNodeAsyncState(
+      widget.node.id,
+    );
+    final Widget slotChild;
+
+    if (asyncState.isLoading) {
+      slotChild =
+          widget.loadingExpansionBuilder?.call(context, widget.node) ??
+          _buildDefaultLoadingExpansionIcon();
+    } else {
+      final Widget icon =
+          widget.expansionBuilder?.call(context, widget.node) ??
+          _buildDefaultExpansionIcon();
+      slotChild = RotationTransition(turns: _caretRotation, child: icon);
+    }
+
+    return SizedBox(
+      width: widget.expansionSlotSize,
+      height: widget.expansionSlotSize,
+      child: Center(child: slotChild),
+    );
+  }
+
   void _handleSecondaryTapDown(TapDownDetails details) {
     _showContextMenu(details.globalPosition);
   }
@@ -302,20 +350,13 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
                   GestureDetector(
                     onTap: _handleIconTap,
                     behavior: HitTestBehavior.opaque,
-                    child: RotationTransition(
-                      turns: _caretRotation,
-                      child:
-                          widget.expansionBuilder?.call(context, widget.node) ??
-                          Icon(
-                            Icons.keyboard_arrow_right,
-                            key: Key('expansion_caret_${widget.node.id}'),
-                            color: Colors.grey,
-                            size: 20,
-                          ),
+                    child: KeyedSubtree(
+                      key: Key('expansion_caret_${widget.node.id}'),
+                      child: _buildExpansionSlot(context),
                     ),
                   )
                 else
-                  const SizedBox(width: 20),
+                  SizedBox(width: widget.expansionSlotSize),
 
                 // Prefix (e.g. File/Folder icon)
                 widget.prefixBuilder(context, widget.node),

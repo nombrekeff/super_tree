@@ -103,7 +103,7 @@ class TreeViewConfig<T> {
     this.canAcceptDrop,
     this.dropEdgeBandFraction = 0.05,
     this.dropEdgeBandFractionForLeaf = 0.2,
-    this.dropPositionHysteresisPx = 4.0,
+    this.dropPositionHysteresisPx = 8.0,
     this.debugMode = false,
   });
 

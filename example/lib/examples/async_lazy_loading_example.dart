@@ -12,6 +12,7 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
   late final TreeController<FileSystemItem> _controller;
   late final Widget Function(BuildContext, TreeNode<FileSystemItem>) _iconPrefixBuilder;
   final Set<String> _failedOnceNodeIds = <String>{};
+  bool _useCustomLoadingIndicator = false;
 
   @override
   void initState() {
@@ -159,20 +160,14 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
     return _iconPrefixBuilder(context, node);
   }
 
-  Widget _buildExpansion(BuildContext context, TreeNode<FileSystemItem> node) {
-    final TreeNodeAsyncState asyncState = _controller.getNodeAsyncState(node.id);
-    if (asyncState.isLoading) {
-      return const SizedBox(
-        width: 14,
-        height: 14,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
-    }
-
-    return const Icon(
-      Icons.keyboard_arrow_right,
-      color: Colors.grey,
-      size: 20,
+  Widget _buildLoadingExpansion(
+    BuildContext context,
+    TreeNode<FileSystemItem> node,
+  ) {
+    return const SizedBox(
+      width: 14,
+      height: 14,
+      child: CircularProgressIndicator(strokeWidth: 2),
     );
   }
 
@@ -205,6 +200,13 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
 
   @override
   Widget build(BuildContext context) {
+    final Widget Function(BuildContext, TreeNode<FileSystemItem>)? loadingBuilder =
+        _useCustomLoadingIndicator ? _buildLoadingExpansion : null;
+
+    final String loadingModeLabel = _useCustomLoadingIndicator
+        ? 'Custom loading indicator enabled'
+        : 'Using built-in default loading indicator';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Async Lazy Loading'),
@@ -216,8 +218,25 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
           Container(
             padding: const EdgeInsets.all(12),
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Text(
-              'Expand folders to fetch children asynchronously. "packages" fails once to demonstrate retry handling.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Expand folders to fetch children asynchronously. "packages" fails once to demonstrate retry handling.',
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  value: _useCustomLoadingIndicator,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _useCustomLoadingIndicator = value;
+                    });
+                  },
+                  title: const Text('Use custom loading indicator'),
+                  subtitle: Text(loadingModeLabel),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -231,7 +250,7 @@ class _AsyncLazyLoadingExampleState extends State<AsyncLazyLoadingExample> {
                 expansionTrigger: ExpansionTrigger.tap,
                 namingStrategy: TreeNamingStrategy.none,
               ),
-              expansionBuilder: _buildExpansion,
+              loadingExpansionBuilder: loadingBuilder,
               prefixBuilder: _buildPrefix,
               contentBuilder: _buildContent,
               trailingBuilder: _buildTrailing,

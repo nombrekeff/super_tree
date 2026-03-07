@@ -614,6 +614,53 @@ void main() {
       },
     );
 
+    testWidgets(
+      'TodoListSuperTree keeps non-highlight text readable during search highlighting',
+      (WidgetTester tester) async {
+        final ThemeData theme = ThemeData.light();
+        final TreeController<TodoItem> controller = TreeController<TodoItem>(
+          roots: <TreeNode<TodoItem>>[
+            TreeNode<TodoItem>(
+              id: 'todo_1',
+              data: TodoItem('Todo Node'),
+            ),
+          ],
+        );
+
+        addTearDown(() {
+          controller.dispose();
+        });
+
+        controller.applyFilter(
+          predicate: (TreeNode<TodoItem> node) => true,
+          matchedIndicesByNodeId: const <String, List<int>>{
+            'todo_1': <int>[0, 1],
+          },
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: theme,
+            home: Scaffold(
+              body: TodoListSuperTree(
+                controller: controller,
+                style: const TreeViewStyle(
+                  textStyle: TextStyle(fontSize: 14),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        final RichText richText = tester.widget<RichText>(find.byType(RichText));
+        final TextSpan rootSpan = richText.text as TextSpan;
+        final List<TextSpan> spans = rootSpan.children!.whereType<TextSpan>().toList();
+        final TextSpan nonHighlight = spans.last;
+
+        expect(nonHighlight.style?.color, theme.colorScheme.onSurface);
+      },
+    );
+
     testWidgets('TodoListSuperTree applies tri-state parent checkbox synchronization', (
       WidgetTester tester,
     ) async {
@@ -661,7 +708,7 @@ void main() {
       expect(childBAfterParentTap.value, isTrue);
     });
 
-    testWidgets('Lazy loading exposes spinner state via prefixBuilder', (
+    testWidgets('Lazy loading shows default expansion spinner while loading', (
       WidgetTester tester,
     ) async {
       final Completer<List<TreeNode<String>>> completer = Completer<List<TreeNode<String>>>();
@@ -677,17 +724,8 @@ void main() {
         createTestableWidget(
           SuperTreeView<String>(
             controller: controller,
-            prefixBuilder: (BuildContext context, TreeNode<String> node) {
-              if (controller.isNodeLoading(node.id)) {
-                return SizedBox(
-                  key: Key('loading_${node.id}'),
-                  width: 12,
-                  height: 12,
-                  child: const CircularProgressIndicator(strokeWidth: 2),
-                );
-              }
-              return const Icon(Icons.chevron_right);
-            },
+            prefixBuilder: (BuildContext context, TreeNode<String> node) =>
+                const Icon(Icons.chevron_right),
             contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
               return Text(node.data);
             },
@@ -698,15 +736,68 @@ void main() {
       await tester.tap(find.byKey(const Key('expansion_caret_lazy_root')));
       await tester.pump();
 
-      expect(find.byKey(const Key('loading_lazy_root')), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
       completer.complete(<TreeNode<String>>[
         TreeNode<String>(id: 'lazy_child', data: 'Lazy Child'),
       ]);
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('loading_lazy_root')), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
       expect(find.text('Lazy Child'), findsOneWidget);
+
+      controller.dispose();
+    });
+
+    testWidgets('Lazy loading allows custom loadingExpansionBuilder', (
+      WidgetTester tester,
+    ) async {
+      final Completer<List<TreeNode<String>>> completer = Completer<List<TreeNode<String>>>();
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(id: 'lazy_root_custom', data: 'Lazy Root', canLoadChildren: true),
+        ],
+        loadChildren: (TreeNode<String> node) => completer.future,
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            loadingExpansionBuilder: (BuildContext context, TreeNode<String> node) {
+              return SizedBox(
+                key: Key('custom_loading_${node.id}'),
+                width: 10,
+                height: 10,
+                child: const DecoratedBox(
+                  decoration: BoxDecoration(color: Colors.orange),
+                ),
+              );
+            },
+            prefixBuilder: (BuildContext context, TreeNode<String> node) =>
+                const Icon(Icons.chevron_right),
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('expansion_caret_lazy_root_custom')));
+      await tester.pump();
+
+      expect(find.byKey(const Key('custom_loading_lazy_root_custom')), findsOneWidget);
+
+      completer.complete(<TreeNode<String>>[
+        TreeNode<String>(id: 'lazy_child_custom', data: 'Lazy Child'),
+      ]);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('custom_loading_lazy_root_custom')), findsNothing);
+      expect(find.text('Lazy Child'), findsOneWidget);
+
+      controller.dispose();
     });
 
     testWidgets('Node row shows warning icon when controller reports integrity issue', (
