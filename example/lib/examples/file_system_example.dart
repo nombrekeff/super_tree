@@ -88,11 +88,30 @@ class FileSystemTreeScreen extends StatefulWidget {
 class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   late TreeController<FileSystemItem> _controller;
   SortOption _currentSort = SortOption.none;
+  TreeNode<FileSystemItem>? _selectedNode;
 
   @override
   void initState() {
     super.initState();
     _controller = TreeController<FileSystemItem>(
+      onNodeRenamed: (node, newName) {
+        setState(() {
+          node.data.name = newName;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Renamed to $newName')),
+        );
+      },
+      onNodeDeleted: (node) {
+        if (_selectedNode == node) {
+          setState(() {
+            _selectedNode = null;
+          });
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Item deleted')),
+        );
+      },
       roots: [
         TreeNode(
           id: 'super_tree',
@@ -161,29 +180,21 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     );
   }
 
-  void _showContextMenu(BuildContext context, TreeNode<FileSystemItem> node, Offset position) {
-    _controller.setContextMenuNodeId(node.id);
-    ContextMenuOverlay.show(
-      context: context,
-      position: position,
-      onDismissed: () {
-        _controller.setContextMenuNodeId(null);
-      },
-      items: [
-        ContextMenuItem(
-          child: const Text('Rename'),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Renaming ${node.data.name}')));
-          },
-        ),
-        ContextMenuItem(
-          child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          onTap: () {
-            _controller.removeNode(node);
-          },
-        ),
-      ],
-    );
+  List<ContextMenuItem> _buildContextMenu(BuildContext context, TreeNode<FileSystemItem> node) {
+    return [
+      ContextMenuItem(
+        child: const Text('Rename'),
+        onTap: () {
+          _controller.setRenamingNodeId(node.id);
+        },
+      ),
+      ContextMenuItem(
+        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+        onTap: () {
+          _controller.removeNode(node);
+        },
+      ),
+    ];
   }
 
   void _updateSorting(SortOption option) {
@@ -276,41 +287,83 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               border: Border(right: BorderSide(color: isDark ? Colors.white12 : Colors.black12)),
               color: _getSidebarColor(),
             ),
-            child: FileSystemSuperTree(
-              controller: _controller,
-              style: _getTreeStyle(),
-              logic: const TreeViewLogic(
-                enableDragAndDrop: true,
-                expansionTrigger: ExpansionTrigger.tap,
+              child: FileSystemSuperTree(
+                controller: _controller,
+                style: _getTreeStyle(),
+                logic: TreeViewLogic(
+                  enableDragAndDrop: true,
+                  expansionTrigger: ExpansionTrigger.tap,
+                  namingStrategy: TreeNamingStrategy.contextMenu,
+                  onNodeTap: (id) {
+                    setState(() {
+                      _selectedNode = _controller.findNodeById(id);
+                      // Update selection state in the tree nodes too
+                      for (var node in _controller.flatVisibleNodes) {
+                        node.isSelected = node.id == id;
+                      }
+                    });
+                  },
+                ),
+                iconProvider: _getIconProvider(),
+                contextMenuBuilder: _buildContextMenu,
               ),
-              iconProvider: _getIconProvider(),
-              onContextMenu: _showContextMenu,
             ),
-          ),
           
           Expanded(
             child: Container(
               color: theme.scaffoldBackgroundColor,
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.account_tree,
-                      size: 64,
-                      color: isDark ? Colors.white24 : Colors.black26,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Select a file to view\nDrag and Drop nodes to move them',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: isDark ? Colors.white54 : Colors.black54,
-                        fontSize: 16,
+                child: _selectedNode == null
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.account_tree,
+                            size: 64,
+                            color: isDark ? Colors.white24 : Colors.black26,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Select a file to view\nDrag and Drop nodes to move them',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: isDark ? Colors.white54 : Colors.black54,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _selectedNode!.data.isFolder ? Icons.folder : Icons.insert_drive_file,
+                            size: 80,
+                            color: theme.colorScheme.primary.withOpacity(0.5),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            _selectedNode!.data.name,
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _selectedNode!.data.isFolder ? 'Folder' : 'File',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: isDark ? Colors.white54 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          ElevatedButton.icon(
+                            onPressed: () => _controller.setRenamingNodeId(_selectedNode!.id),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Rename Item'),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           )

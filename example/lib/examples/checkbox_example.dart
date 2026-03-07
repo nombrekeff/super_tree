@@ -178,7 +178,7 @@ class _CheckboxExampleState extends State<CheckboxExample> {
                       ),
                     );
                   },
-                  contentBuilder: (context, node) {
+                  contentBuilder: (context, node, renameField) {
                     return Row(
                       children: [
                         Checkbox(
@@ -189,7 +189,7 @@ class _CheckboxExampleState extends State<CheckboxExample> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
+                          child: renameField ?? Text(
                             node.data.title,
                             maxLines: 1,
                             overflow: TextOverflow.clip,

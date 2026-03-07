@@ -175,7 +175,7 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
                   ),
                 );
               },
-              contentBuilder: (context, node) {
+              contentBuilder: (context, node, renameField) {
                 final data = node.data;
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -216,7 +216,7 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
                       
                       // Title
                       Expanded(
-                        child: Text(
+                        child: renameField ?? Text(
                           data.title,
                           maxLines: 1,
                           overflow: TextOverflow.clip,

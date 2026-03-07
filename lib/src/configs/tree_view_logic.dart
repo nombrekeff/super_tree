@@ -13,6 +13,24 @@ enum ExpansionTrigger {
   doubleTap,
 }
 
+/// Strategies for triggering in-tree node renaming.
+enum TreeNamingStrategy {
+  /// No in-tree renaming allowed.
+  none,
+
+  /// Trigger rename on double-click.
+  doubleClick,
+
+  /// Trigger rename on single click (useful for todo lists).
+  click,
+
+  /// Trigger rename via context menu only.
+  contextMenu,
+
+  /// Node is always in an editable state (like a list of text fields).
+  always,
+}
+
 /// Configuration for the interaction behaviors of the [SuperTreeView].
 /// // TODO: Rename to TreeViewConfig
 class TreeViewLogic<T> {
@@ -24,6 +42,9 @@ class TreeViewLogic<T> {
 
   /// Whether multiple nodes can be selected concurrently (e.g. holding Shift/Ctrl).
   final bool enableMultiSelect;
+
+  /// Strategy for in-tree renaming.
+  final TreeNamingStrategy namingStrategy;
 
   /// Callback generated when a node is single-tapped.
   final void Function(String id)? onNodeTap;
@@ -39,6 +60,7 @@ class TreeViewLogic<T> {
     this.expansionTrigger = ExpansionTrigger.tap,
     this.enableDragAndDrop = true,
     this.enableMultiSelect = false,
+    this.namingStrategy = TreeNamingStrategy.none,
     this.onNodeTap,
     this.onNodeDoubleTap,
     this.canAcceptDrop,
@@ -50,12 +72,14 @@ class TreeViewLogic<T> {
     bool? enableMultiSelect,
     void Function(String id)? onNodeTap,
     void Function(String id)? onNodeDoubleTap,
+    TreeNamingStrategy? namingStrategy,
     bool Function(TreeNode<T> draggedNode, TreeNode<T> targetNode, NodeDropPosition position)? canAcceptDrop,
   }) {
     return TreeViewLogic<T>(
       expansionTrigger: expansionTrigger ?? this.expansionTrigger,
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       enableMultiSelect: enableMultiSelect ?? this.enableMultiSelect,
+      namingStrategy: namingStrategy ?? this.namingStrategy,
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,

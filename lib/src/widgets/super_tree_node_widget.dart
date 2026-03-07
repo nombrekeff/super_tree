@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/tree_node.dart';
 import '../configs/tree_view_style.dart';
 import '../configs/tree_view_logic.dart';
 import '../controllers/tree_controller.dart';
 import 'tree_drag_and_drop_wrapper.dart';
+import 'context_menu_overlay.dart';
 
 /// Renders a single node row in the [SuperTreeView].
 class SuperTreeNodeWidget<T> extends StatefulWidget {
@@ -13,11 +15,11 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
   final TreeViewLogic<T> logic;
 
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
-  final Widget Function(BuildContext, TreeNode<T>) contentBuilder;
+  final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
-  /// Signature for right-click on desktop or long-press on mobile.
-  final void Function(BuildContext, TreeNode<T>, Offset)? onContextMenu;
+  /// Signature for generating right-click (desktop) or long-press (mobile) context menus.
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
 
   const SuperTreeNodeWidget({
     super.key,
@@ -28,7 +30,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.prefixBuilder,
     required this.contentBuilder,
     this.trailingBuilder,
-    this.onContextMenu,
+    this.contextMenuBuilder,
   });
 
   @override
@@ -37,19 +39,98 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
 
 class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
   bool _isHovering = false;
+  late final TextEditingController _renameController;
+  late final FocusNode _renameFocusNode;
+  late final FocusNode _keyboardListenerFocusNode;
+  String? _prevRenamingNodeId;
+
+  @override
+  void initState() {
+    super.initState();
+    _renameController = TextEditingController();
+    _renameFocusNode = FocusNode();
+    _keyboardListenerFocusNode = FocusNode();
+    _prevRenamingNodeId = widget.controller.renamingNodeId;
+    
+    if (_prevRenamingNodeId == widget.node.id) {
+      _initializeRenameText();
+    }
+  }
+
+  @override
+  void didUpdateWidget(SuperTreeNodeWidget<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final currentRenamingId = widget.controller.renamingNodeId;
+    
+    if (currentRenamingId == widget.node.id && _prevRenamingNodeId != widget.node.id) {
+      _initializeRenameText();
+    }
+    
+    _prevRenamingNodeId = currentRenamingId;
+  }
+
+  void _initializeRenameText() {
+    String initialText = widget.node.data.toString();
+    try {
+      initialText = (widget.node.data as dynamic).name;
+    } catch (_) {}
+    
+    _renameController.text = initialText;
+    
+    // Select all text in the next frame to ensure it's effective
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && widget.controller.renamingNodeId == widget.node.id) {
+        _renameController.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _renameController.text.length,
+        );
+        _renameFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _renameController.dispose();
+    _renameFocusNode.dispose();
+    _keyboardListenerFocusNode.dispose();
+    super.dispose();
+  }
 
   void _handleTap() {
-    if (widget.logic.expansionTrigger == ExpansionTrigger.tap) {
+    if (widget.logic.namingStrategy == TreeNamingStrategy.click) {
+      _startRenaming();
+    } else if (widget.logic.expansionTrigger == ExpansionTrigger.tap) {
       widget.controller.toggleNodeExpansion(widget.node);
     }
     widget.logic.onNodeTap?.call(widget.node.id);
   }
 
   void _handleDoubleTap() {
-    if (widget.logic.expansionTrigger == ExpansionTrigger.doubleTap) {
+    if (widget.logic.namingStrategy == TreeNamingStrategy.doubleClick) {
+      _startRenaming();
+    } else if (widget.logic.expansionTrigger == ExpansionTrigger.doubleTap) {
       widget.controller.toggleNodeExpansion(widget.node);
     }
     widget.logic.onNodeDoubleTap?.call(widget.node.id);
+  }
+
+  void _startRenaming() {
+    widget.controller.setRenamingNodeId(widget.node.id);
+    _initializeRenameText();
+  }
+
+  void _submitRename() {
+    final newName = _renameController.text.trim();
+    if (newName.isNotEmpty) {
+      widget.controller.renameNode(widget.node.id, newName);
+    } else {
+      _cancelRename();
+    }
+  }
+
+  void _cancelRename() {
+    widget.controller.setRenamingNodeId(null);
   }
 
   void _handleIconTap() {
@@ -57,11 +138,31 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
   }
 
   void _handleSecondaryTapDown(TapDownDetails details) {
-    widget.onContextMenu?.call(context, widget.node, details.globalPosition);
+    _showContextMenu(details.globalPosition);
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
-    widget.onContextMenu?.call(context, widget.node, details.globalPosition);
+    _showContextMenu(details.globalPosition);
+  }
+
+  void _showContextMenu(Offset position) {
+    if (widget.contextMenuBuilder == null) return;
+
+    final items = widget.contextMenuBuilder!(context, widget.node);
+    if (items.isEmpty) return;
+
+    widget.controller.setContextMenuNodeId(widget.node.id);
+
+    ContextMenuOverlay.show(
+      context: context,
+      position: position,
+      items: items,
+      onDismissed: () {
+        if (mounted) {
+          widget.controller.setContextMenuNodeId(null);
+        }
+      },
+    );
   }
 
   @override
@@ -132,7 +233,33 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> {
 
                 // Content 
                 Expanded(
-                  child: widget.contentBuilder(context, widget.node),
+                  child: widget.contentBuilder(
+                    context,
+                    widget.node,
+                    widget.controller.renamingNodeId == widget.node.id
+                        ? KeyboardListener(
+                            focusNode: _keyboardListenerFocusNode,
+                            onKeyEvent: (event) {
+                              if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+                                _cancelRename();
+                              }
+                            },
+                            child: TextField(
+                              controller: _renameController,
+                              focusNode: _renameFocusNode,
+                              autofocus: true,
+                              style: widget.style.textStyle,
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                border: InputBorder.none,
+                              ),
+                              onSubmitted: (_) => _submitRename(),
+                              onTapOutside: (_) => _submitRename(),
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
 
                 // Trailing Actions

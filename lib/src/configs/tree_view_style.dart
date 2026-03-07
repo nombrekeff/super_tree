@@ -27,6 +27,9 @@ class TreeViewStyle {
   /// Animation duration for expand/collapse.
   final Duration expandAnimationDuration;
 
+  /// TextStyle for the node label.
+  final TextStyle? labelStyle;
+
   const TreeViewStyle({
     this.padding = const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
     this.indentAmount = 24.0,
@@ -36,6 +39,7 @@ class TreeViewStyle {
     this.selectedColor = const Color(0x33000000), // Darker transparent
     this.dropIndicatorColor = Colors.blue,
     this.expandAnimationDuration = const Duration(milliseconds: 200),
+    this.labelStyle,
   });
 
   TreeViewStyle copyWith({
@@ -47,6 +51,7 @@ class TreeViewStyle {
     Color? selectedColor,
     Color? dropIndicatorColor,
     Duration? expandAnimationDuration,
+    TextStyle? labelStyle,
   }) {
     return TreeViewStyle(
       padding: padding ?? this.padding,
@@ -57,6 +62,7 @@ class TreeViewStyle {
       selectedColor: selectedColor ?? this.selectedColor,
       dropIndicatorColor: dropIndicatorColor ?? this.dropIndicatorColor,
       expandAnimationDuration: expandAnimationDuration ?? this.expandAnimationDuration,
+      labelStyle: labelStyle ?? this.labelStyle,
     );
   }
 }

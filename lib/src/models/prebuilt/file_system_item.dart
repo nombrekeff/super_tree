@@ -2,10 +2,10 @@ import '../super_tree_data.dart';
 
 /// A base ergonomic class for representing file system structures in a tree view.
 abstract class FileSystemItem with SuperTreeData {
-  final String name;
-  
+  String name;
+
   FileSystemItem(this.name);
-  
+
   bool get isFolder;
 }
 

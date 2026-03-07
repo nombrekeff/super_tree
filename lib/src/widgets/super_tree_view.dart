@@ -4,6 +4,7 @@ import '../controllers/tree_controller.dart';
 import '../configs/tree_view_style.dart';
 import '../configs/tree_view_logic.dart';
 import 'super_tree_node_widget.dart';
+import 'context_menu_overlay.dart';
 
 /// The entry point for rendering the tree view.
 /// This widget observes the [TreeController] and renders nodes in a highly efficient flat List.
@@ -30,13 +31,14 @@ class SuperTreeView<T> extends StatefulWidget {
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
 
   /// Builds the main content area of the node (e.g. text label).
-  final Widget Function(BuildContext, TreeNode<T>) contentBuilder;
+  final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder;
 
   /// Builds optional trailing widgets (e.g. a 'more options' popup menu icon).
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
-  final void Function(BuildContext, TreeNode<T>, Offset)? onContextMenu;
+  /// Returns a list of [ContextMenuItem]s to display.
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
 
   /// Custom [ScrollController] if external list wrapping is needed.
   final ScrollController? scrollController;
@@ -55,7 +57,7 @@ class SuperTreeView<T> extends StatefulWidget {
     required this.prefixBuilder,
     required this.contentBuilder,
     this.trailingBuilder,
-    this.onContextMenu,
+    this.contextMenuBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -69,10 +71,10 @@ class SuperTreeView<T> extends StatefulWidget {
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
     required Widget Function(BuildContext, TreeNode<T>) prefixBuilder,
-    required Widget Function(BuildContext, TreeNode<T>) contentBuilder,
+    required Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField) contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
     Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
-    void Function(BuildContext, TreeNode<T>, Offset)? onContextMenu,
+    List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder,
     ScrollController? scrollController,
     ScrollPhysics? physics,
     TreeViewStyle style = const TreeViewStyle(),
@@ -87,7 +89,7 @@ class SuperTreeView<T> extends StatefulWidget {
       contentBuilder: contentBuilder,
       separatorBuilder: separatorBuilder,
       trailingBuilder: trailingBuilder,
-      onContextMenu: onContextMenu,
+      contextMenuBuilder: contextMenuBuilder,
       scrollController: scrollController,
       physics: physics,
       style: style,
@@ -104,7 +106,7 @@ class SuperTreeView<T> extends StatefulWidget {
     required this.contentBuilder,
     required Widget Function(BuildContext, int) separatorBuilder,
     this.trailingBuilder,
-    this.onContextMenu,
+    this.contextMenuBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -178,9 +180,9 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
                 style: widget.style,
                 logic: widget.logic,
                 prefixBuilder: widget.prefixBuilder,
-                contentBuilder: widget.contentBuilder,
+                contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
                 trailingBuilder: widget.trailingBuilder,
-                onContextMenu: widget.onContextMenu,
+                contextMenuBuilder: widget.contextMenuBuilder,
               );
             },
           );
@@ -198,9 +200,9 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
               style: widget.style,
               logic: widget.logic,
               prefixBuilder: widget.prefixBuilder,
-              contentBuilder: widget.contentBuilder,
+              contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
               trailingBuilder: widget.trailingBuilder,
-              onContextMenu: widget.onContextMenu,
+              contextMenuBuilder: widget.contextMenuBuilder,
             );
           },
         );

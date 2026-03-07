@@ -6,6 +6,7 @@ import '../../configs/tree_view_logic.dart';
 import '../../configs/file_system_icon_provider.dart';
 import '../../controllers/tree_controller.dart';
 import '../super_tree_view.dart';
+import '../context_menu_overlay.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [FileSystemItem]s.
 class FileSystemSuperTree extends StatelessWidget {
@@ -20,10 +21,10 @@ class FileSystemSuperTree extends StatelessWidget {
 
   /// Optional builder overrides if the default file system layout is insufficient.
   final Widget Function(BuildContext, TreeNode<FileSystemItem>)? prefixBuilder;
-  final Widget Function(BuildContext, TreeNode<FileSystemItem>)? contentBuilder;
+  final Widget Function(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField)? contentBuilder;
   final Widget Function(BuildContext, TreeNode<FileSystemItem>)? trailingBuilder;
-  
-  final void Function(BuildContext, TreeNode<FileSystemItem>, Offset)? onContextMenu;
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<FileSystemItem>)? contextMenuBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -38,7 +39,7 @@ class FileSystemSuperTree extends StatelessWidget {
     this.prefixBuilder,
     this.contentBuilder,
     this.trailingBuilder,
-    this.onContextMenu,
+    this.contextMenuBuilder,
     this.scrollController,
     this.physics,
   });
@@ -54,7 +55,7 @@ class FileSystemSuperTree extends StatelessWidget {
     return const SizedBox(width: 18);
   }
 
-  Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node) {
+  Widget _defaultContentBuilder(BuildContext context, TreeNode<FileSystemItem> node, Widget? renameField) {
     final provider = iconProvider ?? MaterialFileSystemIconProvider();
     return Padding(
       padding: const EdgeInsets.only(left: 6.0),
@@ -63,7 +64,7 @@ class FileSystemSuperTree extends StatelessWidget {
           provider.getIcon(node),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
+            child: renameField ?? Text(
               node.data.name,
               maxLines: 1,
               overflow: TextOverflow.clip,
@@ -85,7 +86,7 @@ class FileSystemSuperTree extends StatelessWidget {
       prefixBuilder: prefixBuilder ?? _defaultPrefixBuilder,
       contentBuilder: contentBuilder ?? _defaultContentBuilder,
       trailingBuilder: trailingBuilder,
-      onContextMenu: onContextMenu,
+      contextMenuBuilder: contextMenuBuilder,
       scrollController: scrollController,
       physics: physics,
     );

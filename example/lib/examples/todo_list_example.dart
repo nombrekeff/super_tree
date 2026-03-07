@@ -114,23 +114,15 @@ class _TodoListExampleState extends State<TodoListExample> {
                 // to force immediate visual re-sorting of the tree if desired.
                 setState(() {});
               },
-              onContextMenu: (context, node, offset) {
-                _controller.setContextMenuNodeId(node.id);
-                ContextMenuOverlay.show(
-                  context: context,
-                  position: offset,
-                  onDismissed: () {
-                    _controller.setContextMenuNodeId(null);
-                  },
-                  items: [
-                    ContextMenuItem(
-                      child: const Text('Delete'),
-                      onTap: () {
-                        _controller.removeNode(node);
-                      },
-                    ),
-                  ],
-                );
+              contextMenuBuilder: (context, node) {
+                return [
+                  ContextMenuItem(
+                    child: const Text('Delete'),
+                    onTap: () {
+                      _controller.removeNode(node);
+                    },
+                  ),
+                ];
               },
             ),
           ),

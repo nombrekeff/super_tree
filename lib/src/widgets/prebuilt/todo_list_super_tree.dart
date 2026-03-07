@@ -5,6 +5,7 @@ import '../../configs/tree_view_style.dart';
 import '../../configs/tree_view_logic.dart';
 import '../../controllers/tree_controller.dart';
 import '../super_tree_view.dart';
+import '../context_menu_overlay.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [TodoItem]s.
 /// It provides a checkbox out-of-the-box and sorts uncompleted items first by default.
@@ -22,10 +23,11 @@ class TodoListSuperTree extends StatelessWidget {
 
   /// Optional builder overrides.
   final Widget Function(BuildContext, TreeNode<TodoItem>)? prefixBuilder;
-  final Widget Function(BuildContext, TreeNode<TodoItem>)? contentBuilder;
+  final Widget Function(BuildContext context, TreeNode<TodoItem> node, Widget? renameField)? contentBuilder;
   final Widget Function(BuildContext, TreeNode<TodoItem>)? trailingBuilder;
   
-  final void Function(BuildContext, TreeNode<TodoItem>, Offset)? onContextMenu;
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<TodoItem>)? contextMenuBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -40,7 +42,7 @@ class TodoListSuperTree extends StatelessWidget {
     this.prefixBuilder,
     this.contentBuilder,
     this.trailingBuilder,
-    this.onContextMenu,
+    this.contextMenuBuilder,
     this.scrollController,
     this.physics,
   });
@@ -79,8 +81,8 @@ class TodoListSuperTree extends StatelessWidget {
     );
   }
 
-  Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node) {
-    return Text(
+  Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node, Widget? renameField) {
+    return renameField ?? Text(
       node.data.title,
       style: TextStyle(
         decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
@@ -98,9 +100,9 @@ class TodoListSuperTree extends StatelessWidget {
       style: style,
       logic: logic,
       prefixBuilder: prefixBuilder ?? _defaultPrefixBuilder,
-      contentBuilder: contentBuilder ?? _defaultContentBuilder,
+      contentBuilder: (context, node, renameField) => (contentBuilder ?? _defaultContentBuilder)(context, node, renameField),
       trailingBuilder: trailingBuilder,
-      onContextMenu: onContextMenu,
+      contextMenuBuilder: contextMenuBuilder,
       scrollController: scrollController,
       physics: physics,
     );

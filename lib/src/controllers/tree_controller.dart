@@ -21,10 +21,18 @@ class TreeController<T> extends ChangeNotifier {
   TreeController({
     List<TreeNode<T>>? roots,
     int Function(TreeNode<T> a, TreeNode<T> b)? sortComparator,
+    this.onNodeRenamed,
+    this.onNodeDeleted,
   }) : _roots = roots ?? <TreeNode<T>>[],
        _sortComparator = sortComparator {
     _rebuildFlatList();
   }
+
+  /// Callback generated when a node is renamed.
+  final void Function(TreeNode<T> node, String newName)? onNodeRenamed;
+
+  /// Callback generated when a node is deleted.
+  final void Function(TreeNode<T> node)? onNodeDeleted;
 
   /// Gets the current sort comparator.
   int Function(TreeNode<T> a, TreeNode<T> b)? get sortComparator => _sortComparator;
@@ -160,6 +168,27 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+  /// The node ID that is currently being renamed, if any.
+  String? _renamingNodeId;
+  String? get renamingNodeId => _renamingNodeId;
+
+  /// Update the current renaming node ID.
+  void setRenamingNodeId(String? id) {
+    if (_renamingNodeId != id) {
+      _renamingNodeId = id;
+      notifyListeners();
+    }
+  }
+
+  /// Submits a rename action for a specific node.
+  void renameNode(String id, String newName) {
+    final node = findNodeById(id);
+    if (node != null) {
+      onNodeRenamed?.call(node, newName);
+      setRenamingNodeId(null);
+    }
+  }
+
   /// Adds a new root node to the tree.
   void addRoot(TreeNode<T> node) {
     _roots.add(node);
@@ -194,6 +223,7 @@ class TreeController<T> extends ChangeNotifier {
     } else {
       node.parent?.internalRemoveChild(node);
     }
+    onNodeDeleted?.call(node);
     _rebuildFlatList();
     notifyListeners();
   }
