@@ -239,6 +239,15 @@ class TreeController<T> extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Rebuilds the visible list and notifies listeners after external data mutation.
+  ///
+  /// This is useful when consumers mutate node data in-place and need a single
+  /// explicit refresh point without triggering unrelated selection changes.
+  void refresh() {
+    _rebuildFlatList();
+    notifyListeners();
+  }
+
   void _flattenNode(TreeNode<T> node) {
     _flatVisibleNodes.add(node);
     if (node.isExpanded) {

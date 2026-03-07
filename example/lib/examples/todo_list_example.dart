@@ -232,11 +232,13 @@ class _TodoListExampleState extends State<TodoListExample> {
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Try checking off items to see them strike through.\n'
                         'Drag and drop items to reorganize your tasks.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),

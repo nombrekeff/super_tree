@@ -351,6 +351,79 @@ void main() {
       expect(find.text('README.md'), findsNothing);
     });
 
+    testWidgets('TreeHighlightedLabel keeps non-highlight style color readable when custom style omits color', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          home: const Scaffold(
+            body: TreeHighlightedLabel(
+              text: 'Todo Node',
+              matchedIndices: <int>[0, 1, 2],
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
+      );
+
+      final RichText richText = tester.widget<RichText>(find.byType(RichText));
+      final TextSpan rootSpan = richText.text as TextSpan;
+      final List<InlineSpan> children = rootSpan.children ?? const <InlineSpan>[];
+      final TextSpan nonHighlight = children.whereType<TextSpan>().last;
+
+      expect(nonHighlight.style?.color, isNotNull);
+    });
+
+    testWidgets('TodoListSuperTree applies tri-state parent checkbox synchronization', (WidgetTester tester) async {
+      final TreeController<TodoItem> controller = TreeController<TodoItem>(
+        roots: <TreeNode<TodoItem>>[
+          TreeNode<TodoItem>(
+            id: 'parent',
+            data: TodoItem('Parent Task'),
+            isExpanded: true,
+            children: <TreeNode<TodoItem>>[
+              TreeNode<TodoItem>(id: 'child_a', data: TodoItem('Child A')),
+              TreeNode<TodoItem>(id: 'child_b', data: TodoItem('Child B')),
+            ],
+          ),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          TodoListSuperTree(
+            controller: controller,
+          ),
+        ),
+      );
+
+      final Finder checkboxes = find.byType(Checkbox);
+      await tester.tap(checkboxes.at(1));
+      await tester.pumpAndSettle();
+
+      final Checkbox parentAfterPartial = tester.widget<Checkbox>(checkboxes.at(0));
+      final Checkbox childAAfterToggle = tester.widget<Checkbox>(checkboxes.at(1));
+      final Checkbox childBAfterToggle = tester.widget<Checkbox>(checkboxes.at(2));
+
+      expect(parentAfterPartial.value, isNull);
+      expect(childAAfterToggle.value, isTrue);
+      expect(childBAfterToggle.value, isFalse);
+
+      await tester.tap(checkboxes.at(0));
+      await tester.pumpAndSettle();
+
+      final Checkbox parentAfterParentTap = tester.widget<Checkbox>(checkboxes.at(0));
+      final Checkbox childAAfterParentTap = tester.widget<Checkbox>(checkboxes.at(1));
+      final Checkbox childBAfterParentTap = tester.widget<Checkbox>(checkboxes.at(2));
+
+      expect(parentAfterParentTap.value, isTrue);
+      expect(childAAfterParentTap.value, isTrue);
+      expect(childBAfterParentTap.value, isTrue);
+    });
+
     testWidgets('Lazy loading exposes spinner state via prefixBuilder', (WidgetTester tester) async {
       final Completer<List<TreeNode<String>>> completer =
           Completer<List<TreeNode<String>>>();

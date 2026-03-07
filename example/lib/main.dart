@@ -23,6 +23,14 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      themeMode: ThemeMode.dark,
       home: const ExampleHubScreen(),
     );
   }
@@ -147,7 +155,7 @@ class ExampleHubScreen extends StatelessWidget {
                               Text(
                                 example.description,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: Colors.black54,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],

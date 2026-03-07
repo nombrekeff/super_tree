@@ -10,7 +10,7 @@ import 'package:super_tree/src/widgets/tree_highlighted_label.dart';
 
 /// A convenience widget that wraps [SuperTreeView] specifically configured for [TodoItem]s.
 /// It provides a checkbox out-of-the-box and sorts uncompleted items first by default.
-class TodoListSuperTree extends StatelessWidget {
+class TodoListSuperTree extends StatefulWidget {
   final TreeController<TodoItem>? controller;
   final List<TreeNode<TodoItem>>? roots;
   
@@ -48,31 +48,91 @@ class TodoListSuperTree extends StatelessWidget {
     this.physics,
   });
 
+  @override
+  State<TodoListSuperTree> createState() => _TodoListSuperTreeState();
+
   static int defaultTodoComparator(TreeNode<TodoItem> a, TreeNode<TodoItem> b) {
     if (a.data.isCompleted && !b.data.isCompleted) return 1;
     if (!a.data.isCompleted && b.data.isCompleted) return -1;
     return a.data.title.toLowerCase().compareTo(b.data.title.toLowerCase());
   }
+}
+
+class _TodoListSuperTreeState extends State<TodoListSuperTree> {
+  bool? _computeCheckboxState(TreeNode<TodoItem> node) {
+    if (node.children.isEmpty) {
+      return node.data.isCompleted;
+    }
+
+    bool allTrue = true;
+    bool allFalse = true;
+
+    for (final TreeNode<TodoItem> child in node.children) {
+      final bool? childState = _computeCheckboxState(child);
+      if (childState != true) {
+        allTrue = false;
+      }
+      if (childState != false) {
+        allFalse = false;
+      }
+    }
+
+    if (allTrue) {
+      return true;
+    }
+
+    if (allFalse) {
+      return false;
+    }
+
+    return null;
+  }
+
+  void _setNodeAndDescendantsChecked(TreeNode<TodoItem> node, bool checked) {
+    node.data.isCompleted = checked;
+    for (final TreeNode<TodoItem> child in node.children) {
+      _setNodeAndDescendantsChecked(child, checked);
+    }
+  }
+
+  void _syncAncestors(TreeNode<TodoItem> node) {
+    TreeNode<TodoItem>? currentParent = node.parent;
+    while (currentParent != null) {
+      final bool? computedState = _computeCheckboxState(currentParent);
+      currentParent.data.isCompleted = computedState == true;
+      currentParent = currentParent.parent;
+    }
+  }
+
+  void _handleCheckboxChanged(TreeNode<TodoItem> node, bool? rawValue) {
+    final bool? currentState = _computeCheckboxState(node);
+    final bool checked;
+    if (currentState == null && rawValue == false) {
+      checked = true;
+    } else {
+      checked = rawValue ?? true;
+    }
+
+    _setNodeAndDescendantsChecked(node, checked);
+    _syncAncestors(node);
+
+    widget.onTodoChanged?.call(node.data);
+    widget.controller?.refresh();
+    setState(() {});
+  }
 
   Widget _defaultPrefixBuilder(BuildContext context, TreeNode<TodoItem> node) {
     final TreeNodeAsyncState asyncState =
-        controller?.getNodeAsyncState(node.id) ??
+        widget.controller?.getNodeAsyncState(node.id) ??
         const TreeNodeAsyncState(isLoading: false, error: null);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Checkbox(
-          value: node.data.isCompleted,
-          onChanged: (val) {
-            node.data.isCompleted = val ?? false;
-            onTodoChanged?.call(node.data);
-            
-            // We need to notify the tree that it might need re-sorting or re-rendering
-            // If the user passed their own controller, we rely on them to call notifyListeners() 
-            // from onTodoChanged, but we could ideally trigger a state update.
-            // For now, checkboxes handle their own visual update when managed by a StatefulWidget parent.
-          },
+          value: _computeCheckboxState(node),
+          tristate: node.children.isNotEmpty,
+          onChanged: (bool? value) => _handleCheckboxChanged(node, value),
         ),
         if (asyncState.isLoading)
           const SizedBox(
@@ -91,7 +151,7 @@ class TodoListSuperTree extends StatelessWidget {
   }
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node, Widget? renameField) {
-    final baseStyle = style.labelStyle ?? style.textStyle;
+    final TextStyle? baseStyle = widget.style.labelStyle ?? widget.style.textStyle;
     final TextStyle finalStyle = (baseStyle ?? const TextStyle()).copyWith(
       decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
       color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
@@ -102,7 +162,7 @@ class TodoListSuperTree extends StatelessWidget {
     }
 
     final List<int> matchedIndices =
-        controller?.getMatchedIndices(node.id) ?? const <int>[];
+    widget.controller?.getMatchedIndices(node.id) ?? const <int>[];
 
     return TreeHighlightedLabel(
       text: node.data.title,
@@ -114,17 +174,17 @@ class TodoListSuperTree extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SuperTreeView<TodoItem>(
-      controller: controller,
-      roots: roots,
-      sortComparator: sortComparator ?? defaultTodoComparator,
-      style: style,
-      logic: logic,
-      prefixBuilder: prefixBuilder ?? _defaultPrefixBuilder,
-      contentBuilder: (context, node, renameField) => (contentBuilder ?? _defaultContentBuilder)(context, node, renameField),
-      trailingBuilder: trailingBuilder,
-      contextMenuBuilder: contextMenuBuilder,
-      scrollController: scrollController,
-      physics: physics,
+      controller: widget.controller,
+      roots: widget.roots,
+      sortComparator: widget.sortComparator ?? TodoListSuperTree.defaultTodoComparator,
+      style: widget.style,
+      logic: widget.logic,
+      prefixBuilder: widget.prefixBuilder ?? _defaultPrefixBuilder,
+      contentBuilder: (context, node, renameField) => (widget.contentBuilder ?? _defaultContentBuilder)(context, node, renameField),
+      trailingBuilder: widget.trailingBuilder,
+      contextMenuBuilder: widget.contextMenuBuilder,
+      scrollController: widget.scrollController,
+      physics: widget.physics,
     );
   }
 }
