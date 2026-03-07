@@ -53,6 +53,10 @@ class SuperTreeView<T> extends StatefulWidget {
   /// Returns a list of [ContextMenuItem]s to display in the overlay.
   final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
 
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the tree background.
+  /// Returns a list of [ContextMenuItem]s to display in the overlay for root-level actions.
+  final List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder;
+
   /// Custom [ScrollController] for the internal ListView.
   final ScrollController? scrollController;
 
@@ -74,6 +78,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.rootContextMenuBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -93,6 +98,7 @@ class SuperTreeView<T> extends StatefulWidget {
     TreeLabelProvider<T>? labelProvider,
     Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
     List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder,
+    List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder,
     ScrollController? scrollController,
     ScrollPhysics? physics,
     TreeViewStyle style = const TreeViewStyle(),
@@ -110,6 +116,7 @@ class SuperTreeView<T> extends StatefulWidget {
       separatorBuilder: separatorBuilder,
       trailingBuilder: trailingBuilder,
       contextMenuBuilder: contextMenuBuilder,
+      rootContextMenuBuilder: rootContextMenuBuilder,
       scrollController: scrollController,
       physics: physics,
       style: style,
@@ -130,6 +137,7 @@ class SuperTreeView<T> extends StatefulWidget {
     this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.rootContextMenuBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -274,51 +282,72 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      focusNode: _focusNode,
-      onKeyEvent: (node, event) {
-        _handleKeyEvent(event);
-        return KeyEventResult.handled;
+    return GestureDetector(
+      onTap: () {
+        _internalController.deselectAll();
       },
-      child: ListenableBuilder(
-        listenable: _internalController,
-        builder: (context, _) {
-          final nodes = _internalController.flatVisibleNodes;
+      onSecondaryTapDown: (details) => _showRootContextMenu(details.globalPosition),
+      onLongPressStart: (details) => _showRootContextMenu(details.globalPosition),
+      behavior: HitTestBehavior.opaque,
+      child: Focus(
+        focusNode: _focusNode,
+        onKeyEvent: (node, event) {
+          _handleKeyEvent(event);
+          return KeyEventResult.handled;
+        },
+        child: ListenableBuilder(
+          listenable: _internalController,
+          builder: (context, _) {
+            final nodes = _internalController.flatVisibleNodes;
 
-          Widget buildItem(int index) {
-            return SuperTreeNodeWidget<T>(
-              key: ValueKey(nodes[index].id),
-              node: nodes[index],
-              controller: _internalController,
-              style: widget.style,
-              logic: widget.logic,
-              expansionBuilder: widget.expansionBuilder,
-              prefixBuilder: widget.prefixBuilder,
-              labelProvider: widget.labelProvider,
-              contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
-              trailingBuilder: widget.trailingBuilder,
-              contextMenuBuilder: widget.contextMenuBuilder,
-            );
-          }
+            Widget buildItem(int index) {
+              return SuperTreeNodeWidget<T>(
+                key: ValueKey(nodes[index].id),
+                node: nodes[index],
+                controller: _internalController,
+                style: widget.style,
+                logic: widget.logic,
+                expansionBuilder: widget.expansionBuilder,
+                prefixBuilder: widget.prefixBuilder,
+                labelProvider: widget.labelProvider,
+                contentBuilder: (context, node, renameField) => widget.contentBuilder(context, node, renameField),
+                trailingBuilder: widget.trailingBuilder,
+                contextMenuBuilder: widget.contextMenuBuilder,
+              );
+            }
 
-          if (widget._separatorBuilder != null) {
-            return ListView.separated(
+            if (widget._separatorBuilder != null) {
+              return ListView.separated(
+                controller: widget.scrollController,
+                physics: widget.physics,
+                itemCount: nodes.length,
+                separatorBuilder: widget._separatorBuilder!,
+                itemBuilder: (context, index) => buildItem(index),
+              );
+            }
+
+            return ListView.builder(
               controller: widget.scrollController,
               physics: widget.physics,
               itemCount: nodes.length,
-              separatorBuilder: widget._separatorBuilder!,
               itemBuilder: (context, index) => buildItem(index),
             );
-          }
-
-          return ListView.builder(
-            controller: widget.scrollController,
-            physics: widget.physics,
-            itemCount: nodes.length,
-            itemBuilder: (context, index) => buildItem(index),
-          );
-        },
+          },
+        ),
       ),
+    );
+  }
+
+  void _showRootContextMenu(Offset position) {
+    if (widget.rootContextMenuBuilder == null) return;
+
+    final items = widget.rootContextMenuBuilder!(context);
+    if (items.isEmpty) return;
+
+    ContextMenuOverlay.show(
+      context: context,
+      position: position,
+      items: items,
     );
   }
 }

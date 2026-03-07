@@ -20,8 +20,8 @@ class TreeSort {
     final aData = a.data;
     final bData = b.data;
 
-    bool aIsFolder = (aData is SuperTreeData) ? aData.canHaveChildren : a.hasChildren;
-    bool bIsFolder = (bData is SuperTreeData) ? bData.canHaveChildren : b.hasChildren;
+    final aIsFolder = (aData is SuperTreeData) ? aData.canHaveChildren : a.hasChildren;
+    final bIsFolder = (bData is SuperTreeData) ? bData.canHaveChildren : b.hasChildren;
 
     if (aIsFolder && !bIsFolder) return -1;
     if (!aIsFolder && bIsFolder) return 1;

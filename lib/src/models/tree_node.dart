@@ -24,6 +24,9 @@ class TreeNode<T> {
   /// Reference to the parent node. Null if this is a root node.
   TreeNode<T>? parent;
 
+  /// Whether this node is a temporary "new" node being created.
+  bool isNew;
+
   static int _idCounter = 0;
 
   /// Creates a new [TreeNode] with a required [data] and optional [id].
@@ -35,6 +38,7 @@ class TreeNode<T> {
     List<TreeNode<T>>? children,
     this.isExpanded = false,
     this.isSelected = false,
+    this.isNew = false,
     this.parent,
   }) : id = id ?? 'node_${++_idCounter}',
        _children = children ?? <TreeNode<T>>[] {
@@ -80,6 +84,7 @@ class TreeNode<T> {
     List<TreeNode<T>>? children,
     bool? isExpanded,
     bool? isSelected,
+    bool? isNew,
     TreeNode<T>? parent,
   }) {
     return TreeNode<T>(
@@ -88,6 +93,7 @@ class TreeNode<T> {
       children: children ?? _children.map((c) => c.copyWith()).toList(),
       isExpanded: isExpanded ?? this.isExpanded,
       isSelected: isSelected ?? this.isSelected,
+      isNew: isNew ?? this.isNew,
       parent: parent ?? this.parent,
     );
   }

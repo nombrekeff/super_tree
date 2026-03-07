@@ -25,6 +25,8 @@ class FileSystemSuperTree extends StatelessWidget {
   final Widget Function(BuildContext, TreeNode<FileSystemItem>)? trailingBuilder;
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
   final List<ContextMenuItem> Function(BuildContext, TreeNode<FileSystemItem>)? contextMenuBuilder;
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the background.
+  final List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -40,6 +42,7 @@ class FileSystemSuperTree extends StatelessWidget {
     this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.rootContextMenuBuilder,
     this.scrollController,
     this.physics,
   });
@@ -61,6 +64,7 @@ class FileSystemSuperTree extends StatelessWidget {
               node.data.name,
               maxLines: 1,
               overflow: TextOverflow.clip,
+              style: style.labelStyle ?? style.textStyle,
             ),
           ),
         ],
@@ -80,6 +84,7 @@ class FileSystemSuperTree extends StatelessWidget {
       contentBuilder: contentBuilder ?? _defaultContentBuilder,
       trailingBuilder: trailingBuilder,
       contextMenuBuilder: contextMenuBuilder,
+      rootContextMenuBuilder: rootContextMenuBuilder,
       scrollController: scrollController,
       physics: physics,
     );

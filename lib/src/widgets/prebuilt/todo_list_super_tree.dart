@@ -74,11 +74,12 @@ class TodoListSuperTree extends StatelessWidget {
   }
 
   Widget _defaultContentBuilder(BuildContext context, TreeNode<TodoItem> node, Widget? renameField) {
+    final baseStyle = style.labelStyle ?? style.textStyle;
     return renameField ?? Text(
       node.data.title,
-      style: TextStyle(
+      style: (baseStyle ?? const TextStyle()).copyWith(
         decoration: node.data.isCompleted ? TextDecoration.lineThrough : null,
-        color: node.data.isCompleted ? Colors.grey : null,
+        color: node.data.isCompleted ? Colors.grey : (baseStyle?.color),
       ),
     );
   }

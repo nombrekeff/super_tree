@@ -88,7 +88,6 @@ class FileSystemTreeScreen extends StatefulWidget {
 class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
   late TreeController<FileSystemItem> _controller;
   SortOption _currentSort = SortOption.none;
-  TreeNode<FileSystemItem>? _selectedNode;
 
   @override
   void initState() {
@@ -103,11 +102,6 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         );
       },
       onNodeDeleted: (node) {
-        if (_selectedNode == node) {
-          setState(() {
-            _selectedNode = null;
-          });
-        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Item deleted')),
         );
@@ -172,8 +166,57 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     );
   }
 
+  List<ContextMenuItem> _buildRootContextMenu(BuildContext context) {
+    return [
+      ContextMenuItem(
+        child: const Text('New File'),
+        onTap: () {
+          _controller.createNewRoot(FileItem(''));
+        },
+      ),
+      ContextMenuItem(
+        child: const Text('New Folder'),
+        onTap: () {
+          _controller.createNewRoot(FolderItem(''));
+        },
+      ),
+      const ContextMenuItem(
+        child: Divider(),
+        onTap: _noOp,
+      ),
+      ContextMenuItem(
+        child: const Text('Expand All'),
+        onTap: () => _controller.expandAll(),
+      ),
+      ContextMenuItem(
+        child: const Text('Collapse All'),
+        onTap: () => _controller.collapseAll(),
+      ),
+    ];
+  }
+
+  static void _noOp() {}
+
   List<ContextMenuItem> _buildContextMenu(BuildContext context, TreeNode<FileSystemItem> node) {
     return [
+      if (node.data.isFolder) ...[
+        ContextMenuItem(
+          child: const Text('New File'),
+          onTap: () {
+            _controller.createNewChild(node, FileItem(''));
+          },
+        ),
+        ContextMenuItem(
+          child: const Text('New Folder'),
+          onTap: () {
+            _controller.createNewChild(node, FolderItem(''));
+          },
+        ),
+        const ContextMenuItem(
+          child: Divider(),
+          onTap: _noOp,
+        ),
+      ],
       ContextMenuItem(
         child: const Text('Rename'),
         onTap: () {
@@ -197,8 +240,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           _controller.sortComparator = null;
           break;
         case SortOption.alphabetical:
-          _controller.sortComparator = (a, b) => 
-            a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
+          _controller.sortComparator = (a, b) => a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
           break;
         case SortOption.foldersFirst:
           _controller.sortComparator = (a, b) {
@@ -209,6 +251,18 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           break;
       }
     });
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    required String tooltip,
+  }) {
+    return IconButton(
+      icon: Icon(icon),
+      onPressed: onPressed,
+      tooltip: tooltip,
+    );
   }
 
   @override
@@ -259,9 +313,19 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
               },
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.unfold_more),
-            onPressed: _controller.expandAll,
+          _buildActionButton(
+            icon: Icons.create_new_folder,
+            onPressed: () => _controller.createNewRoot(FolderItem('')),
+            tooltip: 'New Root Folder',
+          ),
+          _buildActionButton(
+            icon: Icons.note_add,
+            onPressed: () => _controller.createNewRoot(FileItem('')),
+            tooltip: 'New Root File',
+          ),
+          _buildActionButton(
+            icon: Icons.unfold_more,
+            onPressed: () => _controller.expandAll(),
             tooltip: 'Expand All',
           ),
           IconButton(
@@ -285,19 +349,18 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                 logic: TreeViewConfig(
                   enableDragAndDrop: true,
                   expansionTrigger: ExpansionTrigger.tap,
+                  selectionMode: SelectionMode.multiple,
                   namingStrategy: TreeNamingStrategy.contextMenu,
                   onNodeTap: (id) {
                     setState(() {
-                      _selectedNode = _controller.findNodeById(id);
-                      // Update selection state in the tree nodes too
-                      for (var node in _controller.flatVisibleNodes) {
-                        node.isSelected = node.id == id;
-                      }
+                      // We keep track of the last selected node for the detail view if only one is selected
+                      // or just to show the "focused" one.
                     });
                   },
                 ),
                 iconProvider: _getIconProvider(),
                 contextMenuBuilder: _buildContextMenu,
+                rootContextMenuBuilder: _buildRootContextMenu,
               ),
             ),
           
@@ -305,57 +368,102 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
             child: Container(
               color: theme.scaffoldBackgroundColor,
               child: Center(
-                child: _selectedNode == null
-                    ? Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.account_tree,
-                            size: 64,
-                            color: isDark ? Colors.white24 : Colors.black26,
+              child: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  final selectedIds = _controller.selectedNodeIds;
+                  
+                  if (selectedIds.isEmpty) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.account_tree,
+                          size: 64,
+                          color: isDark ? Colors.white24 : Colors.black26,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Select a file to view\nDrag and Drop nodes to move them',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: isDark ? Colors.white54 : Colors.black54,
+                            fontSize: 16,
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Select a file to view\nDrag and Drop nodes to move them',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: isDark ? Colors.white54 : Colors.black54,
-                              fontSize: 16,
-                            ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (selectedIds.length > 1) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.copy_all,
+                          size: 80,
+                          color: theme.colorScheme.primary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          '${selectedIds.length} items selected',
+                          style: theme.textTheme.headlineMedium?.copyWith(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ],
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _selectedNode!.data.isFolder ? Icons.folder : Icons.insert_drive_file,
-                            size: 80,
-                            color: theme.colorScheme.primary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 40),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            for (var id in selectedIds) {
+                              _controller.removeNode(_controller.findNodeById(id)!);
+                            }
+                          },
+                          icon: const Icon(Icons.delete_sweep),
+                          label: const Text('Delete Selected Items'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.withOpacity(0.8),
+                            foregroundColor: Colors.white,
                           ),
-                          const SizedBox(height: 24),
-                          Text(
-                            _selectedNode!.data.name,
-                            style: theme.textTheme.headlineMedium?.copyWith(
-                              color: isDark ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _selectedNode!.data.isFolder ? 'Folder' : 'File',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: isDark ? Colors.white54 : Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          ElevatedButton.icon(
-                            onPressed: () => _controller.setRenamingNodeId(_selectedNode!.id),
-                            icon: const Icon(Icons.edit),
-                            label: const Text('Rename Item'),
-                          ),
-                        ],
+                        ),
+                      ],
+                    );
+                  }
+
+                  final selectedNode = _controller.findNodeById(selectedIds.first)!;
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        selectedNode.data.isFolder ? Icons.folder : Icons.insert_drive_file,
+                        size: 80,
+                        color: theme.colorScheme.primary.withOpacity(0.5),
                       ),
+                      const SizedBox(height: 24),
+                      Text(
+                        selectedNode.data.name,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          color: isDark ? Colors.white : Colors.black87,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        selectedNode.data.isFolder ? 'Folder' : 'File',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: isDark ? Colors.white54 : Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+                      ElevatedButton.icon(
+                        onPressed: () => _controller.setRenamingNodeId(selectedNode.id),
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Rename Item'),
+                      ),
+                    ],
+                  );
+                },
+              ),
               ),
             ),
           )

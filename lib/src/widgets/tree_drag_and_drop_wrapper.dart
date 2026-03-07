@@ -53,6 +53,55 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
 class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
   NodeDropPosition? _currentHoverPosition;
 
+  NodeDropPosition _calculateDropPosition(Offset globalOffset) {
+    final RenderBox renderBox = context.findRenderObject() as RenderBox;
+    final Offset localPosition = renderBox.globalToLocal(globalOffset);
+    final double height = renderBox.size.height;
+
+    if (localPosition.dy < height * 0.35) return NodeDropPosition.above;
+    if (localPosition.dy > height * 0.65) return NodeDropPosition.below;
+    return NodeDropPosition.inside;
+  }
+
+  bool _isValidDrop(TreeNode<T> draggedNode, NodeDropPosition position) {
+    // Cannot drop on oneself
+    if (draggedNode.id == widget.node.id) return false;
+
+    // Cannot drop a parent into its own descendant (infinite cycle prevention)
+    bool createsCycle = false;
+    TreeNode<T>? cursor = widget.node.parent;
+    while (cursor != null) {
+      if (cursor.id == draggedNode.id) {
+        createsCycle = true;
+        break;
+      }
+      cursor = cursor.parent;
+    }
+    if (createsCycle) return false;
+
+    // Let the data model override if it implements SuperTreeData
+    final targetData = widget.node.data;
+    if (targetData is SuperTreeData) {
+      if (position == NodeDropPosition.inside && !targetData.canHaveChildren) {
+        return false;
+      }
+      if (!targetData.canAcceptDrop(draggedNode.data, position)) {
+        return false;
+      }
+    }
+
+    // Let the logic override if needed
+    if (widget.canAcceptDrop != null) {
+      return widget.canAcceptDrop!(
+        draggedNode,
+        widget.node,
+        position,
+      );
+    }
+
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     // If not enabled, return the raw UI node without attaching gesture recognizers.
@@ -61,58 +110,13 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
       builder: (context, constraints) {
         return DragTarget<TreeNode<T>>(
           onWillAcceptWithDetails: (details) {
-            // Cannot drop on oneself
-            if (details.data.id == widget.node.id) return false;
-
-            // Cannot drop a parent into its own descendant (infinite cycle prevention)
-            bool createsCycle = false;
-            TreeNode<T>? cursor = widget.node.parent;
-            while (cursor != null) {
-              if (cursor.id == details.data.id) {
-                createsCycle = true;
-                break;
-              }
-              cursor = cursor.parent;
-            }
-
-            if (createsCycle) return false;
-
-            // Let the data model override if it implements SuperTreeData
-            final targetData = widget.node.data;
-            if (targetData is SuperTreeData && _currentHoverPosition != null) {
-              if (_currentHoverPosition == NodeDropPosition.inside && !targetData.canHaveChildren) {
-                return false;
-              }
-              if (!targetData.canAcceptDrop(details.data.data, _currentHoverPosition!)) {
-                return false;
-              }
-            }
-
-            // Let the logic override if needed
-            if (widget.canAcceptDrop != null &&
-                _currentHoverPosition != null) {
-              return widget.canAcceptDrop!(
-                details.data,
-                widget.node,
-                _currentHoverPosition!,
-              );
-            }
-
-            return true;
+            final position = _calculateDropPosition(details.offset);
+            return _isValidDrop(details.data, position);
           },
           onAcceptWithDetails: (details) {
-            if (_currentHoverPosition != null) {
-              bool isAccepted = true;
-              if (widget.canAcceptDrop != null) {
-                isAccepted = widget.canAcceptDrop!(
-                  details.data,
-                  widget.node,
-                  _currentHoverPosition!,
-                );
-              }
-              if (isAccepted) {
-                widget.onDrop(details.data, widget.node, _currentHoverPosition!);
-              }
+            final position = _calculateDropPosition(details.offset);
+            if (_isValidDrop(details.data, position)) {
+              widget.onDrop(details.data, widget.node, position);
             }
             setState(() => _currentHoverPosition = null);
           },
@@ -120,22 +124,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
             setState(() => _currentHoverPosition = null);
           },
           onMove: (details) {
-            // Calculate the relative hovering position dynamically.
-            final RenderBox renderBox = context.findRenderObject() as RenderBox;
-            final Offset localPosition = renderBox.globalToLocal(
-              details.offset,
-            );
-            final double height = renderBox.size.height;
-
-            NodeDropPosition computedPosition;
-            if (localPosition.dy < height * 0.35) {
-              computedPosition = NodeDropPosition.above;
-            } else if (localPosition.dy > height * 0.65) {
-              computedPosition = NodeDropPosition.below;
-            } else {
-              computedPosition = NodeDropPosition.inside;
-            }
-
+            final computedPosition = _calculateDropPosition(details.offset);
             if (_currentHoverPosition != computedPosition) {
               setState(() {
                 _currentHoverPosition = computedPosition;

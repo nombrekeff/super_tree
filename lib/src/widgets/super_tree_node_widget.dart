@@ -178,7 +178,11 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
   }
 
   void _cancelRename() {
+    final wasNew = widget.node.isNew;
     widget.controller.setRenamingNodeId(null);
+    if (wasNew) {
+      widget.controller.removeNode(widget.node);
+    }
   }
 
   void _handleIconTap() {
@@ -262,11 +266,19 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
               top: widget.style.padding.vertical / 2,
               bottom: widget.style.padding.vertical / 2,
             ),
-            color: widget.controller.selectedNodeIds.contains(widget.node.id)
-                ? widget.style.selectedColor
-                : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
-                    ? widget.style.hoverColor
-                    : widget.style.idleColor,
+            decoration: BoxDecoration(
+              color: widget.controller.selectedNodeIds.contains(widget.node.id)
+                  ? widget.style.selectedColor
+                  : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
+                      ? widget.style.hoverColor
+                      : widget.style.idleColor,
+              border: Border.all(
+                color: widget.controller.renamingNodeId == widget.node.id
+                    ? Theme.of(context).colorScheme.primary.withOpacity(0.8)
+                    : Colors.transparent,
+                width: 2.0,
+              ),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -299,25 +311,31 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>> with Si
                     context,
                     widget.node,
                     widget.controller.renamingNodeId == widget.node.id
-                        ? KeyboardListener(
-                            focusNode: _keyboardListenerFocusNode,
-                            onKeyEvent: (event) {
-                              if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-                                _cancelRename();
-                              }
-                            },
-                            child: TextField(
-                              controller: _renameController,
-                              focusNode: _renameFocusNode,
-                              autofocus: true,
-                              style: widget.style.textStyle,
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                                border: InputBorder.none,
+                        ? TextSelectionTheme(
+                            data: TextSelectionThemeData(
+                              selectionColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                              cursorColor: Theme.of(context).colorScheme.primary,
+                            ),
+                            child: KeyboardListener(
+                              focusNode: _keyboardListenerFocusNode,
+                              onKeyEvent: (event) {
+                                if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+                                  _cancelRename();
+                                }
+                              },
+                              child: TextField(
+                                controller: _renameController,
+                                focusNode: _renameFocusNode,
+                                autofocus: true,
+                                style: widget.style.labelStyle ?? widget.style.textStyle ?? Theme.of(context).textTheme.bodyMedium,
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                ),
+                                onSubmitted: (_) => _submitRename(),
+                                onTapOutside: (_) => _submitRename(),
                               ),
-                              onSubmitted: (_) => _submitRename(),
-                              onTapOutside: (_) => _submitRename(),
                             ),
                           )
                         : null,

@@ -242,12 +242,25 @@ class TreeController<T> extends ChangeNotifier {
   final Set<String> _selectedNodeIds = {};
   Set<String> get selectedNodeIds => Set.unmodifiable(_selectedNodeIds);
 
+  /// The ID of the node that serves as the anchor for range selection (Shift + Click).
+  String? _anchorNodeId;
+
   /// Gets the first selected node ID, if any.
-  String? get selectedNodeId => _selectedNodeIds.isEmpty ? null : _selectedNodeIds.first;
+  String? get selectedNodeId => _selectedNodeIds.isEmpty ? null : (_anchorNodeId ?? _selectedNodeIds.first);
+
+  /// Deselects all nodes.
+  void deselectAll() {
+    if (_selectedNodeIds.isNotEmpty) {
+      _selectedNodeIds.clear();
+      _anchorNodeId = null;
+      notifyListeners();
+    }
+  }
 
   /// Update the current selected node ID (single selection).
   void setSelectedNodeId(String? id) {
     _selectedNodeIds.clear();
+    _anchorNodeId = id;
     if (id != null) {
       _selectedNodeIds.add(id);
     }
@@ -258,18 +271,22 @@ class TreeController<T> extends ChangeNotifier {
   void toggleSelection(String id) {
     if (_selectedNodeIds.contains(id)) {
       _selectedNodeIds.remove(id);
+      if (_anchorNodeId == id) {
+        _anchorNodeId = _selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : null;
+      }
     } else {
       _selectedNodeIds.add(id);
+      _anchorNodeId = id;
     }
     notifyListeners();
   }
 
-  /// Selects a range of nodes from the last selected node to the target node.
+  /// Selects a range of nodes from the anchor node to the target node.
   void selectRange(String targetId) {
     if (_flatVisibleNodes.isEmpty) return;
     
-    final lastId = _selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : _flatVisibleNodes.first.id;
-    final startIndex = _flatVisibleNodes.indexWhere((n) => n.id == lastId);
+    final anchorId = _anchorNodeId ?? (_selectedNodeIds.isNotEmpty ? _selectedNodeIds.last : _flatVisibleNodes.first.id);
+    final startIndex = _flatVisibleNodes.indexWhere((n) => n.id == anchorId);
     final endIndex = _flatVisibleNodes.indexWhere((n) => n.id == targetId);
     
     if (startIndex == -1 || endIndex == -1) return;
@@ -277,9 +294,13 @@ class TreeController<T> extends ChangeNotifier {
     final min = startIndex < endIndex ? startIndex : endIndex;
     final max = startIndex < endIndex ? endIndex : startIndex;
     
+    _selectedNodeIds.clear();
     for (int i = min; i <= max; i++) {
       _selectedNodeIds.add(_flatVisibleNodes[i].id);
     }
+    // We don't update anchorId here because we want to keep the original anchor for expanding ranges
+    _anchorNodeId = anchorId; 
+
     notifyListeners();
   }
 
@@ -352,12 +373,43 @@ class TreeController<T> extends ChangeNotifier {
     }
   }
 
+  /// Creates a temporary "new" node as a child of [parent].
+  /// The node will be in renaming mode immediately.
+  void createNewChild(TreeNode<T> parent, T initialData) {
+    final newNode = TreeNode<T>(data: initialData, isNew: true);
+    addChild(parent, newNode);
+    expandNode(parent);
+    setRenamingNodeId(newNode.id);
+  }
+
+  /// Creates a temporary "new" node as a root.
+  /// The node will be in renaming mode immediately.
+  void createNewRoot(T initialData) {
+    final newNode = TreeNode<T>(data: initialData, isNew: true);
+    addRoot(newNode);
+    setRenamingNodeId(newNode.id);
+  }
+
   /// Submits a rename action for a specific node.
+  /// If the node was new, it resets the [isNew] flag after renaming.
   void renameNode(String id, String newName) {
     final node = findNodeById(id);
     if (node != null) {
+      final wasNew = node.isNew;
+      node.isNew = false;
       onNodeRenamed?.call(node, newName);
       setRenamingNodeId(null);
+      
+      // If it was new, we might need to re-sort as the name changed
+      if (wasNew && _sortComparator != null) {
+        if (node.isRoot) {
+          _roots.sort(_sortComparator!);
+        } else {
+          node.parent?.internalSortChildren(_sortComparator!);
+        }
+        _rebuildFlatList();
+        notifyListeners();
+      }
     }
   }
 
@@ -412,50 +464,64 @@ class TreeController<T> extends ChangeNotifier {
   }) {
     if (dragged.id == target.id) return;
 
+    // 1. Validation
     // Preventive check: Cannot drop a node into its own descendant
     if (isDescendantOf(target.id, dragged.id)) {
       debugPrint('Circular move detected: Cannot move ${dragged.id} into its own descendant ${target.id}');
       return;
     }
 
-    // First, detach from current parent
-    removeNode(dragged);
-
-    // Re-find target in case node removal (if target was a descendant of a sibling)
-    // though removeNode only removes the dragged node and its descendants.
-    final actualTarget = findNodeById(target.id);
-    if (actualTarget == null) return;
-
+    // If nesting, check if target can have children
     if (nestInside) {
-      final targetData = actualTarget.data;
+      final targetData = target.data;
       if (targetData is SuperTreeData && !targetData.canHaveChildren) {
+        debugPrint('Cannot move into node that cannot have children: ${target.id}');
         return;
       }
-      addChild(actualTarget, dragged);
-      expandNode(actualTarget); // Auto expand to show the dropped child
+    }
+
+    // 2. Atomic mutation
+    // Detach from current parent
+    final oldParent = dragged.parent;
+    if (oldParent != null) {
+      oldParent.internalRemoveChild(dragged);
+    } else {
+      _roots.remove(dragged);
+    }
+
+    // Re-find target in index just to be absolutely sure it hasn't somehow disappeared
+    final actualTarget = findNodeById(target.id);
+    if (actualTarget == null) {
+      // If target disappeared, we just leave the dragged node detached? 
+      // safer to re-attach to old parent?
+      if (oldParent != null) {
+        oldParent.internalAddChild(dragged);
+      } else {
+        _roots.add(dragged);
+      }
+      return;
+    }
+
+    // Re-attach to new location
+    if (nestInside) {
+      actualTarget.internalAddChild(dragged);
+      actualTarget.isExpanded = true; 
     } else {
       final parent = actualTarget.parent;
-      int index = 0;
-
       if (parent != null) {
-        if (_sortComparator != null) {
-          parent.internalAddChild(dragged);
-          parent.internalSortChildren(_sortComparator!);
-        } else {
-          index = parent.children.indexOf(actualTarget);
-          if (!insertBefore) index++;
-          parent.internalInsertChild(index, dragged);
-        }
+        int index = parent.children.indexOf(actualTarget);
+        if (!insertBefore) index++;
+        parent.internalInsertChild(index, dragged);
       } else {
-        if (_sortComparator != null) {
-          _roots.add(dragged);
-          _roots.sort(_sortComparator!);
-        } else {
-          index = _roots.indexOf(actualTarget);
-          if (!insertBefore) index++;
-          _roots.insert(index, dragged);
-        }
+        int index = _roots.indexOf(actualTarget);
+        if (!insertBefore) index++;
+        _roots.insert(index, dragged);
       }
+    }
+
+    // 3. Finalize
+    if (_sortComparator != null) {
+      _sortTree();
     }
     _rebuildFlatList();
     notifyListeners();

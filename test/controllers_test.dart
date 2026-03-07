@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:super_tree/src/models/tree_node.dart';
+import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
 
 void main() {
@@ -182,5 +183,27 @@ void main() {
       expect(controller.roots[0].children[0].id, 'child');
       expect(child.parent?.id, 'root');
     });
+
+    test('moveNode does not delete node if nestInside is invalid', () {
+      final root_1 = TreeNode(id: 'root_1', data: TestData(canHaveChildren: false));
+      final root_2 = TreeNode(id: 'root_2', data: TestData(canHaveChildren: true));
+      final controller = TreeController<TestData>(roots: [root_1, root_2]);
+
+      expect(controller.roots.length, 2);
+
+      // Attempt to move root_2 into root_1 (which cannot have children)
+      controller.moveNode(dragged: root_2, target: root_1, insertBefore: false, nestInside: true);
+
+      // root_2 should NOT be deleted, it should still be a root
+      expect(controller.roots.length, 2);
+      expect(controller.roots[1].id, 'root_2');
+      expect(controller.findNodeById('root_2'), isNotNull);
+    });
   });
+}
+
+class TestData with SuperTreeData {
+  @override
+  final bool canHaveChildren;
+  TestData({required this.canHaveChildren});
 }
