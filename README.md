@@ -1,5 +1,9 @@
 # Super Tree
 
+<table>
+  <tr>
+    <td valign="top">
+
 A high-performance, fully customizable, and platform-agnostic hierarchical tree view for Flutter.
 
 Build complex tree structures like **File Explorers**, **Todo Lists**, or **Permission Trees** with ease.
@@ -22,6 +26,21 @@ Add `super_tree` to your `pubspec.yaml`:
 dependencies:
   super_tree: ^0.1.0
 ```
+
+```sh
+flutter pub add super_tree
+```
+
+
+
+   </td>
+    <td align="right" valign="top" width="300">
+
+<img src="assets/screenshots/demo_tree.png" alt="Demo tree preview" width="280" />
+
+   </td>
+  </tr>
+</table>
 
 ## Usage
 
