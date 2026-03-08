@@ -173,7 +173,6 @@ class _TodoListExampleState extends State<TodoListExample> {
                 padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
               ),
               logic: const TreeViewConfig(
-                enableDragAndDrop: true,
                 expansionTrigger: ExpansionTrigger.tap,
               ),
               onTodoChanged: (item) {

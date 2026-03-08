@@ -180,7 +180,7 @@ class _IntegrityGuardrailsExampleState extends State<IntegrityGuardrailsExample>
                       child: FileSystemSuperTree(
                         controller: _controller,
                         logic: const TreeViewConfig<FileSystemItem>(
-                          enableDragAndDrop: false,
+                          dragAndDrop: TreeDragAndDropConfig(enabled: false),
                           namingStrategy: TreeNamingStrategy.none,
                         ),
                       ),
