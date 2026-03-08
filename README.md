@@ -117,46 +117,22 @@ Check the [example project](example/lib/main.dart) for comprehensive demonstrati
 
 ### Preview Gallery
 
-Current in-repo previews (Phase 1):
+Current in-repo previews:
 
-| Example                       | Preview                                                                                     |
-| ----------------------------- | ------------------------------------------------------------------------------------------- |
-| File System Explorer + Search | ![File System Explorer with search active](assets/screenshots/file-system-search-macos.png) |
-| Todo Tree                     | ![Todo tree example on macOS desktop layout](assets/screenshots/todo-tree-macos.png)        |
-
-The screenshot workflow is designed to scale to all examples from `example/lib/main.dart`.
-
-### Capture Workflow (Screenshots + Optional GIFs)
-
-From the repository root:
-
-```bash
-# Generate/update preview screenshots (file explorer + todo)
-scripts/capture_example_previews.sh
-
-# Copy generated screenshots into the wiki repo image folder
-scripts/sync_preview_images_to_wiki.sh
-
-# Optional: convert a recorded video clip to gif
-scripts/convert_video_to_gif.sh <input-video> <output-gif> [fps] [width]
-```
+| Example                       | Preview                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| File System Explorer + Search | ![File System Explorer with search active](assets/screenshots/file-system-search-macos.png)   |
+| Checkbox State                | ![Checkbox state example on macOS desktop layout](assets/screenshots/checkbox-state-macos.png) |
+| Complex Node UI               | ![Complex node UI example on macOS desktop layout](assets/screenshots/complex-node-ui-macos.png) |
+| Todo Tree                     | ![Todo tree example on macOS desktop layout](assets/screenshots/todo-tree-macos.png)          |
+| Minimal File System           | ![Minimal file system example on macOS desktop layout](assets/screenshots/minimal-file-system-macos.png) |
+| Async Lazy Loading            | ![Async lazy loading example on macOS desktop layout](assets/screenshots/async-lazy-loading-macos.png) |
+| Integrity Guardrails          | ![Integrity guardrails example on macOS desktop layout](assets/screenshots/integrity-guardrails-macos.png) |
 
 Notes:
 - Screenshot generation uses `flutter test --update-goldens` in `example/test/generate_previews_test.dart`.
 - GIF creation is optional and requires `ffmpeg`.
 - Canonical screenshot assets are stored in `assets/screenshots/` and committed to the repo.
-
-## Localization
-
-The example app includes Flutter-standard localization setup (`gen_l10n`) with
-English and Spanish resources under `example/lib/l10n/`.
-
-- `example/pubspec.yaml` enables localization code generation.
-- `example/l10n.yaml` controls ARB input/output.
-- `example/lib/main.dart` wires delegates and supported locales.
-
-Use this as a reference integration when adding localized app shells around
-`SuperTreeView` in your own projects.
 
 ## Contributing
 

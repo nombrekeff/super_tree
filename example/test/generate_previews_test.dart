@@ -1,4 +1,9 @@
+import 'package:example/examples/async_lazy_loading_example.dart';
+import 'package:example/examples/checkbox_example.dart';
+import 'package:example/examples/complex_node_example.dart';
 import 'package:example/examples/file_system_example.dart';
+import 'package:example/examples/integrity_guardrails_example.dart';
+import 'package:example/examples/simple_file_system_example.dart';
 import 'package:example/examples/todo_list_example.dart';
 import 'package:example/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +73,81 @@ void main() {
       matchesGoldenFile('../../assets/screenshots/todo-tree-macos.png'),
     );
   });
+
+  testWidgets('generates checkbox state preview', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildPreviewShell(const CheckboxExample()));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('../../assets/screenshots/checkbox-state-macos.png'),
+    );
+  });
+
+  testWidgets('generates complex node ui preview', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildPreviewShell(const ComplexNodeExample()));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('../../assets/screenshots/complex-node-ui-macos.png'),
+    );
+  });
+
+  testWidgets('generates minimal file system preview', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildPreviewShell(const SimpleFileSystemExample()));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('../../assets/screenshots/minimal-file-system-macos.png'),
+    );
+  });
+
+  testWidgets('generates async lazy loading preview', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildPreviewShell(const AsyncLazyLoadingExample()));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('../../assets/screenshots/async-lazy-loading-macos.png'),
+    );
+  });
+
+  testWidgets('generates integrity guardrails preview', (WidgetTester tester) async {
+    await tester.binding.setSurfaceSize(const Size(1440, 900));
+    addTearDown(() async {
+      await tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(_buildPreviewShell(const IntegrityGuardrailsExample()));
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('../../assets/screenshots/integrity-guardrails-macos.png'),
+    );
+  });
 }
 
 Widget _buildPreviewShell(Widget child) {
@@ -116,7 +196,7 @@ Widget _buildTreeOnlyPreview(TreeController<FileSystemItem> controller) {
           child: Container(
             decoration: BoxDecoration(
               color: preset.surfaceColor,
-              borderRadius: BorderRadius.circular(8.0)
+              borderRadius: BorderRadius.circular(8.0),
             ),
             padding: const EdgeInsets.only(top: 16.0, left: 16),
             child: FileSystemSuperTree(

@@ -11,6 +11,11 @@ fi
 
 mkdir -p "$WIKI_DIR/images"
 cp "$ROOT_DIR/assets/screenshots/file-system-search-macos.png" "$WIKI_DIR/images/"
+cp "$ROOT_DIR/assets/screenshots/checkbox-state-macos.png" "$WIKI_DIR/images/"
+cp "$ROOT_DIR/assets/screenshots/complex-node-ui-macos.png" "$WIKI_DIR/images/"
+cp "$ROOT_DIR/assets/screenshots/minimal-file-system-macos.png" "$WIKI_DIR/images/"
+cp "$ROOT_DIR/assets/screenshots/async-lazy-loading-macos.png" "$WIKI_DIR/images/"
+cp "$ROOT_DIR/assets/screenshots/integrity-guardrails-macos.png" "$WIKI_DIR/images/"
 cp "$ROOT_DIR/assets/screenshots/todo-tree-macos.png" "$WIKI_DIR/images/"
 
 echo "[preview-sync] Synced screenshots to $WIKI_DIR/images"
