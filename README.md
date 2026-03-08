@@ -21,7 +21,7 @@ Add `super_tree` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  super_tree: ^0.1.0
+  super_tree: ^0.3.0
 ```
 
 ```sh
@@ -59,10 +59,10 @@ SuperTreeView<String>(
 
 ### Advanced Usage with Controller
 
-For dynamic updates and interaction handling, use the `SuperTreeController`:
+For dynamic updates and interaction handling, use `TreeController<T>`:
 
 ```dart
-final controller = SuperTreeController<MyData>(
+final controller = TreeController<MyData>(
   roots: initialRoots,
   onNodeRenamed: (node, newName) => print('Renamed to $newName'),
 );

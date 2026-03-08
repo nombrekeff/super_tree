@@ -1,3 +1,11 @@
+## 0.3.0
+
+- Removed obsolete `test/public_api_aliases_test.dart`, which no longer reflected
+  the maintained public API surface.
+- Updated installation guidance in package docs and wiki to the current release
+  line.
+- Updated README controller usage example to use `TreeController<T>`.
+
 ## 0.2.0
 
 - Added `SuperTree*` public API aliases for user-facing naming consistency, including:
