@@ -1,4 +1,4 @@
-# Super Tree
+# Super Tree [![](https://img.shields.io/pub/v/super_tree)](https://pub.dev/packages/super_tree) 
 
 <img src="assets/screenshots/demo_tree.png" alt="Demo tree preview" width="240" align="right" />
 
