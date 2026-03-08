@@ -6,7 +6,7 @@ A high-performance, fully customizable, and platform-agnostic hierarchical tree 
 
 Build complex tree structures like **File Explorers**, **Todo Lists**, or **Permission Trees** with ease.
 
-## Key Features
+### Key Features
 
 - **High Performance**: Uses a flat-list architecture internally for smooth scrolling with large trees.
 - **Fully Customizable**: Control rendering with builders for expansion, prefix, content, and trailing actions.
@@ -16,7 +16,7 @@ Build complex tree structures like **File Explorers**, **Todo Lists**, or **Perm
 - **Search and Selection**: Supports fuzzy search and multi-selection workflows.
 - **Testable**: Business logic is decoupled from UI for focused unit and widget testing.
 
-## Getting Started
+### Getting Started
 
 Add `super_tree` to your `pubspec.yaml`:
 
