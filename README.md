@@ -59,10 +59,10 @@ SuperTreeView<String>(
 
 ### Advanced Usage with Controller
 
-For dynamic updates and interaction handling, use the `TreeController`:
+For dynamic updates and interaction handling, use the `SuperTreeController`:
 
 ```dart
-final controller = TreeController<MyData>(
+final controller = SuperTreeController<MyData>(
   roots: initialRoots,
   onNodeRenamed: (node, newName) => print('Renamed to $newName'),
 );

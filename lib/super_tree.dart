@@ -1,6 +1,8 @@
 export 'src/models/tree_node.dart';
 export 'src/models/tree_filtering.dart';
 export 'src/models/super_tree_data.dart';
+export 'src/models/super_tree_node_contract.dart';
+export 'src/api/super_tree_api_aliases.dart';
 export 'src/models/prebuilt/file_system_item.dart';
 export 'src/controllers/tree_controller.dart';
 export 'src/controllers/tree_events.dart';

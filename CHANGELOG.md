@@ -1,3 +1,17 @@
+## 0.2.0
+
+- Added `SuperTree*` public API aliases for user-facing naming consistency, including:
+  `SuperTreeController`, `SuperTreeSearchController`, `SuperTreeNode`,
+  `SuperTreeViewConfig`, `SuperTreeViewStyle`, and `SuperTreeEvent` variants.
+- Added dedicated per-event streams on `TreeController`:
+  `nodeAddedEvents`, `nodeRemovedEvents`, `nodeMovedEvents`, and
+  `nodeRenamedEvents`.
+- Added convenience listener helpers on `TreeController`:
+  `addNodeAddedListener`, `addNodeRemovedListener`, `addNodeMovedListener`,
+  and `addNodeRenamedListener`.
+- Added an optional shared payload contract, `SuperTreeNodeContract`, with
+  default integration in `SuperTreeData` (`canHaveChildren` + `iconToken`).
+
 ## 0.1.1
 
 - Added `TreeController.events`, a typed broadcast `Stream<TreeEvent<T>>` that lets consumers listen

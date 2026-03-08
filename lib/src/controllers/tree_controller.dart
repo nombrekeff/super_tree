@@ -125,6 +125,62 @@ class TreeController<T> extends ChangeNotifier {
   final StreamController<TreeEvent<T>> _eventController =
       StreamController<TreeEvent<T>>.broadcast();
 
+  /// Emits only [TreeNodeAddedEvent] instances.
+  Stream<TreeNodeAddedEvent<T>> get nodeAddedEvents {
+    return events
+        .where((TreeEvent<T> event) => event is TreeNodeAddedEvent<T>)
+        .cast<TreeNodeAddedEvent<T>>();
+  }
+
+  /// Emits only [TreeNodeRemovedEvent] instances.
+  Stream<TreeNodeRemovedEvent<T>> get nodeRemovedEvents {
+    return events
+        .where((TreeEvent<T> event) => event is TreeNodeRemovedEvent<T>)
+        .cast<TreeNodeRemovedEvent<T>>();
+  }
+
+  /// Emits only [TreeNodeMovedEvent] instances.
+  Stream<TreeNodeMovedEvent<T>> get nodeMovedEvents {
+    return events
+        .where((TreeEvent<T> event) => event is TreeNodeMovedEvent<T>)
+        .cast<TreeNodeMovedEvent<T>>();
+  }
+
+  /// Emits only [TreeNodeRenamedEvent] instances.
+  Stream<TreeNodeRenamedEvent<T>> get nodeRenamedEvents {
+    return events
+        .where((TreeEvent<T> event) => event is TreeNodeRenamedEvent<T>)
+        .cast<TreeNodeRenamedEvent<T>>();
+  }
+
+  /// Registers a listener for [TreeNodeAddedEvent] notifications.
+  StreamSubscription<TreeNodeAddedEvent<T>> addNodeAddedListener(
+    void Function(TreeNodeAddedEvent<T> event) onData,
+  ) {
+    return nodeAddedEvents.listen(onData);
+  }
+
+  /// Registers a listener for [TreeNodeRemovedEvent] notifications.
+  StreamSubscription<TreeNodeRemovedEvent<T>> addNodeRemovedListener(
+    void Function(TreeNodeRemovedEvent<T> event) onData,
+  ) {
+    return nodeRemovedEvents.listen(onData);
+  }
+
+  /// Registers a listener for [TreeNodeMovedEvent] notifications.
+  StreamSubscription<TreeNodeMovedEvent<T>> addNodeMovedListener(
+    void Function(TreeNodeMovedEvent<T> event) onData,
+  ) {
+    return nodeMovedEvents.listen(onData);
+  }
+
+  /// Registers a listener for [TreeNodeRenamedEvent] notifications.
+  StreamSubscription<TreeNodeRenamedEvent<T>> addNodeRenamedListener(
+    void Function(TreeNodeRenamedEvent<T> event) onData,
+  ) {
+    return nodeRenamedEvents.listen(onData);
+  }
+
   /// Creates a new [TreeController] initialized with optional [roots].
   ///
   /// [sortComparator] can be used to keep the tree automatically sorted.
@@ -855,7 +911,9 @@ class TreeController<T> extends ChangeNotifier {
   ///
   /// When [topLevelOnly] is true, descendants of already selected parents are
   /// omitted so drag/drop can move selection groups without duplicates.
-  List<TreeNode<T>> getSelectedNodesInVisibleOrder({bool topLevelOnly = false}) {
+  List<TreeNode<T>> getSelectedNodesInVisibleOrder({
+    bool topLevelOnly = false,
+  }) {
     if (_selectedNodeIds.isEmpty) {
       return <TreeNode<T>>[];
     }
@@ -1003,7 +1061,9 @@ class TreeController<T> extends ChangeNotifier {
       final wasNew = node.isNew;
       node.isNew = false;
       onNodeRenamed?.call(node, newName);
-      _eventController.add(TreeNodeRenamedEvent<T>(node: node, newName: newName));
+      _eventController.add(
+        TreeNodeRenamedEvent<T>(node: node, newName: newName),
+      );
       setRenamingNodeId(null);
 
       // If it was new, we might need to re-sort as the name changed
@@ -1264,7 +1324,9 @@ class TreeController<T> extends ChangeNotifier {
     }
     _rebuildFlatList();
     _eventController.add(
-      TreeNodeMovedEvent<T>(nodes: List<TreeNode<T>>.unmodifiable(uniqueDragged)),
+      TreeNodeMovedEvent<T>(
+        nodes: List<TreeNode<T>>.unmodifiable(uniqueDragged),
+      ),
     );
     notifyListeners();
     return true;
