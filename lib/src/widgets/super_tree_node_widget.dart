@@ -57,7 +57,8 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
   static const double _defaultLoadingSize = 14;
   static const double _defaultLoadingStrokeWidth = 2;
 
-  bool _isHovering = false;
+  final ValueNotifier<bool> _isHovering = ValueNotifier<bool>(false);
+  DateTime? _lastTapTime;
   late final TextEditingController _renameController;
   late final FocusNode _renameFocusNode;
   late final FocusNode _keyboardListenerFocusNode;
@@ -143,10 +144,23 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     _renameFocusNode.dispose();
     _keyboardListenerFocusNode.dispose();
     _expansionController.dispose();
+    _isHovering.dispose();
     super.dispose();
   }
 
   void _handleTap() {
+    final DateTime now = DateTime.now();
+    final bool isDoubleTap = _lastTapTime != null && 
+        now.difference(_lastTapTime!) < const Duration(milliseconds: 300);
+        
+    if (isDoubleTap) {
+      _lastTapTime = null;
+      _handleDoubleTap();
+      return;
+    }
+    
+    _lastTapTime = now;
+
     if (widget.logic.namingStrategy == TreeNamingStrategy.click) {
       _startRenaming();
     } else if (widget.logic.expansionTrigger == ExpansionTrigger.tap) {
@@ -362,43 +376,44 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       config: widget.logic.dragAndDrop,
       onDrop: _handleDrop,
       child: MouseRegion(
-        onEnter: (_) => setState(() => _isHovering = true),
-        onExit: (_) => setState(() => _isHovering = false),
+        onEnter: (_) => _isHovering.value = true,
+        onExit: (_) => _isHovering.value = false,
         child: GestureDetector(
           onSecondaryTapDown: _handleSecondaryTapDown,
           onLongPressStart: _handleLongPressStart,
           onTap: _handleTap,
-          onDoubleTap:
-              (widget.logic.expansionTrigger == ExpansionTrigger.doubleTap ||
-                  widget.logic.onNodeDoubleTap != null)
-              ? _handleDoubleTap
-              : null,
           behavior: HitTestBehavior.opaque,
           child: SuperTreeNodeSemantics<T>(
             node: widget.node,
             canExpand: canExpand,
             isSelected: isSelected,
             labelProvider: widget.labelProvider,
-            child: Container(
-              padding: EdgeInsets.only(
-                left: widget.style.padding.horizontal / 2 + paddingLeft,
-                right: widget.style.padding.horizontal / 2,
-                top: widget.style.padding.vertical / 2,
-                bottom: widget.style.padding.vertical / 2,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? widget.style.selectedColor
-                    : (_isHovering || widget.controller.contextMenuNodeId == widget.node.id)
-                    ? widget.style.hoverColor
-                    : widget.style.idleColor,
-                border: Border.all(
-                  color: widget.controller.renamingNodeId == widget.node.id
-                      ? Theme.of(context).colorScheme.primary.withAlpha(204)
-                      : Colors.transparent,
-                  width: 2.0,
-                ),
-              ),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isHovering,
+              builder: (BuildContext context, bool isHovering, Widget? child) {
+                return Container(
+                  padding: EdgeInsets.only(
+                    left: widget.style.padding.horizontal / 2 + paddingLeft,
+                    right: widget.style.padding.horizontal / 2,
+                    top: widget.style.padding.vertical / 2,
+                    bottom: widget.style.padding.vertical / 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? widget.style.selectedColor
+                        : (isHovering || widget.controller.contextMenuNodeId == widget.node.id)
+                        ? widget.style.hoverColor
+                        : widget.style.idleColor,
+                    border: Border.all(
+                      color: widget.controller.renamingNodeId == widget.node.id
+                          ? Theme.of(context).colorScheme.primary.withAlpha(204)
+                          : Colors.transparent,
+                      width: 2.0,
+                    ),
+                  ),
+                  child: child,
+                );
+              },
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
