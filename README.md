@@ -108,6 +108,37 @@ Check the [example project](example/lib/main.dart) for comprehensive demonstrati
 - **Checkbox States**: Stateful checkbox behavior and parent-child tree workflows.
 - **Responsive Menus**: Adaptive interaction patterns for Mobile and Desktop.
 
+### Preview Gallery
+
+Current in-repo previews (Phase 1):
+
+| Example                       | Preview                                                                                     |
+| ----------------------------- | ------------------------------------------------------------------------------------------- |
+| File System Explorer + Search | ![File System Explorer with search active](assets/screenshots/file-system-search-macos.png) |
+| Todo Tree                     | ![Todo tree example on macOS desktop layout](assets/screenshots/todo-tree-macos.png)        |
+
+The screenshot workflow is designed to scale to all examples from `example/lib/main.dart`.
+
+### Capture Workflow (Screenshots + Optional GIFs)
+
+From the repository root:
+
+```bash
+# Generate/update preview screenshots (file explorer + todo)
+scripts/capture_example_previews.sh
+
+# Copy generated screenshots into the wiki repo image folder
+scripts/sync_preview_images_to_wiki.sh
+
+# Optional: convert a recorded video clip to gif
+scripts/convert_video_to_gif.sh <input-video> <output-gif> [fps] [width]
+```
+
+Notes:
+- Screenshot generation uses `flutter test --update-goldens` in `example/test/generate_previews_test.dart`.
+- GIF creation is optional and requires `ffmpeg`.
+- Canonical screenshot assets are stored in `assets/screenshots/` and committed to the repo.
+
 ## Localization
 
 The example app includes Flutter-standard localization setup (`gen_l10n`) with

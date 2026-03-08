@@ -9,6 +9,8 @@ enum ThemeOption { vscode, material, compact }
 
 enum SortOption { none, alphabetical, foldersFirst }
 
+enum _FileHeaderAction { createRootFolder, createRootFile, expandAll, collapseAll }
+
 class FileSystemExample extends StatefulWidget {
   const FileSystemExample({super.key});
 
@@ -81,16 +83,12 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
         });
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(
-          SnackBar(content: Text(_l10n.fileRenamedTo(newName))),
-        );
+        ).showSnackBar(SnackBar(content: Text(_l10n.fileRenamedTo(newName))));
       },
       onNodeDeleted: (node) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(
-          SnackBar(content: Text(_l10n.fileItemDeleted)),
-        );
+        ).showSnackBar(SnackBar(content: Text(_l10n.fileItemDeleted)));
       },
       roots: [
         TreeNode(
@@ -122,9 +120,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                     ),
                     TreeNode(
                       data: FolderItem('configs'),
-                      children: [
-                        TreeNode(data: FileItem('tree_view_style.dart')),
-                      ],
+                      children: [TreeNode(data: FileItem('tree_view_style.dart'))],
                     ),
                   ],
                 ),
@@ -161,9 +157,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
       expansionBehavior: TreeSearchExpansionBehavior.expandMatchesAndAncestors,
       searchMatcher: _fileSearchFilter.asSearchMatcher(),
     );
-    _searchUi = ExampleTreeSearchLogic<FileSystemItem>(
-      searchController: _searchController,
-    );
+    _searchUi = ExampleTreeSearchLogic<FileSystemItem>(searchController: _searchController);
   }
 
   @override
@@ -222,10 +216,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
 
   static void _noOp() {}
 
-  List<ContextMenuItem> _buildContextMenu(
-    BuildContext context,
-    TreeNode<FileSystemItem> node,
-  ) {
+  List<ContextMenuItem> _buildContextMenu(BuildContext context, TreeNode<FileSystemItem> node) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     return [
       if (node.data.isFolder) ...[
@@ -273,21 +264,111 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
           _controller.sortComparator = (a, b) {
             if (a.data.isFolder && !b.data.isFolder) return -1;
             if (!a.data.isFolder && b.data.isFolder) return 1;
-            return a.data.name.toLowerCase().compareTo(
-              b.data.name.toLowerCase(),
-            );
+            return a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase());
           };
           break;
       }
     });
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required String tooltip,
-  }) {
-    return IconButton(icon: Icon(icon), onPressed: onPressed, tooltip: tooltip);
+  Widget _buildCompactHeaderTitle(AppLocalizations l10n) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Icon(Icons.folder_open, size: 18),
+        const SizedBox(width: 8),
+        Text(l10n.fileScreenTitle),
+      ],
+    );
+  }
+
+  Widget _buildSortMenu(AppLocalizations l10n) {
+    final List<PopupMenuEntry<SortOption>> sortItems = <PopupMenuEntry<SortOption>>[
+      PopupMenuItem<SortOption>(value: SortOption.none, child: Text(l10n.fileSortNone)),
+      PopupMenuItem<SortOption>(
+        value: SortOption.alphabetical,
+        child: Text(l10n.fileSortAlphabetical),
+      ),
+      PopupMenuItem<SortOption>(
+        value: SortOption.foldersFirst,
+        child: Text(l10n.fileSortFoldersFirst),
+      ),
+    ];
+
+    return PopupMenuButton<SortOption>(
+      tooltip: l10n.fileSortAlphabetical,
+      icon: const Icon(Icons.sort),
+      initialValue: _currentSort,
+      onSelected: _updateSorting,
+      itemBuilder: (BuildContext context) => sortItems,
+    );
+  }
+
+  Widget _buildThemeMenu(AppLocalizations l10n) {
+    final List<PopupMenuEntry<ThemeOption>> themeItems = <PopupMenuEntry<ThemeOption>>[
+      PopupMenuItem<ThemeOption>(value: ThemeOption.vscode, child: Text(l10n.fileThemeVsCode)),
+      PopupMenuItem<ThemeOption>(
+        value: ThemeOption.material,
+        child: Text(l10n.fileThemeMaterial),
+      ),
+      PopupMenuItem<ThemeOption>(
+        value: ThemeOption.compact,
+        child: Text(l10n.fileThemeCompact),
+      ),
+    ];
+
+    return PopupMenuButton<ThemeOption>(
+      tooltip: l10n.fileThemeMaterial,
+      icon: const Icon(Icons.palette),
+      initialValue: widget.currentTheme,
+      onSelected: widget.onThemeChanged,
+      itemBuilder: (BuildContext context) => themeItems,
+    );
+  }
+
+  Widget _buildTreeActionsMenu(AppLocalizations l10n) {
+    final List<PopupMenuEntry<_FileHeaderAction>> actionItems =
+        <PopupMenuEntry<_FileHeaderAction>>[
+          PopupMenuItem<_FileHeaderAction>(
+            value: _FileHeaderAction.createRootFolder,
+            child: Text(l10n.fileActionNewRootFolder),
+          ),
+          PopupMenuItem<_FileHeaderAction>(
+            value: _FileHeaderAction.createRootFile,
+            child: Text(l10n.fileActionNewRootFile),
+          ),
+          const PopupMenuDivider(),
+          PopupMenuItem<_FileHeaderAction>(
+            value: _FileHeaderAction.expandAll,
+            child: Text(l10n.fileActionExpandAll),
+          ),
+          PopupMenuItem<_FileHeaderAction>(
+            value: _FileHeaderAction.collapseAll,
+            child: Text(l10n.fileActionCollapseAll),
+          ),
+        ];
+
+    return PopupMenuButton<_FileHeaderAction>(
+      tooltip: l10n.fileActionExpandAll,
+      icon: const Icon(Icons.more_horiz),
+      onSelected: (_FileHeaderAction action) {
+        switch (action) {
+          case _FileHeaderAction.createRootFolder:
+            _controller.createNewRoot(FolderItem(''));
+            break;
+          case _FileHeaderAction.createRootFile:
+            _controller.createNewRoot(FileItem(''));
+            break;
+          case _FileHeaderAction.expandAll:
+            _controller.expandAll();
+            break;
+          case _FileHeaderAction.collapseAll:
+            _controller.collapseAll();
+            break;
+        }
+      },
+      itemBuilder: (BuildContext context) => actionItems,
+    );
   }
 
   @override
@@ -296,102 +377,34 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final Widget searchField = _buildSearchField();
+    final Widget title = _buildCompactHeaderTitle(l10n);
+    final Widget sortMenu = _buildSortMenu(l10n);
+    final Widget themeMenu = _buildThemeMenu(l10n);
+    final Widget treeActionsMenu = _buildTreeActionsMenu(l10n);
 
     return ExampleTreeSearchShortcuts(
       onOpenSearch: _openSearch,
       onCloseSearch: _closeSearch,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(l10n.fileScreenTitle),
-          backgroundColor: theme.colorScheme.surface,
+          toolbarHeight: 48,
+          titleSpacing: 12,
+          centerTitle: false,
+          title: title,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
           foregroundColor: isDark ? Colors.white : Colors.black87,
-          elevation: 1,
+          scrolledUnderElevation: 0,
+          elevation: 0,
           actions: [
             IconButton(
               icon: const Icon(Icons.search),
               onPressed: _openSearch,
               tooltip: l10n.fileSearchTooltip,
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: DropdownButton<SortOption>(
-                value: _currentSort,
-                dropdownColor: theme.colorScheme.surface,
-                underline: const SizedBox(),
-                icon: Icon(
-                  Icons.sort,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: SortOption.none,
-                    child: Text(l10n.fileSortNone),
-                  ),
-                  DropdownMenuItem(
-                    value: SortOption.alphabetical,
-                    child: Text(l10n.fileSortAlphabetical),
-                  ),
-                  DropdownMenuItem(
-                    value: SortOption.foldersFirst,
-                    child: Text(l10n.fileSortFoldersFirst),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) _updateSorting(val);
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: DropdownButton<ThemeOption>(
-                value: widget.currentTheme,
-                dropdownColor: theme.colorScheme.surface,
-                underline: const SizedBox(),
-                icon: Icon(
-                  Icons.palette,
-                  color: isDark ? Colors.white70 : Colors.black54,
-                ),
-                items: [
-                  DropdownMenuItem(
-                    value: ThemeOption.vscode,
-                    child: Text(l10n.fileThemeVsCode),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeOption.material,
-                    child: Text(l10n.fileThemeMaterial),
-                  ),
-                  DropdownMenuItem(
-                    value: ThemeOption.compact,
-                    child: Text(l10n.fileThemeCompact),
-                  ),
-                ],
-                onChanged: (val) {
-                  if (val != null) {
-                    widget.onThemeChanged(val);
-                  }
-                },
-              ),
-            ),
-            _buildActionButton(
-              icon: Icons.create_new_folder,
-              onPressed: () => _controller.createNewRoot(FolderItem('')),
-              tooltip: l10n.fileActionNewRootFolder,
-            ),
-            _buildActionButton(
-              icon: Icons.note_add,
-              onPressed: () => _controller.createNewRoot(FileItem('')),
-              tooltip: l10n.fileActionNewRootFile,
-            ),
-            _buildActionButton(
-              icon: Icons.unfold_more,
-              onPressed: () => _controller.expandAll(),
-              tooltip: l10n.fileActionExpandAll,
-            ),
-            IconButton(
-              icon: const Icon(Icons.unfold_less),
-              onPressed: _controller.collapseAll,
-              tooltip: l10n.fileActionCollapseAll,
-            ),
+            sortMenu,
+            themeMenu,
+            treeActionsMenu,
+            const SizedBox(width: 4),
           ],
         ),
         body: Column(
@@ -404,9 +417,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                     width: 320,
                     decoration: BoxDecoration(
                       border: Border(
-                        right: BorderSide(
-                          color: isDark ? Colors.white12 : Colors.black12,
-                        ),
+                        right: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                       ),
                       color: _getSidebarColor(),
                     ),
@@ -441,8 +452,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                             final selectedIds = _controller.selectedNodeIds;
                             final bool hasSearch = _searchController.hasQuery;
                             final bool noSearchResults =
-                                hasSearch &&
-                                _controller.flatVisibleNodes.isEmpty;
+                                hasSearch && _controller.flatVisibleNodes.isEmpty;
 
                             if (noSearchResults) {
                               return Column(
@@ -451,9 +461,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   Icon(
                                     Icons.search_off,
                                     size: 72,
-                                    color: isDark
-                                        ? Colors.white24
-                                        : Colors.black26,
+                                    color: isDark ? Colors.white24 : Colors.black26,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
@@ -476,18 +484,14 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   Icon(
                                     Icons.account_tree,
                                     size: 64,
-                                    color: isDark
-                                        ? Colors.white24
-                                        : Colors.black26,
+                                    color: isDark ? Colors.white24 : Colors.black26,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     l10n.fileSelectHint,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
+                                      color: isDark ? Colors.white54 : Colors.black54,
                                       fontSize: 16,
                                     ),
                                   ),
@@ -502,36 +506,27 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                   Icon(
                                     Icons.copy_all,
                                     size: 80,
-                                    color: theme.colorScheme.primary.withAlpha(
-                                      128,
-                                    ),
+                                    color: theme.colorScheme.primary.withAlpha(128),
                                   ),
                                   const SizedBox(height: 24),
                                   Text(
                                     l10n.fileItemsSelected(selectedIds.length),
-                                    style: theme.textTheme.headlineMedium
-                                        ?.copyWith(
-                                          color: isDark
-                                              ? Colors.white
-                                              : Colors.black87,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    style: theme.textTheme.headlineMedium?.copyWith(
+                                      color: isDark ? Colors.white : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 40),
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       for (var id in selectedIds) {
-                                        _controller.removeNode(
-                                          _controller.findNodeById(id)!,
-                                        );
+                                        _controller.removeNode(_controller.findNodeById(id)!);
                                       }
                                     },
                                     icon: const Icon(Icons.delete_sweep),
                                     label: Text(l10n.fileDeleteSelected),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.red.withAlpha(
-                                        204,
-                                      ),
+                                      backgroundColor: Colors.red.withAlpha(204),
                                       foregroundColor: Colors.white,
                                     ),
                                   ),
@@ -539,9 +534,7 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                               );
                             }
 
-                            final selectedNode = _controller.findNodeById(
-                              selectedIds.first,
-                            )!;
+                            final selectedNode = _controller.findNodeById(selectedIds.first)!;
                             return Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
@@ -550,20 +543,15 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                       ? Icons.folder
                                       : Icons.insert_drive_file,
                                   size: 80,
-                                  color: theme.colorScheme.primary.withAlpha(
-                                    128,
-                                  ),
+                                  color: theme.colorScheme.primary.withAlpha(128),
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
                                   selectedNode.data.name,
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                        color: isDark
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  style: theme.textTheme.headlineMedium?.copyWith(
+                                    color: isDark ? Colors.white : Colors.black87,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
@@ -571,15 +559,13 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                                       ? l10n.fileTypeFolder
                                       : l10n.fileTypeFile,
                                   style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: isDark
-                                        ? Colors.white54
-                                        : Colors.black54,
+                                    color: isDark ? Colors.white54 : Colors.black54,
                                   ),
                                 ),
                                 const SizedBox(height: 40),
                                 ElevatedButton.icon(
-                                  onPressed: () => _controller
-                                      .setRenamingNodeId(selectedNode.id),
+                                  onPressed: () =>
+                                      _controller.setRenamingNodeId(selectedNode.id),
                                   icon: const Icon(Icons.edit),
                                   label: Text(l10n.fileRenameItem),
                                 ),
