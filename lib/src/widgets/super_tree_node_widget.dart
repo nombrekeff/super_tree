@@ -8,6 +8,7 @@ import 'package:super_tree/src/widgets/context_menu_overlay.dart';
 import 'package:super_tree/src/widgets/super_tree_node_semantics.dart';
 import 'package:super_tree/src/widgets/super_tree_rename_field.dart';
 import 'package:super_tree/src/widgets/tree_drag_and_drop_wrapper.dart';
+import 'package:super_tree/super_tree.dart';
 
 /// Renders a single node row in the [SuperTreeView].
 class SuperTreeNodeWidget<T> extends StatefulWidget {

@@ -21,7 +21,7 @@ sealed class TreeEvent<T> {}
 /// Emitted when one or more nodes are added to the tree via
 /// [TreeController.addRoot] or [TreeController.addChild].
 final class TreeNodeAddedEvent<T> extends TreeEvent<T> {
-  const TreeNodeAddedEvent({required this.node, this.parent});
+  TreeNodeAddedEvent({required this.node, this.parent});
 
   /// The node that was added.
   final TreeNode<T> node;
@@ -32,7 +32,7 @@ final class TreeNodeAddedEvent<T> extends TreeEvent<T> {
 
 /// Emitted when a node is removed from the tree via [TreeController.removeNode].
 final class TreeNodeRemovedEvent<T> extends TreeEvent<T> {
-  const TreeNodeRemovedEvent({required this.node});
+  TreeNodeRemovedEvent({required this.node});
 
   /// The node that was removed.
   final TreeNode<T> node;
@@ -41,7 +41,7 @@ final class TreeNodeRemovedEvent<T> extends TreeEvent<T> {
 /// Emitted when one or more nodes are moved within the tree via
 /// [TreeController.moveNode] or [TreeController.moveNodes].
 final class TreeNodeMovedEvent<T> extends TreeEvent<T> {
-  const TreeNodeMovedEvent({required this.nodes});
+  TreeNodeMovedEvent({required this.nodes});
 
   /// The nodes that were moved (in the order they were moved).
   final List<TreeNode<T>> nodes;
@@ -49,7 +49,7 @@ final class TreeNodeMovedEvent<T> extends TreeEvent<T> {
 
 /// Emitted when a node is renamed via [TreeController.renameNode].
 final class TreeNodeRenamedEvent<T> extends TreeEvent<T> {
-  const TreeNodeRenamedEvent({required this.node, required this.newName});
+  TreeNodeRenamedEvent({required this.node, required this.newName});
 
   /// The node that was renamed.
   final TreeNode<T> node;
