@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Added customizable node cursor support through `TreeViewConfig.nodeCursorResolver`, including default per-state cursors for row, expansion toggle, rename mode, and non-interactive rows.
+- Updated `FileSystemSuperTree` to default rename selection to file-name stem (excluding extension) unless a custom rename selection strategy is explicitly provided.
 
 ## 0.2.1
 

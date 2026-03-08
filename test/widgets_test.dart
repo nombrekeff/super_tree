@@ -272,6 +272,15 @@ void main() {
 
       expect(find.byType(TextField), findsOneWidget);
 
+      final EditableText editableText = tester.widget<EditableText>(
+        find.byType(EditableText),
+      );
+      expect(editableText.controller.selection.baseOffset, 0);
+      expect(
+        editableText.controller.selection.extentOffset,
+        editableText.controller.text.length,
+      );
+
       // Enter new name
       await tester.enterText(find.byType(TextField), 'New Name');
       await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -281,6 +290,48 @@ void main() {
       expect(find.text('New Name'), findsOneWidget);
       expect(renamedId, 'node_1');
       expect(renamedValue, 'New Name');
+    });
+
+    testWidgets('Rename selection strategy can target file-name stem only', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(id: 'file_node', data: 'report.final.pdf'),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
+            logic: TreeViewConfig<String>(
+              namingStrategy: TreeNamingStrategy.click,
+              renameSelectionStrategy:
+              TreeRenameSelectionStrategies.selectFileName<String>(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('report.final.pdf'));
+      await tester.pumpAndSettle();
+
+      final EditableText editableText = tester.widget<EditableText>(
+        find.byType(EditableText),
+      );
+      expect(editableText.controller.selection.baseOffset, 0);
+      expect(editableText.controller.selection.extentOffset, 12);
     });
 
     testWidgets('Rename cancels when tapping outside the field', (
@@ -1351,6 +1402,40 @@ void main() {
 
       expect(find.byIcon(Icons.star), findsOneWidget);
       expect(find.text('src'), findsOneWidget);
+    });
+
+    testWidgets('FileSystemSuperTree defaults rename selection to file-name stem', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<FileSystemItem> controller = TreeController<FileSystemItem>(
+        roots: <TreeNode<FileSystemItem>>[
+          TreeNode<FileSystemItem>(id: 'file_node', data: FileItem('main.dart')),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          FileSystemSuperTree(
+            controller: controller,
+            logic: const TreeViewConfig<FileSystemItem>(
+              namingStrategy: TreeNamingStrategy.click,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('main.dart'));
+      await tester.pumpAndSettle();
+
+      final EditableText editableText = tester.widget<EditableText>(
+        find.byType(EditableText),
+      );
+      expect(editableText.controller.selection.baseOffset, 0);
+      expect(editableText.controller.selection.extentOffset, 4);
     });
 
     testWidgets('SuperTreeThemes presets expose usable style and icon providers', (

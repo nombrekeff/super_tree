@@ -8,6 +8,7 @@ export 'src/controllers/tree_controller.dart';
 export 'src/controllers/tree_events.dart';
 export 'src/controllers/tree_search_controller.dart';
 export 'src/configs/tree_view_logic.dart';
+export 'src/configs/tree_rename_selection.dart';
 export 'src/configs/tree_view_style.dart';
 export 'src/configs/tree_drag_and_drop_config.dart';
 export 'src/widgets/super_tree_view.dart';

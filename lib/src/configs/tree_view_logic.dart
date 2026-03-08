@@ -1,5 +1,6 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:super_tree/src/configs/tree_rename_selection.dart';
 import 'package:super_tree/src/configs/tree_drag_and_drop_config.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 
@@ -130,6 +131,11 @@ class TreeViewConfig<T> {
   /// The node ID that is currently being renamed, if any.
   final TreeNamingStrategy namingStrategy;
 
+  /// Strategy used to select text when rename mode starts.
+  ///
+  /// When `null`, [TreeRenameSelectionStrategies.selectAll] is used.
+  final TreeRenameSelectionStrategy<T>? renameSelectionStrategy;
+
   /// Optional comparator to keep the tree sorted.
   final int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator;
 
@@ -156,6 +162,7 @@ class TreeViewConfig<T> {
     this.enableDragAndDrop = true,
     this.selectionMode = SelectionMode.single,
     this.namingStrategy = TreeNamingStrategy.none,
+    this.renameSelectionStrategy,
     this.defaultSortComparator,
     this.onNodeTap,
     this.onNodeDoubleTap,
@@ -172,6 +179,7 @@ class TreeViewConfig<T> {
     void Function(String id)? onNodeDoubleTap,
     TreeNodeCursorResolver<T>? nodeCursorResolver,
     TreeNamingStrategy? namingStrategy,
+    TreeRenameSelectionStrategy<T>? renameSelectionStrategy,
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     TreeDragAndDropConfig<T>? dragAndDrop,
     bool? debugMode,
@@ -181,6 +189,8 @@ class TreeViewConfig<T> {
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       selectionMode: selectionMode ?? this.selectionMode,
       namingStrategy: namingStrategy ?? this.namingStrategy,
+      renameSelectionStrategy:
+          renameSelectionStrategy ?? this.renameSelectionStrategy,
       defaultSortComparator:
           defaultSortComparator ?? this.defaultSortComparator,
       onNodeTap: onNodeTap ?? this.onNodeTap,

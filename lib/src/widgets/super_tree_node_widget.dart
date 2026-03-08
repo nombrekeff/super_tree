@@ -129,9 +129,13 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     // Select all text in the next frame to ensure it's effective
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.controller.renamingNodeId == widget.node.id) {
-        _renameController.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: _renameController.text.length,
+        final TreeRenameSelectionStrategy<T> strategy =
+            widget.logic.renameSelectionStrategy ??
+            TreeRenameSelectionStrategies.selectAll<T>();
+        _renameController.selection = TreeRenameSelectionCore.resolveAndSanitize<T>(
+          node: widget.node,
+          currentText: _renameController.text,
+          strategy: strategy,
         );
         _renameFocusNode.requestFocus();
       }

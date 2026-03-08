@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_tree/src/configs/file_system_icon_provider.dart';
 import 'package:super_tree/src/configs/file_system_tree_theme.dart';
 import 'package:super_tree/src/configs/icon_provider.dart';
+import 'package:super_tree/src/configs/tree_rename_selection.dart';
 import 'package:super_tree/src/configs/tree_view_logic.dart';
 import 'package:super_tree/src/configs/tree_view_style.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
@@ -72,6 +73,17 @@ class FileSystemSuperTree extends StatelessWidget {
     return FileSystemTreeTheme.material(iconProvider: iconProvider);
   }
 
+  TreeViewConfig<FileSystemItem> _resolveLogic() {
+    if (logic.renameSelectionStrategy != null) {
+      return logic;
+    }
+
+    return logic.copyWith(
+      renameSelectionStrategy:
+          TreeRenameSelectionStrategies.selectFileName<FileSystemItem>(),
+    );
+  }
+
   Widget _defaultPrefixBuilder(
     BuildContext context,
     TreeNode<FileSystemItem> node,
@@ -108,12 +120,14 @@ class FileSystemSuperTree extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TreeViewConfig<FileSystemItem> resolvedLogic = _resolveLogic();
+
     return SuperTreeView<FileSystemItem>(
       controller: controller,
       roots: roots,
       sortComparator: sortComparator,
       style: style,
-      logic: logic,
+      logic: resolvedLogic,
       prefixBuilder: prefixBuilder ?? _defaultPrefixBuilder,
       contentBuilder: contentBuilder ?? _defaultContentBuilder,
       trailingBuilder: trailingBuilder,
