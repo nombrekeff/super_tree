@@ -3,6 +3,7 @@ export 'src/models/tree_filtering.dart';
 export 'src/models/super_tree_data.dart';
 export 'src/models/prebuilt/file_system_item.dart';
 export 'src/controllers/tree_controller.dart';
+export 'src/controllers/tree_events.dart';
 export 'src/controllers/tree_search_controller.dart';
 export 'src/configs/tree_view_logic.dart';
 export 'src/configs/tree_view_style.dart';

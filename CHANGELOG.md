@@ -1,51 +1,9 @@
-## 0.2.0
+## 0.1.1
 
-**Breaking changes**
-
-- Grouped all drag-and-drop settings into two dedicated sub-objects to keep the top-level classes lean:
-  - `TreeDragAndDropConfig<T>` – holds `canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableAutoScroll`, `autoScrollEdgeThresholdPx`, `autoScrollMaxStepPx`.
-  - `TreeDragAndDropStyle` – holds `indicatorColor`.
-- `TreeViewConfig` now exposes `enableDragAndDrop` (top-level boolean, default `true`) and a `dragAndDrop` field of type `TreeDragAndDropConfig<T>` for the detailed sub-settings.  The previously flat DnD detail fields (`canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableDragAutoScroll`, `dragAutoScrollEdgeThresholdPx`, `dragAutoScrollMaxStepPx`) have been removed in favour of `dragAndDrop`.
-- `TreeViewStyle` now exposes a single `dragAndDrop` field of type `TreeDragAndDropStyle`.  The previously flat `dropIndicatorColor` field has been removed.
-- `NodeDropPosition` has moved from `tree_drag_and_drop_wrapper.dart` to the new `tree_drag_and_drop_config.dart` and is still exported from the top-level barrel (`super_tree.dart`).
-
-**Migration**
-
-Before:
-```dart
-TreeViewConfig(
-  enableDragAndDrop: true,
-  canAcceptDrop: (dragged, target, pos) => true,
-  dropEdgeBandFraction: 0.1,
-  enableDragAutoScroll: true,
-  dragAutoScrollEdgeThresholdPx: 48,
-  dragAutoScrollMaxStepPx: 20,
-)
-
-TreeViewStyle(
-  dropIndicatorColor: Colors.blue,
-)
-```
-
-After:
-```dart
-TreeViewConfig(
-  enableDragAndDrop: true,          // top-level toggle stays here
-  dragAndDrop: TreeDragAndDropConfig(
-    canAcceptDrop: (dragged, target, pos) => true,
-    dropEdgeBandFraction: 0.1,
-    enableAutoScroll: true,
-    autoScrollEdgeThresholdPx: 48,
-    autoScrollMaxStepPx: 20,
-  ),
-)
-
-TreeViewStyle(
-  dragAndDrop: TreeDragAndDropStyle(
-    indicatorColor: Colors.blue,
-  ),
-)
-```
+- Added `TreeController.events`, a typed broadcast `Stream<TreeEvent<T>>` that lets consumers listen
+  to specific structural mutations instead of the generic `ChangeNotifier` notification.
+  Supported events: `TreeNodeAddedEvent`, `TreeNodeRemovedEvent`, `TreeNodeMovedEvent`,
+  `TreeNodeRenamedEvent`.
 
 ## 0.1.0
 

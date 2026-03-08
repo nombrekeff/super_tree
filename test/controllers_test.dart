@@ -5,6 +5,7 @@ import 'package:super_tree/src/controllers/tree_search_controller.dart';
 import 'package:super_tree/src/models/tree_node.dart';
 import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/controllers/tree_controller.dart';
+import 'package:super_tree/src/controllers/tree_events.dart';
 import 'package:super_tree/src/models/tree_filtering.dart';
 
 void main() {
@@ -606,7 +607,193 @@ void main() {
     });
   });
 
-  group('TreeController Lazy Loading', () {
+  group('TreeController Event Stream', () {
+    test('addRoot emits TreeNodeAddedEvent with null parent', () async {
+      final TreeController<String> controller = TreeController<String>();
+      final TreeNode<String> node = TreeNode<String>(id: 'root', data: 'Root');
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeAddedEvent<String>>()
+              .having((TreeNodeAddedEvent<String> e) => e.node.id, 'node.id', 'root')
+              .having((TreeNodeAddedEvent<String> e) => e.parent, 'parent', isNull),
+        ),
+      );
+
+      controller.addRoot(node);
+      await eventFuture;
+    });
+
+    test('addChild emits TreeNodeAddedEvent with correct parent', () async {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'Root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+      final TreeNode<String> child = TreeNode<String>(id: 'child', data: 'Child');
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeAddedEvent<String>>()
+              .having((TreeNodeAddedEvent<String> e) => e.node.id, 'node.id', 'child')
+              .having((TreeNodeAddedEvent<String> e) => e.parent?.id, 'parent.id', 'root'),
+        ),
+      );
+
+      controller.addChild(root, child);
+      await eventFuture;
+    });
+
+    test('removeNode emits TreeNodeRemovedEvent', () async {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'Root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeRemovedEvent<String>>()
+              .having((TreeNodeRemovedEvent<String> e) => e.node.id, 'node.id', 'root'),
+        ),
+      );
+
+      controller.removeNode(root);
+      await eventFuture;
+    });
+
+    test('moveNode emits TreeNodeMovedEvent', () async {
+      final TreeNode<String> root1 = TreeNode<String>(id: 'root1', data: 'Root 1');
+      final TreeNode<String> root2 = TreeNode<String>(id: 'root2', data: 'Root 2');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root1, root2],
+      );
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeMovedEvent<String>>().having(
+            (TreeNodeMovedEvent<String> e) => e.nodes.map((TreeNode<String> n) => n.id).toList(),
+            'node ids',
+            <String>['root1'],
+          ),
+        ),
+      );
+
+      controller.moveNode(dragged: root1, target: root2, insertBefore: false);
+      await eventFuture;
+    });
+
+    test('moveNodes emits TreeNodeMovedEvent with all dragged nodes', () async {
+      final TreeNode<String> nodeA = TreeNode<String>(id: 'a', data: 'A');
+      final TreeNode<String> nodeB = TreeNode<String>(id: 'b', data: 'B');
+      final TreeNode<String> nodeC = TreeNode<String>(id: 'c', data: 'C');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[nodeA, nodeB, nodeC],
+      );
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeMovedEvent<String>>().having(
+            (TreeNodeMovedEvent<String> e) => e.nodes.map((TreeNode<String> n) => n.id).toList(),
+            'node ids',
+            <String>['a', 'b'],
+          ),
+        ),
+      );
+
+      controller.moveNodes(
+        draggedNodes: <TreeNode<String>>[nodeA, nodeB],
+        target: nodeC,
+        insertBefore: true,
+      );
+      await eventFuture;
+    });
+
+    test('renameNode emits TreeNodeRenamedEvent', () async {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'Root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      final Future<void> eventFuture = expectLater(
+        controller.events,
+        emits(
+          isA<TreeNodeRenamedEvent<String>>()
+              .having((TreeNodeRenamedEvent<String> e) => e.node.id, 'node.id', 'root')
+              .having((TreeNodeRenamedEvent<String> e) => e.newName, 'newName', 'Renamed'),
+        ),
+      );
+
+      controller.renameNode('root', 'Renamed');
+      await eventFuture;
+    });
+
+    test('selection and expansion changes do not emit events', () async {
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'root',
+        data: 'Root',
+        children: <TreeNode<String>>[TreeNode<String>(id: 'child', data: 'Child')],
+      );
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      final List<TreeEvent<String>> received = <TreeEvent<String>>[];
+      controller.events.listen(received.add);
+
+      controller.setSelectedNodeId('root');
+      controller.expandNode(root);
+      controller.collapseNode(root);
+      controller.deselectAll();
+      controller.applyFilter(predicate: (TreeNode<String> n) => n.id == 'root');
+      controller.clearFilter();
+
+      // Allow any pending microtasks to flush
+      await Future<void>.delayed(Duration.zero);
+      expect(received, isEmpty);
+    });
+
+    test('failed addRoot (duplicate ID) does not emit event', () async {
+      final TreeNode<String> root = TreeNode<String>(id: 'root', data: 'Root');
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+
+      final List<TreeEvent<String>> received = <TreeEvent<String>>[];
+      controller.events.listen(received.add);
+
+      controller.addRoot(TreeNode<String>(id: 'root', data: 'Duplicate'));
+
+      await Future<void>.delayed(Duration.zero);
+      expect(received, isEmpty);
+    });
+
+    test('failed moveNodes (cycle) does not emit event', () async {
+      final TreeNode<String> root = TreeNode<String>(
+        id: 'root',
+        data: 'root',
+        children: <TreeNode<String>>[TreeNode<String>(id: 'child', data: 'child')],
+      );
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[root],
+      );
+      final TreeNode<String> child = controller.findNodeById('child')!;
+
+      final List<TreeEvent<String>> received = <TreeEvent<String>>[];
+      controller.events.listen(received.add);
+
+      // Circular: move root into its own child
+      controller.moveNode(dragged: root, target: child, insertBefore: false, nestInside: true);
+
+      await Future<void>.delayed(Duration.zero);
+      expect(received, isEmpty);
+    });
+  });
+
+
     test('toggleNodeExpansion lazy-loads children and expands node', () async {
       int loadCalls = 0;
       final TreeNode<String> root = TreeNode<String>(
