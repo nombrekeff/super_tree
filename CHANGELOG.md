@@ -1,3 +1,7 @@
+## Unreleased
+
+- Added customizable node cursor support through `TreeViewConfig.nodeCursorResolver`, including default per-state cursors for row, expansion toggle, rename mode, and non-interactive rows.
+
 ## 0.2.1
 
 - Fixed README preview image references and aligned the wiki documentation image references.

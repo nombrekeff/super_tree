@@ -358,6 +358,30 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     );
   }
 
+  MouseCursor _resolveCursor({
+    required bool canExpand,
+    required bool isSelected,
+    required bool isHovering,
+    required bool isExpansionToggle,
+  }) {
+    final TreeNodeCursorResolver<T> cursorResolver =
+        widget.logic.nodeCursorResolver ?? defaultTreeNodeCursorResolver;
+
+    return cursorResolver(
+      widget.node,
+      TreeNodeCursorState(
+        canExpand: canExpand,
+        canSelect: widget.logic.selectionMode != SelectionMode.none,
+        isSelected: isSelected,
+        isRenaming: widget.controller.renamingNodeId == widget.node.id,
+        isContextMenuOpen: widget.controller.contextMenuNodeId == widget.node.id,
+        isHovering: isHovering,
+        isExpansionToggle: isExpansionToggle,
+        isDragAndDropEnabled: widget.logic.enableDragAndDrop,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double paddingLeft = widget.style.indentAmount * widget.node.depth;
@@ -376,9 +400,24 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       dragStyle: widget.style.dragAndDrop,
       config: widget.logic.dragAndDrop,
       onDrop: _handleDrop,
-      child: MouseRegion(
-        onEnter: (_) => _isHovering.value = true,
-        onExit: (_) => _isHovering.value = false,
+      child: ValueListenableBuilder<bool>(
+        valueListenable: _isHovering,
+        builder: (BuildContext context, bool isHovering, Widget? child) {
+          final MouseCursor rowCursor = _resolveCursor(
+            canExpand: canExpand,
+            isSelected: isSelected,
+            isHovering: isHovering,
+            isExpansionToggle: false,
+          );
+
+          return MouseRegion(
+            key: Key('node_row_region_${widget.node.id}'),
+            onEnter: (_) => _isHovering.value = true,
+            onExit: (_) => _isHovering.value = false,
+            cursor: rowCursor,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         child: GestureDetector(
           onSecondaryTapDown: _handleSecondaryTapDown,
           onLongPressStart: _handleLongPressStart,
@@ -419,12 +458,21 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (canExpand)
-                    GestureDetector(
-                      onTap: _handleIconTap,
-                      behavior: HitTestBehavior.opaque,
-                      child: KeyedSubtree(
-                        key: Key('expansion_caret_${widget.node.id}'),
-                        child: _buildExpansionSlot(context),
+                    MouseRegion(
+                      key: Key('node_caret_region_${widget.node.id}'),
+                      cursor: _resolveCursor(
+                        canExpand: canExpand,
+                        isSelected: isSelected,
+                        isHovering: false,
+                        isExpansionToggle: true,
+                      ),
+                      child: GestureDetector(
+                        onTap: _handleIconTap,
+                        behavior: HitTestBehavior.opaque,
+                        child: KeyedSubtree(
+                          key: Key('expansion_caret_${widget.node.id}'),
+                          child: _buildExpansionSlot(context),
+                        ),
                       ),
                     )
                   else

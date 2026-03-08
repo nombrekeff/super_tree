@@ -109,6 +109,127 @@ void main() {
       expect(find.text('Child 1'), findsOneWidget);
     });
 
+    testWidgets('Default node cursors reflect row and caret affordances', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            roots: <TreeNode<String>>[
+              TreeNode<String>(
+                id: 'expandable',
+                data: 'Expandable',
+                children: <TreeNode<String>>[TreeNode<String>(id: 'child', data: 'Child')],
+              ),
+              TreeNode<String>(id: 'leaf', data: 'Leaf'),
+            ],
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      final MouseRegion expandableRow = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_row_region_expandable')),
+      );
+      final MouseRegion caretRegion = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_caret_region_expandable')),
+      );
+      final MouseRegion leafRow = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_row_region_leaf')),
+      );
+
+      expect(expandableRow.cursor, SystemMouseCursors.click);
+      expect(caretRegion.cursor, SystemMouseCursors.click);
+      expect(leafRow.cursor, SystemMouseCursors.click);
+    });
+
+    testWidgets('Node cursor resolver supports custom per-state cursor behavior', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            roots: <TreeNode<String>>[
+              TreeNode<String>(
+                id: 'custom_expandable',
+                data: 'Custom Expandable',
+                children: <TreeNode<String>>[
+                  TreeNode<String>(id: 'custom_child', data: 'Custom Child'),
+                ],
+              ),
+              TreeNode<String>(id: 'custom_leaf', data: 'Custom Leaf'),
+            ],
+            logic: TreeViewConfig<String>(
+              nodeCursorResolver: (
+                TreeNode<String> _,
+                TreeNodeCursorState state,
+              ) {
+                if (state.isExpansionToggle) {
+                  return SystemMouseCursors.precise;
+                }
+                if (!state.canExpand) {
+                  return SystemMouseCursors.forbidden;
+                }
+                return SystemMouseCursors.alias;
+              },
+            ),
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      final MouseRegion rowRegion = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_row_region_custom_expandable')),
+      );
+      final MouseRegion caretRegion = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_caret_region_custom_expandable')),
+      );
+      final MouseRegion leafRegion = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_row_region_custom_leaf')),
+      );
+
+      expect(rowRegion.cursor, SystemMouseCursors.alias);
+      expect(caretRegion.cursor, SystemMouseCursors.precise);
+      expect(leafRegion.cursor, SystemMouseCursors.forbidden);
+    });
+
+    testWidgets('Default cursor falls back to basic when selection and drag are disabled', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            roots: <TreeNode<String>>[TreeNode<String>(id: 'disabled_leaf', data: 'Disabled Leaf')],
+            logic: const TreeViewConfig<String>(
+              selectionMode: SelectionMode.none,
+              enableDragAndDrop: false,
+            ),
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      final MouseRegion disabledLeafRegion = tester.widget<MouseRegion>(
+        find.byKey(const Key('node_row_region_disabled_leaf')),
+      );
+      expect(disabledLeafRegion.cursor, SystemMouseCursors.basic);
+    });
+
     testWidgets('Rename interaction via click', (WidgetTester tester) async {
       String? renamedId;
       String? renamedValue;

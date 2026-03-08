@@ -1,5 +1,75 @@
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:super_tree/src/configs/tree_drag_and_drop_config.dart';
 import 'package:super_tree/src/models/tree_node.dart';
+
+/// Resolves the mouse cursor for a tree node based on interaction state.
+typedef TreeNodeCursorResolver<T> = MouseCursor Function(
+  TreeNode<T> node,
+  TreeNodeCursorState state,
+);
+
+/// Snapshot of node interaction state used for cursor resolution.
+class TreeNodeCursorState {
+  /// Whether this node can be expanded/collapsed.
+  final bool canExpand;
+
+  /// Whether node selection is currently enabled.
+  final bool canSelect;
+
+  /// Whether the node is currently selected.
+  final bool isSelected;
+
+  /// Whether the node is currently being renamed.
+  final bool isRenaming;
+
+  /// Whether this node currently owns an open context menu.
+  final bool isContextMenuOpen;
+
+  /// Whether the pointer is hovering the target region.
+  final bool isHovering;
+
+  /// Whether cursor is being resolved for the expansion toggle region.
+  final bool isExpansionToggle;
+
+  /// Whether drag-and-drop interactions are enabled for nodes.
+  final bool isDragAndDropEnabled;
+
+  const TreeNodeCursorState({
+    required this.canExpand,
+    required this.canSelect,
+    required this.isSelected,
+    required this.isRenaming,
+    required this.isContextMenuOpen,
+    required this.isHovering,
+    required this.isExpansionToggle,
+    required this.isDragAndDropEnabled,
+  });
+}
+
+/// Default cursor strategy for tree rows and expansion controls.
+MouseCursor defaultTreeNodeCursorResolver<T>(
+  TreeNode<T> _,
+  TreeNodeCursorState state,
+) {
+  if (state.isRenaming) {
+    return SystemMouseCursors.text;
+  }
+
+  if (state.isExpansionToggle && state.canExpand) {
+    return SystemMouseCursors.click;
+  }
+
+  if (state.canSelect || state.canExpand) {
+    return SystemMouseCursors.click;
+  }
+
+  if (state.isDragAndDropEnabled) {
+    return SystemMouseCursors.grab;
+  }
+
+  return SystemMouseCursors.basic;
+}
 
 /// Behaviors that trigger a node's expansion.
 enum ExpansionTrigger {
@@ -69,6 +139,9 @@ class TreeViewConfig<T> {
   /// Callback generated when a node is double-tapped.
   final void Function(String id)? onNodeDoubleTap;
 
+  /// Resolves the mouse cursor for each node region.
+  final TreeNodeCursorResolver<T>? nodeCursorResolver;
+
   /// Drag-and-drop specific configuration.
   ///
   /// Only consulted when [enableDragAndDrop] is `true`. Controls drop
@@ -86,6 +159,7 @@ class TreeViewConfig<T> {
     this.defaultSortComparator,
     this.onNodeTap,
     this.onNodeDoubleTap,
+    this.nodeCursorResolver,
     this.dragAndDrop = const TreeDragAndDropConfig(),
     this.debugMode = false,
   });
@@ -96,6 +170,7 @@ class TreeViewConfig<T> {
     SelectionMode? selectionMode,
     void Function(String id)? onNodeTap,
     void Function(String id)? onNodeDoubleTap,
+    TreeNodeCursorResolver<T>? nodeCursorResolver,
     TreeNamingStrategy? namingStrategy,
     int Function(TreeNode<T> a, TreeNode<T> b)? defaultSortComparator,
     TreeDragAndDropConfig<T>? dragAndDrop,
@@ -110,6 +185,7 @@ class TreeViewConfig<T> {
           defaultSortComparator ?? this.defaultSortComparator,
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
+      nodeCursorResolver: nodeCursorResolver ?? this.nodeCursorResolver,
       dragAndDrop: dragAndDrop ?? this.dragAndDrop,
       debugMode: debugMode ?? this.debugMode,
     );
