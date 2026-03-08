@@ -106,7 +106,8 @@ class TreeViewConfig<T> {
       enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       selectionMode: selectionMode ?? this.selectionMode,
       namingStrategy: namingStrategy ?? this.namingStrategy,
-      defaultSortComparator: defaultSortComparator ?? this.defaultSortComparator,
+      defaultSortComparator:
+          defaultSortComparator ?? this.defaultSortComparator,
       onNodeTap: onNodeTap ?? this.onNodeTap,
       onNodeDoubleTap: onNodeDoubleTap ?? this.onNodeDoubleTap,
       dragAndDrop: dragAndDrop ?? this.dragAndDrop,
