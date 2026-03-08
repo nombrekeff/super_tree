@@ -8,13 +8,12 @@ Build complex tree structures like **File Explorers**, **Todo Lists**, or **Perm
 
 ### Key Features
 
-- **High Performance**: Flat-list architecture for smooth scrolling with large trees.
-- **Fully Customizable**: Builders for expansion, prefix, content, and trailing actions.
-- **Desktop and Mobile Ready**: Keyboard nav, context menus, and drag-and-drop support.
-- **State Management**: Optional `TreeController` for expansion, selection, and updates.
-- **Prebuilt Widgets**: Ready-to-use file-system and todo tree implementations.
-- **Search and Selection**: Fuzzy search and multi-selection workflows.
-- **Testable**: Business logic is decoupled from UI for focused unit and widget tests.
+- **High Performance**: Flat-list architecture for smooth scrolling.
+- **Fully Customizable**: Builders and styling.
+- **Desktop and Mobile Ready**: Keyboard nav, context menus, drag-and-drop.
+- **State Management**: Optional controller for expansion, selection, updates.
+- **Prebuilt Widgets**: Ready-to-use file-system and todo trees.
+- **Search and Selection**: Fuzzy search and multi-selection.
 
 ### Getting Started
 
