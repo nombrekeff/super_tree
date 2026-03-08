@@ -7,12 +7,13 @@ export 'src/controllers/tree_events.dart';
 export 'src/controllers/tree_search_controller.dart';
 export 'src/configs/tree_view_logic.dart';
 export 'src/configs/tree_view_style.dart';
+export 'src/configs/tree_drag_and_drop_config.dart';
 export 'src/widgets/super_tree_view.dart';
 export 'src/widgets/super_tree_node_widget.dart';
 export 'src/widgets/tree_highlighted_label.dart';
 export 'src/widgets/context_menu_overlay.dart';
 export 'src/widgets/tree_drag_and_drop_wrapper.dart'
-	show NodeDropPosition, TreeDragPayload;
+	show TreeDragPayload;
 export 'src/models/prebuilt/todo_item.dart';
 export 'src/configs/icon_provider.dart';
 export 'src/configs/file_system_icon_provider.dart';
