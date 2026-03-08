@@ -27,24 +27,16 @@ class _TodoListExampleState extends State<TodoListExample> {
           data: TodoItem('Work Tasks'),
           isExpanded: true,
           children: [
-            TreeNode(
-              data: TodoItem('Review PRs', isCompleted: true),
-            ),
+            TreeNode(data: TodoItem('Review PRs', isCompleted: true)),
             TreeNode(
               data: TodoItem('Write Documentation'),
               children: [
-                TreeNode(
-                  data: TodoItem('Update README'),
-                ),
-                TreeNode(
-                  data: TodoItem('Add inline comments', isCompleted: true),
-                ),
+                TreeNode(data: TodoItem('Update README')),
+                TreeNode(data: TodoItem('Add inline comments', isCompleted: true)),
               ],
               isExpanded: true,
             ),
-            TreeNode(
-              data: TodoItem('Fix issue #42'),
-            ),
+            TreeNode(data: TodoItem('Fix issue #42')),
           ],
         ),
         TreeNode(
@@ -60,9 +52,7 @@ class _TodoListExampleState extends State<TodoListExample> {
               ],
               isExpanded: true,
             ),
-            TreeNode(
-              data: TodoItem('Call mom'),
-            ),
+            TreeNode(data: TodoItem('Call mom')),
           ],
         ),
       ],
@@ -87,9 +77,7 @@ class _TodoListExampleState extends State<TodoListExample> {
       expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
       searchMatcher: _todoSearchFilter.asSearchMatcher(),
     );
-    _searchUi = ExampleTreeSearchLogic<TodoItem>(
-      searchController: _searchController,
-    );
+    _searchUi = ExampleTreeSearchLogic<TodoItem>(searchController: _searchController);
   }
 
   @override
@@ -119,126 +107,148 @@ class _TodoListExampleState extends State<TodoListExample> {
     setState(() {});
   }
 
+  void _refreshTodoOrder() {
+    // Rebuild to apply current sort/grouping visual order after model changes.
+    setState(() {});
+  }
+
+  Widget _buildCompactHeaderTitle(AppLocalizations l10n) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        const Icon(Icons.checklist_rtl, size: 18),
+        const SizedBox(width: 8),
+        Text(l10n.todoScreenTitle),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    final bool noSearchResults = _searchController.hasQuery && _controller.flatVisibleNodes.isEmpty;
+    final bool noSearchResults =
+        _searchController.hasQuery && _controller.flatVisibleNodes.isEmpty;
+    final ThemeData theme = Theme.of(context);
+    final Widget headerTitle = _buildCompactHeaderTitle(l10n);
 
     return ExampleTreeSearchShortcuts(
       onOpenSearch: _openSearch,
       onCloseSearch: _closeSearch,
       child: Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.todoScreenTitle),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: l10n.todoSearchTooltip,
-            onPressed: _openSearch,
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: l10n.todoResortTooltip,
-            onPressed: () {
-              // Trigger a rebuild
-              setState(() {});
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_searchUi.isSearchVisible)
-            ExampleTreeSearchBar(
-              controller: _searchUi.textController,
-              focusNode: _searchUi.focusNode,
-              onChanged: _handleSearchChanged,
-              onClose: _closeSearch,
-              hasQuery: _searchController.hasQuery,
-              hintText: l10n.todoSearchHint,
-              clearLabel: l10n.searchClear,
-              closeTooltip: l10n.searchCloseTooltip,
-              hideBorder: true,
+        appBar: AppBar(
+          toolbarHeight: 48,
+          titleSpacing: 12,
+          centerTitle: false,
+          title: headerTitle,
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          scrolledUnderElevation: 0,
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: l10n.todoSearchTooltip,
+              onPressed: _openSearch,
             ),
-          Expanded(
-            child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: TodoListSuperTree(
-              controller: _controller,
-              style: const TreeViewStyle(
-                indentAmount: 24.0,
-                padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
-              ),
-              logic: const TreeViewConfig(
-                expansionTrigger: ExpansionTrigger.tap,
-              ),
-              onTodoChanged: (item) {
-                // We call setState so the checkbox visuals update.
-                // Depending on the implementation, you could also manually call _controller.rebuild()
-                // to force immediate visual re-sorting of the tree if desired.
-                setState(() {});
-              },
-              contextMenuBuilder: (context, node) {
-                return [
-                  ContextMenuItem(
-                    child: Text(l10n.todoDelete),
-                    onTap: () {
-                      _controller.removeNode(node);
-                    },
-                  ),
-                ];
-              },
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: l10n.todoResortTooltip,
+              onPressed: _refreshTodoOrder,
             ),
-          ),
-          const VerticalDivider(width: 1),
-          Expanded(
-            flex: 3,
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: Column(
+          children: [
+            if (_searchUi.isSearchVisible)
+              ExampleTreeSearchBar(
+                controller: _searchUi.textController,
+                focusNode: _searchUi.focusNode,
+                onChanged: _handleSearchChanged,
+                onClose: _closeSearch,
+                hasQuery: _searchController.hasQuery,
+                hintText: l10n.todoSearchHint,
+                clearLabel: l10n.searchClear,
+                closeTooltip: l10n.searchCloseTooltip,
+                hideBorder: true,
+              ),
+            Expanded(
+              child: Row(
                 children: [
-                  if (noSearchResults) ...[
-                    const Icon(Icons.search_off, size: 64),
-                    const SizedBox(height: 12),
-                    Text(l10n.todoNoResults(_searchController.query)),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _closeSearch,
-                      child: Text(l10n.searchClearSearch),
+                  Expanded(
+                    flex: 2,
+                    child: TodoListSuperTree(
+                      controller: _controller,
+                      style: const TreeViewStyle(
+                        indentAmount: 24.0,
+                        padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+                      ),
+                      logic: const TreeViewConfig(
+                        expansionTrigger: ExpansionTrigger.tap,
+                      ),
+                      onTodoChanged: (item) {
+                        // We call setState so the checkbox visuals update.
+                        // Depending on the implementation, you could also manually call _controller.rebuild()
+                        // to force immediate visual re-sorting of the tree if desired.
+                        setState(() {});
+                      },
+                      contextMenuBuilder: (context, node) {
+                        return [
+                          ContextMenuItem(
+                            child: Text(l10n.todoDelete),
+                            onTap: () {
+                              _controller.removeNode(node);
+                            },
+                          ),
+                        ];
+                      },
                     ),
-                    const SizedBox(height: 24),
-                  ],
-                  Icon(
-                    Icons.checklist,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.primary.withAlpha(100),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.todoDetailTitle,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.todoDetailSubtitle,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  const VerticalDivider(width: 1),
+                  Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (noSearchResults) ...[
+                            const Icon(Icons.search_off, size: 64),
+                            const SizedBox(height: 12),
+                            Text(l10n.todoNoResults(_searchController.query)),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: _closeSearch,
+                              child: Text(l10n.searchClearSearch),
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+                          Icon(
+                            Icons.checklist,
+                            size: 64,
+                            color: Theme.of(context).colorScheme.primary.withAlpha(100),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            l10n.todoDetailTitle,
+                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.todoDetailSubtitle,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-          ),
-        ],
-      ),
-    ),
     );
   }
 }
