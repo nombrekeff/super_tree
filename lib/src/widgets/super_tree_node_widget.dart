@@ -275,6 +275,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       selectionColor: selectionColor,
       cursorColor: cursorColor,
       onEscape: _cancelRename,
+      onCanceled: _cancelRename,
       onSubmitted: _submitRename,
     );
   }

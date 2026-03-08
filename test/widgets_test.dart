@@ -162,6 +162,228 @@ void main() {
       expect(renamedValue, 'New Name');
     });
 
+    testWidgets('Rename cancels when tapping outside the field', (
+      WidgetTester tester,
+    ) async {
+      String? renamedValue;
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[TreeNode<String>(id: 'node_1', data: 'Initial Name')],
+        onNodeRenamed: (TreeNode<String> node, String newName) {
+          renamedValue = newName;
+        },
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
+            logic: const TreeViewConfig<String>(namingStrategy: TreeNamingStrategy.click),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Initial Name'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Changed Outside');
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Initial Name'), findsOneWidget);
+      expect(renamedValue, isNull);
+      expect(controller.renamingNodeId, isNull);
+    });
+
+    testWidgets('Rename submits via check icon button', (
+      WidgetTester tester,
+    ) async {
+      String? renamedValue;
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[TreeNode<String>(id: 'node_1', data: 'Initial Name')],
+        onNodeRenamed: (TreeNode<String> node, String newName) {
+          renamedValue = newName;
+        },
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(renamedValue ?? node.data);
+            },
+            logic: const TreeViewConfig<String>(namingStrategy: TreeNamingStrategy.click),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Initial Name'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Renamed By Check');
+      await tester.tap(find.byKey(const Key('super_tree_rename_submit_button_inner')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Renamed By Check'), findsOneWidget);
+      expect(renamedValue, 'Renamed By Check');
+      expect(controller.renamingNodeId, isNull);
+    });
+
+    testWidgets('Rename cancels via cancel icon button', (
+      WidgetTester tester,
+    ) async {
+      String? renamedValue;
+
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[TreeNode<String>(id: 'node_1', data: 'Initial Name')],
+        onNodeRenamed: (TreeNode<String> node, String newName) {
+          renamedValue = newName;
+        },
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
+            logic: const TreeViewConfig<String>(namingStrategy: TreeNamingStrategy.click),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Initial Name'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Canceled Name');
+      await tester.tap(find.byKey(const Key('super_tree_rename_cancel_button_inner')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('Initial Name'), findsOneWidget);
+      expect(renamedValue, isNull);
+      expect(controller.renamingNodeId, isNull);
+    });
+
+    testWidgets('New node naming cancels on outside tap and removes node', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      controller.createNewRoot('');
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      expect(controller.roots.length, 1);
+
+      await tester.enterText(find.byType(TextField), 'Unsaved Node');
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(controller.renamingNodeId, isNull);
+      expect(controller.roots, isEmpty);
+      expect(find.text('Unsaved Node'), findsNothing);
+    });
+
+    testWidgets('New node naming submits via check icon and keeps node', (
+      WidgetTester tester,
+    ) async {
+      String? renamedValue;
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[],
+        onNodeRenamed: (TreeNode<String> node, String newName) {
+          renamedValue = newName;
+        },
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      controller.createNewRoot('');
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(renamedValue ?? node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'Saved Node');
+      await tester.tap(find.byKey(const Key('super_tree_rename_submit_button_inner')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsNothing);
+      expect(controller.renamingNodeId, isNull);
+      expect(controller.roots.length, 1);
+      expect(controller.roots.first.isNew, isFalse);
+      expect(renamedValue, 'Saved Node');
+      expect(find.text('Saved Node'), findsOneWidget);
+    });
+
     testWidgets('Context menu triggers on secondary tap (Desktop)', (
       WidgetTester tester,
     ) async {
@@ -875,6 +1097,51 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TextField), findsOneWidget);
+      expect(controller.renamingNodeId, 'root_1');
+    });
+
+    testWidgets('Arrow keys do not navigate tree while renaming text field', (
+      WidgetTester tester,
+    ) async {
+      final TreeController<String> controller = TreeController<String>(
+        roots: <TreeNode<String>>[
+          TreeNode<String>(id: 'root_1', data: 'Root 1'),
+          TreeNode<String>(id: 'root_2', data: 'Root 2'),
+        ],
+      );
+
+      addTearDown(() {
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        createTestableWidget(
+          SuperTreeView<String>(
+            controller: controller,
+            logic: const TreeViewConfig<String>(namingStrategy: TreeNamingStrategy.click),
+            prefixBuilder: (BuildContext context, TreeNode<String> node) {
+              return const Icon(Icons.chevron_right);
+            },
+            contentBuilder: (BuildContext context, TreeNode<String> node, Widget? renameField) {
+              return renameField ?? Text(node.data);
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Root 1'));
+      await tester.pumpAndSettle();
+      expect(controller.selectedNodeId, 'root_1');
+
+      await tester.tap(find.byType(TextField));
+      await tester.pumpAndSettle();
+      expect(controller.renamingNodeId, 'root_1');
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      expect(controller.selectedNodeId, 'root_1');
       expect(controller.renamingNodeId, 'root_1');
     });
 

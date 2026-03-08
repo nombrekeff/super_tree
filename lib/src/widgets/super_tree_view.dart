@@ -228,12 +228,37 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   late bool _ownsController;
 
   late final FocusNode _focusNode;
+  late final VoidCallback _focusManagerListener;
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
+    _focusManagerListener = _handleFocusManagerChange;
+    FocusManager.instance.addListener(_focusManagerListener);
     _initController();
+  }
+
+  void _handleFocusManagerChange() {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {});
+  }
+
+  bool _isEditableTextFocused() {
+    final BuildContext? focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext == null) {
+      return false;
+    }
+
+    final Widget focusedWidget = focusContext.widget;
+    if (focusedWidget is EditableText) {
+      return true;
+    }
+
+    return focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
   }
 
   void _initController() {
@@ -295,6 +320,7 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       );
     }
 
+    FocusManager.instance.removeListener(_focusManagerListener);
     if (_ownsController) {
       _internalController.dispose();
     }
@@ -303,6 +329,10 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   }
 
   Map<ShortcutActivator, Intent> _buildShortcuts() {
+    if (_internalController.renamingNodeId != null || _isEditableTextFocused()) {
+      return const <ShortcutActivator, Intent>{};
+    }
+
     return <ShortcutActivator, Intent>{
       const SingleActivator(LogicalKeyboardKey.arrowDown):
           const _TreeSelectNextIntent(),
