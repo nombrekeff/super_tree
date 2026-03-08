@@ -1,8 +1,6 @@
 # Super Tree
 
-<table>
-  <tr>
-    <td valign="top">
+<img src="assets/screenshots/demo_tree.png" alt="Demo tree preview" width="240" align="right" />
 
 A high-performance, fully customizable, and platform-agnostic hierarchical tree view for Flutter.
 
@@ -31,16 +29,7 @@ dependencies:
 flutter pub add super_tree
 ```
 
-
-
-   </td>
-    <td align="right" valign="top" width="300">
-
-<img src="assets/screenshots/demo_tree.png" alt="Demo tree preview" width="280" />
-
-   </td>
-  </tr>
-</table>
+<br clear="right" />
 
 ## Usage
 
