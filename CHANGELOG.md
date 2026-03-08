@@ -1,3 +1,10 @@
+## 0.1.1
+
+- Added `TreeController.events`, a typed broadcast `Stream<TreeEvent<T>>` that lets consumers listen
+  to specific structural mutations instead of the generic `ChangeNotifier` notification.
+  Supported events: `TreeNodeAddedEvent`, `TreeNodeRemovedEvent`, `TreeNodeMovedEvent`,
+  `TreeNodeRenamedEvent`.
+
 ## 0.1.0
 
 - First public release of `super_tree`.

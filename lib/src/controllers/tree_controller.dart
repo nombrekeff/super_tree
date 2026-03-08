@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:super_tree/src/controllers/tree_events.dart';
 import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/models/tree_filtering.dart';
 import 'package:super_tree/src/models/tree_node.dart';
@@ -99,6 +102,28 @@ class TreeController<T> extends ChangeNotifier {
   /// Integrity issues keyed by node ID for UI-level surfacing.
   final Map<String, TreeIntegrityIssue> _integrityIssuesByNodeId =
       <String, TreeIntegrityIssue>{};
+
+  /// Broadcast stream of typed structural events emitted by this controller.
+  ///
+  /// Use [events] to react to specific operations instead of the generic
+  /// [ChangeNotifier.addListener] callback, which fires for every state
+  /// change (selections, expansions, filters, etc.).
+  ///
+  /// Example — persist the tree only after structural mutations:
+  /// ```dart
+  /// controller.events.listen((event) {
+  ///   switch (event) {
+  ///     case TreeNodeMovedEvent():
+  ///     case TreeNodeAddedEvent():
+  ///     case TreeNodeRemovedEvent():
+  ///     case TreeNodeRenamedEvent():
+  ///       saveToDisk(controller.roots);
+  ///   }
+  /// });
+  /// ```
+  Stream<TreeEvent<T>> get events => _eventController.stream;
+  final StreamController<TreeEvent<T>> _eventController =
+      StreamController<TreeEvent<T>>.broadcast();
 
   /// Creates a new [TreeController] initialized with optional [roots].
   ///
@@ -978,6 +1003,7 @@ class TreeController<T> extends ChangeNotifier {
       final wasNew = node.isNew;
       node.isNew = false;
       onNodeRenamed?.call(node, newName);
+      _eventController.add(TreeNodeRenamedEvent<T>(node: node, newName: newName));
       setRenamingNodeId(null);
 
       // If it was new, we might need to re-sort as the name changed
@@ -1005,6 +1031,7 @@ class TreeController<T> extends ChangeNotifier {
       _roots.sort(_sortComparator!);
     }
     _rebuildFlatList();
+    _eventController.add(TreeNodeAddedEvent<T>(node: node));
     notifyListeners();
   }
 
@@ -1052,6 +1079,7 @@ class TreeController<T> extends ChangeNotifier {
     if (parent.isExpanded) {
       _rebuildFlatList();
     }
+    _eventController.add(TreeNodeAddedEvent<T>(node: child, parent: parent));
     notifyListeners();
   }
 
@@ -1067,6 +1095,7 @@ class TreeController<T> extends ChangeNotifier {
     }
     onNodeDeleted?.call(node);
     _rebuildFlatList();
+    _eventController.add(TreeNodeRemovedEvent<T>(node: node));
     notifyListeners();
   }
 
@@ -1234,6 +1263,9 @@ class TreeController<T> extends ChangeNotifier {
       _sortTree();
     }
     _rebuildFlatList();
+    _eventController.add(
+      TreeNodeMovedEvent<T>(nodes: List<TreeNode<T>>.unmodifiable(uniqueDragged)),
+    );
     notifyListeners();
     return true;
   }
@@ -1303,5 +1335,11 @@ class TreeController<T> extends ChangeNotifier {
   /// Finds a node by its ID. Returns null if not found.
   TreeNode<T>? findNodeById(String id) {
     return _nodeIndex[id];
+  }
+
+  @override
+  void dispose() {
+    _eventController.close();
+    super.dispose();
   }
 }
