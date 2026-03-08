@@ -1,0 +1,52 @@
+name: PR Quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+concurrency:
+  group: pr-quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    name: Lint and Test (${{ matrix.project_name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project_name: package
+            working_directory: .
+          - project_name: example
+            working_directory: example
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.working_directory }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: dart analyze
+
+      - name: Run tests
+        run: flutter test
