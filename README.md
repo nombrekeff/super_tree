@@ -70,64 +70,29 @@ final controller = TreeController<MyData>(
 // Toggle programmatically
 controller.expandAll();
 controller.addRoot(newNode);
+
+controller.search("query");
 ```
-
-### Built-In Fuzzy Filtering
-
-`super_tree` includes reusable fuzzy-search primitives (`TreeSearchController`,
-`defaultTreeFuzzyMatcher`) and a composable `FuzzyTreeFilter` helper for
-keyword rules and custom matcher hooks.
-
-```dart
-final FuzzyTreeFilter<TodoItem> filter = FuzzyTreeFilter<TodoItem>(
-  keywordRules: <TreeFilterKeywordRule<TodoItem>>[
-    TreeFilterKeywordRule<TodoItem>(
-      keywords: <String>{'done', 'completed'},
-      predicate: (TreeNode<TodoItem> node) => node.data.isCompleted,
-    ),
-    TreeFilterKeywordRule<TodoItem>(
-      keywords: <String>{'open', 'pending'},
-      predicate: (TreeNode<TodoItem> node) => !node.data.isCompleted,
-    ),
-  ],
-);
-
-final TreeSearchController<TodoItem> searchController =
-    TreeSearchController<TodoItem>(
-      treeController: controller,
-      labelProvider: (TodoItem item) => item.title,
-      searchMatcher: filter.asSearchMatcher(),
-      expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
-    );
-```
-
-Behavior notes:
-- Empty query: `FuzzyTreeFilter` returns a zero-score empty-highlight match; in normal usage call `searchController.clearSearch()` to restore unfiltered state.
-- No match: search keeps the current query active and shows no visible nodes until the query changes or is cleared.
-- Extension queries: use `FuzzyTreeFilter.extensionSuffixMatcher` to support terms like `.dart` for file-like trees.
-
-## Examples
-
-Check the [example project](example/lib/main.dart) for comprehensive demonstrations including:
-
-- **File System Explorer**: VS Code style implementation with themes and icons.
-- **Todo List**: Hierarchical task management with checkboxes.
-- **Checkbox States**: Stateful checkbox behavior and parent-child tree workflows.
-- **Responsive Menus**: Adaptive interaction patterns for Mobile and Desktop.
 
 ### Preview Gallery
 
 Current in-repo previews:
 
-| Example                       | Preview                                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------------------- |
-| File System Explorer + Search | ![File System Explorer with search active](assets/screenshots/file-system-search-macos.png)   |
-| Checkbox State                | ![Checkbox state example on macOS desktop layout](assets/screenshots/checkbox-state-macos.png) |
-| Complex Node UI               | ![Complex node UI example on macOS desktop layout](assets/screenshots/complex-node-ui-macos.png) |
-| Todo Tree                     | ![Todo tree example on macOS desktop layout](assets/screenshots/todo-tree-macos.png)          |
-| Minimal File System           | ![Minimal file system example on macOS desktop layout](assets/screenshots/minimal-file-system-macos.png) |
-| Async Lazy Loading            | ![Async lazy loading example on macOS desktop layout](assets/screenshots/async-lazy-loading-macos.png) |
-| Integrity Guardrails          | ![Integrity guardrails example on macOS desktop layout](assets/screenshots/integrity-guardrails-macos.png) |
+<table>
+  <tr>
+    <td align="center"><strong><a href="example/lib/examples/file_system_example.dart">File System Explorer + Search</a></strong><br><img src="assets/screenshots/file-system-search-macos.png" alt="File System Explorer with search active" width="360" /></td>
+    <td align="center"><strong><a href="example/lib/examples/checkbox_example.dart">Checkbox State</a></strong><br><img src="assets/screenshots/checkbox-state-macos.png" alt="Checkbox state example on macOS desktop layout" width="360" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong><a href="example/lib/examples/complex_node_example.dart">Complex Node UI</a></strong><br><img src="assets/screenshots/complex-node-ui-macos.png" alt="Complex node UI example on macOS desktop layout" width="360" /></td>
+    <td align="center"><strong><a href="example/lib/examples/todo_list_example.dart">Todo Tree</a></strong><br><img src="assets/screenshots/todo-tree-macos.png" alt="Todo tree example on macOS desktop layout" width="360" /></td>
+  </tr>
+  <tr>
+    <td align="center"><strong><a href="example/lib/examples/simple_file_system_example.dart">Minimal File System</a></strong><br><img src="assets/screenshots/minimal-file-system-macos.png" alt="Minimal file system example on macOS desktop layout" width="360" /></td>
+    <td align="center"></td>
+  </tr>
+</table>
+
 
 Notes:
 - Screenshot generation uses `flutter test --update-goldens` in `example/test/generate_previews_test.dart`.

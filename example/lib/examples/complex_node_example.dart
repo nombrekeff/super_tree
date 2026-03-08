@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_tree/super_tree.dart';
 
 enum TaskPriority { low, medium, high }
+
 enum TaskStatus { todo, inProgress, done }
 
 class TaskItem {
@@ -141,51 +142,53 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complex Node UI Example'),
-      ),
+      appBar: AppBar(title: const Text('Complex Node UI Example')),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 800),
             decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+              border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.55)),
               borderRadius: BorderRadius.circular(8),
             ),
             child: SuperTreeView<TaskItem>(
               controller: _controller,
               style: TreeViewStyle(
                 indentAmount: 32.0,
-                selectedColor: Colors.blue.withValues(alpha: 0.1),
-                hoverColor: Colors.grey.withValues(alpha: 0.05),
+                selectedColor: scheme.secondaryContainer.withValues(alpha: 0.35),
+                hoverColor: scheme.surfaceContainerHigh.withValues(alpha: 0.8),
                 padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
               ),
-              logic: const TreeViewConfig(
-                expansionTrigger: ExpansionTrigger.tap,
-              ),
+              logic: const TreeViewConfig(expansionTrigger: ExpansionTrigger.tap),
               prefixBuilder: (context, node) {
                 if (node.children.isEmpty) return const SizedBox(width: 24);
                 return Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: Icon(
                     node.isExpanded ? Icons.remove_circle_outline : Icons.add_circle_outline,
-                    color: Colors.grey,
+                    color: scheme.onSurfaceVariant,
                   ),
                 );
               },
               contentBuilder: (context, node, renameField) {
                 final data = node.data;
+                final Color titleColor = data.status == TaskStatus.done
+                    ? scheme.onSurface.withValues(alpha: 0.6)
+                    : scheme.onSurface;
+
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                    color: scheme.surfaceContainerHigh,
+                    border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
+                        color: Colors.black.withValues(alpha: 0.18),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -213,22 +216,28 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      
+
                       // Title
                       Expanded(
-                        child: renameField ?? Text(
-                          data.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.clip,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: node.children.isNotEmpty ? FontWeight.bold : FontWeight.normal,
-                            decoration: data.status == TaskStatus.done ? TextDecoration.lineThrough : null,
-                            color: data.status == TaskStatus.done ? Colors.grey : Colors.black87,
-                          ),
-                        ),
+                        child:
+                            renameField ??
+                            Text(
+                              data.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.clip,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: node.children.isNotEmpty
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                decoration: data.status == TaskStatus.done
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: titleColor,
+                              ),
+                            ),
                       ),
-                      
+
                       // Priority Chip
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -246,20 +255,20 @@ class _ComplexNodeExampleState extends State<ComplexNodeExample> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      
+
                       // Assignee Avatar
                       CircleAvatar(
                         radius: 14,
-                        backgroundColor: Colors.blueGrey[100],
+                        backgroundColor: scheme.secondaryContainer,
                         child: Text(
                           data.assignee[0],
-                          style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                          style: TextStyle(fontSize: 12, color: scheme.onSecondaryContainer),
                         ),
                       ),
-                      
+
                       const SizedBox(width: 8),
                       // More actions menu
-                      const Icon(Icons.more_vert, size: 20, color: Colors.grey),
+                      Icon(Icons.more_vert, size: 20, color: scheme.onSurfaceVariant),
                     ],
                   ),
                 );
