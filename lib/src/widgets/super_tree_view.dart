@@ -248,17 +248,20 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   }
 
   bool _isEditableTextFocused() {
-    final BuildContext? focusContext = FocusManager.instance.primaryFocus?.context;
+    final BuildContext? focusContext =
+        FocusManager.instance.primaryFocus?.context;
     if (focusContext == null) {
       return false;
     }
 
-    final Widget focusedWidget = focusContext.widget;
-    if (focusedWidget is EditableText) {
-      return true;
+    // The primary focus can point at a context that is in the middle of teardown.
+    // Avoid ancestor lookups here; they can assert when the element is deactivated.
+    if (!focusContext.mounted) {
+      return false;
     }
 
-    return focusContext.findAncestorWidgetOfExactType<EditableText>() != null;
+    final Widget focusedWidget = focusContext.widget;
+    return focusedWidget is EditableText;
   }
 
   void _initController() {
@@ -329,7 +332,8 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   }
 
   Map<ShortcutActivator, Intent> _buildShortcuts() {
-    if (_internalController.renamingNodeId != null || _isEditableTextFocused()) {
+    if (_internalController.renamingNodeId != null ||
+        _isEditableTextFocused()) {
       return const <ShortcutActivator, Intent>{};
     }
 
