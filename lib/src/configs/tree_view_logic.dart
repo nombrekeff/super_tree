@@ -48,6 +48,12 @@ class TreeViewConfig<T> {
   /// What action triggers a node to expand/collapse.
   final ExpansionTrigger expansionTrigger;
 
+  /// Whether nodes can be dragged and dropped.
+  ///
+  /// When `false`, the [dragAndDrop] sub-config is ignored entirely and no
+  /// drag gesture recognizers are attached to nodes.
+  final bool enableDragAndDrop;
+
   /// Whether to enable selection and in what mode.
   final SelectionMode selectionMode;
 
@@ -65,8 +71,8 @@ class TreeViewConfig<T> {
 
   /// Drag-and-drop specific configuration.
   ///
-  /// Controls whether DnD is enabled, drop validation callbacks,
-  /// edge-band sizing, and auto-scroll behaviour.
+  /// Only consulted when [enableDragAndDrop] is `true`. Controls drop
+  /// validation callbacks, edge-band sizing, and auto-scroll behaviour.
   final TreeDragAndDropConfig<T> dragAndDrop;
 
   /// Whether to print debug logs for lifecycle and state changes.
@@ -74,6 +80,7 @@ class TreeViewConfig<T> {
 
   const TreeViewConfig({
     this.expansionTrigger = ExpansionTrigger.tap,
+    this.enableDragAndDrop = true,
     this.selectionMode = SelectionMode.single,
     this.namingStrategy = TreeNamingStrategy.none,
     this.defaultSortComparator,
@@ -85,6 +92,7 @@ class TreeViewConfig<T> {
 
   TreeViewConfig<T> copyWith({
     ExpansionTrigger? expansionTrigger,
+    bool? enableDragAndDrop,
     SelectionMode? selectionMode,
     void Function(String id)? onNodeTap,
     void Function(String id)? onNodeDoubleTap,
@@ -95,6 +103,7 @@ class TreeViewConfig<T> {
   }) {
     return TreeViewConfig<T>(
       expansionTrigger: expansionTrigger ?? this.expansionTrigger,
+      enableDragAndDrop: enableDragAndDrop ?? this.enableDragAndDrop,
       selectionMode: selectionMode ?? this.selectionMode,
       namingStrategy: namingStrategy ?? this.namingStrategy,
       defaultSortComparator: defaultSortComparator ?? this.defaultSortComparator,

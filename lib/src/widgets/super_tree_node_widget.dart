@@ -360,6 +360,7 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
 
     return TreeDragAndDropWrapper<T>(
       node: widget.node,
+      enabled: widget.logic.enableDragAndDrop,
       dragNodes: dragNodes,
       dragStyle: widget.style.dragAndDrop,
       config: widget.logic.dragAndDrop,

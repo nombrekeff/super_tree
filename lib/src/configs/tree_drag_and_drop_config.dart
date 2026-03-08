@@ -37,10 +37,10 @@ class TreeDragAndDropStyle {
 ///
 /// Group all drag-and-drop settings here and pass the object as
 /// [TreeViewConfig.dragAndDrop] to keep the top-level config class lean.
+/// Whether drag-and-drop is enabled at all is controlled by
+/// [TreeViewConfig.enableDragAndDrop] — if that is `false` there is no need
+/// to provide this object.
 class TreeDragAndDropConfig<T> {
-  /// Whether nodes can be dragged and dropped.
-  final bool enabled;
-
   /// Callback to determine if a node can be dropped at a specific position.
   ///
   /// If null, all drops not forming cycles are accepted.
@@ -86,7 +86,6 @@ class TreeDragAndDropConfig<T> {
 
   /// Creates a [TreeDragAndDropConfig] with sensible defaults.
   const TreeDragAndDropConfig({
-    this.enabled = true,
     this.canAcceptDrop,
     this.canAcceptDropMany,
     this.dropEdgeBandFraction = 0.05,
@@ -99,7 +98,6 @@ class TreeDragAndDropConfig<T> {
 
   /// Returns a copy of this config with the given fields replaced.
   TreeDragAndDropConfig<T> copyWith({
-    bool? enabled,
     bool Function(
       TreeNode<T> draggedNode,
       TreeNode<T> targetNode,
@@ -120,7 +118,6 @@ class TreeDragAndDropConfig<T> {
     double? autoScrollMaxStepPx,
   }) {
     return TreeDragAndDropConfig<T>(
-      enabled: enabled ?? this.enabled,
       canAcceptDrop: canAcceptDrop ?? this.canAcceptDrop,
       canAcceptDropMany: canAcceptDropMany ?? this.canAcceptDropMany,
       dropEdgeBandFraction: dropEdgeBandFraction ?? this.dropEdgeBandFraction,

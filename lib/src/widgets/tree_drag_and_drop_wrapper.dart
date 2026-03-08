@@ -23,6 +23,7 @@ class TreeDragPayload<T> {
 /// and exact drop positioning over a tree node.
 class TreeDragAndDropWrapper<T> extends StatefulWidget {
   final TreeNode<T> node;
+  final bool enabled;
   final Widget child;
   final TreeDragAndDropStyle dragStyle;
   final TreeDragAndDropConfig<T> config;
@@ -37,6 +38,7 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   TreeDragAndDropWrapper({
     super.key,
     required this.node,
+    required this.enabled,
     required this.child,
     required this.dragStyle,
     this.config = const TreeDragAndDropConfig(),
@@ -252,7 +254,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
   @override
   Widget build(BuildContext context) {
     // If not enabled, return the raw UI node without attaching gesture recognizers.
-    if (!widget.config.enabled) return widget.child;
+    if (!widget.enabled) return widget.child;
     return LayoutBuilder(
       builder: (context, constraints) {
         return DragTarget<TreeDragPayload<T>>(

@@ -3,9 +3,9 @@
 **Breaking changes**
 
 - Grouped all drag-and-drop settings into two dedicated sub-objects to keep the top-level classes lean:
-  - `TreeDragAndDropConfig<T>` – holds `enabled`, `canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableAutoScroll`, `autoScrollEdgeThresholdPx`, `autoScrollMaxStepPx`.
+  - `TreeDragAndDropConfig<T>` – holds `canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableAutoScroll`, `autoScrollEdgeThresholdPx`, `autoScrollMaxStepPx`.
   - `TreeDragAndDropStyle` – holds `indicatorColor`.
-- `TreeViewConfig` now exposes a single `dragAndDrop` field of type `TreeDragAndDropConfig<T>`.  The previously flat DnD fields (`enableDragAndDrop`, `canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableDragAutoScroll`, `dragAutoScrollEdgeThresholdPx`, `dragAutoScrollMaxStepPx`) have been removed.
+- `TreeViewConfig` now exposes `enableDragAndDrop` (top-level boolean, default `true`) and a `dragAndDrop` field of type `TreeDragAndDropConfig<T>` for the detailed sub-settings.  The previously flat DnD detail fields (`canAcceptDrop`, `canAcceptDropMany`, `dropEdgeBandFraction`, `dropEdgeBandFractionForLeaf`, `dropPositionHysteresisPx`, `enableDragAutoScroll`, `dragAutoScrollEdgeThresholdPx`, `dragAutoScrollMaxStepPx`) have been removed in favour of `dragAndDrop`.
 - `TreeViewStyle` now exposes a single `dragAndDrop` field of type `TreeDragAndDropStyle`.  The previously flat `dropIndicatorColor` field has been removed.
 - `NodeDropPosition` has moved from `tree_drag_and_drop_wrapper.dart` to the new `tree_drag_and_drop_config.dart` and is still exported from the top-level barrel (`super_tree.dart`).
 
@@ -30,8 +30,8 @@ TreeViewStyle(
 After:
 ```dart
 TreeViewConfig(
+  enableDragAndDrop: true,          // top-level toggle stays here
   dragAndDrop: TreeDragAndDropConfig(
-    enabled: true,
     canAcceptDrop: (dragged, target, pos) => true,
     dropEdgeBandFraction: 0.1,
     enableAutoScroll: true,
