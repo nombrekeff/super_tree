@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Fixed README preview image references and aligned the wiki documentation image references.
+
 ## 0.2.0
 
 - Added `SuperTree*` public API aliases for user-facing naming consistency, including:
