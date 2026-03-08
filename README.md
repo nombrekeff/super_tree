@@ -1,6 +1,8 @@
 # Super Tree [![](https://img.shields.io/pub/v/super_tree)](https://pub.dev/packages/super_tree) 
 
-<img src="assets/screenshots/demo_tree.png" alt="Demo tree preview" width="240" align="right" />
+<a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/demo_tree.png">
+  <img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/demo_tree.png" alt="Demo tree preview" width="240" align="right" />
+</a>
 
 A high-performance, fully customizable, and platform-agnostic hierarchical tree view for Flutter.
 
@@ -80,15 +82,15 @@ Current in-repo previews:
 
 <table>
   <tr>
-    <td align="center"><strong><a href="example/lib/examples/file_system_example.dart">File System Explorer + Search</a></strong><br><img src="assets/screenshots/file-system-search-macos.png" alt="File System Explorer with search active" width="360" /></td>
-    <td align="center"><strong><a href="example/lib/examples/checkbox_example.dart">Checkbox State</a></strong><br><img src="assets/screenshots/checkbox-state-macos.png" alt="Checkbox state example on macOS desktop layout" width="360" /></td>
+    <td align="center"><strong><a href="example/lib/examples/file_system_example.dart">File System Explorer + Search</a></strong><br><a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/file-system-search-macos.png"><img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/file-system-search-macos.png" alt="File System Explorer with search active" width="360" /></a></td>
+    <td align="center"><strong><a href="example/lib/examples/checkbox_example.dart">Checkbox State</a></strong><br><a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/checkbox-state-macos.png"><img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/checkbox-state-macos.png" alt="Checkbox state example on macOS desktop layout" width="360" /></a></td>
   </tr>
   <tr>
-    <td align="center"><strong><a href="example/lib/examples/complex_node_example.dart">Complex Node UI</a></strong><br><img src="assets/screenshots/complex-node-ui-macos.png" alt="Complex node UI example on macOS desktop layout" width="360" /></td>
-    <td align="center"><strong><a href="example/lib/examples/todo_list_example.dart">Todo Tree</a></strong><br><img src="assets/screenshots/todo-tree-macos.png" alt="Todo tree example on macOS desktop layout" width="360" /></td>
+    <td align="center"><strong><a href="example/lib/examples/complex_node_example.dart">Complex Node UI</a></strong><br><a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/complex-node-ui-macos.png"><img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/complex-node-ui-macos.png" alt="Complex node UI example on macOS desktop layout" width="360" /></a></td>
+    <td align="center"><strong><a href="example/lib/examples/todo_list_example.dart">Todo Tree</a></strong><br><a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/todo-tree-macos.png"><img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/todo-tree-macos.png" alt="Todo tree example on macOS desktop layout" width="360" /></a></td>
   </tr>
   <tr>
-    <td align="center"><strong><a href="example/lib/examples/simple_file_system_example.dart">Minimal File System</a></strong><br><img src="assets/screenshots/minimal-file-system-macos.png" alt="Minimal file system example on macOS desktop layout" width="360" /></td>
+    <td align="center"><strong><a href="example/lib/examples/simple_file_system_example.dart">Minimal File System</a></strong><br><a href="https://github.com/nombrekeff/super_tree/blob/main/assets/screenshots/minimal-file-system-macos.png"><img src="https://raw.githubusercontent.com/nombrekeff/super_tree/main/assets/screenshots/minimal-file-system-macos.png" alt="Minimal file system example on macOS desktop layout" width="360" /></a></td>
     <td align="center"></td>
   </tr>
 </table>
