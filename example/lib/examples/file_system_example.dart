@@ -425,7 +425,6 @@ class _FileSystemTreeScreenState extends State<FileSystemTreeScreen> {
                       controller: _controller,
                       style: _getTreeStyle(),
                       logic: TreeViewConfig(
-                        enableDragAndDrop: true,
                         expansionTrigger: ExpansionTrigger.tap,
                         selectionMode: SelectionMode.multiple,
                         namingStrategy: TreeNamingStrategy.contextMenu,

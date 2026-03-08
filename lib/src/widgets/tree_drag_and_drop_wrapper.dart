@@ -1,19 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:super_tree/src/configs/tree_view_style.dart';
+import 'package:super_tree/src/configs/tree_drag_and_drop_config.dart';
 import 'package:super_tree/src/models/super_tree_data.dart';
 import 'package:super_tree/src/models/tree_node.dart';
-
-/// The target drop position relative to a node's bounds.
-enum NodeDropPosition {
-  /// Drop implies inserting the node above the target.
-  above,
-
-  /// Drop implies nesting the node inside the target as a child.
-  inside,
-
-  /// Drop implies inserting the node below the target.
-  below,
-}
 
 /// Payload carried during drag-and-drop operations.
 ///
@@ -37,26 +25,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
   final TreeNode<T> node;
   final bool enabled;
   final Widget child;
-  final TreeViewStyle style;
-  final double edgeDropBandFraction;
-  final double edgeDropBandFractionForLeaf;
-  final double dropPositionHysteresisPx;
-  final bool enableAutoScroll;
-  final double autoScrollEdgeThresholdPx;
-  final double autoScrollMaxStepPx;
+  final TreeDragAndDropStyle dragStyle;
+  final TreeDragAndDropConfig<T> config;
   final List<TreeNode<T>> dragNodes;
-  final bool Function(
-    TreeNode<T> draggedNode,
-    TreeNode<T> targetNode,
-    NodeDropPosition position,
-  )?
-  canAcceptDrop;
-  final bool Function(
-    List<TreeNode<T>> draggedNodes,
-    TreeNode<T> targetNode,
-    NodeDropPosition position,
-  )?
-  canAcceptDropMany;
   final void Function(
     TreeDragPayload<T> payload,
     TreeNode<T> targetNode,
@@ -69,16 +40,9 @@ class TreeDragAndDropWrapper<T> extends StatefulWidget {
     required this.node,
     required this.enabled,
     required this.child,
-    required this.style,
-    this.edgeDropBandFraction = 0.05,
-    this.edgeDropBandFractionForLeaf = 0.2,
-    this.dropPositionHysteresisPx = 4.0,
-    this.enableAutoScroll = true,
-    this.autoScrollEdgeThresholdPx = 48.0,
-    this.autoScrollMaxStepPx = 20.0,
+    required this.dragStyle,
+    this.config = const TreeDragAndDropConfig(),
     List<TreeNode<T>>? dragNodes,
-    this.canAcceptDrop,
-    this.canAcceptDropMany,
     required this.onDrop,
   }) : dragNodes = List<TreeNode<T>>.unmodifiable(
          dragNodes == null || dragNodes.isEmpty ? <TreeNode<T>>[node] : dragNodes,
@@ -92,12 +56,12 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
   NodeDropPosition? _currentHoverPosition;
 
   void _maybeAutoScroll(Offset globalOffset) {
-    if (!widget.enableAutoScroll) {
+    if (!widget.config.enableAutoScroll) {
       return;
     }
 
-    final double edgeThreshold = widget.autoScrollEdgeThresholdPx;
-    final double maxStep = widget.autoScrollMaxStepPx;
+    final double edgeThreshold = widget.config.autoScrollEdgeThresholdPx;
+    final double maxStep = widget.config.autoScrollMaxStepPx;
     if (edgeThreshold <= 0 || maxStep <= 0) {
       return;
     }
@@ -155,10 +119,10 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
   double _edgeBandFractionForTarget() {
     final Object? targetData = widget.node.data;
     if (targetData is SuperTreeData && !targetData.canHaveChildren) {
-      return _clampEdgeFraction(widget.edgeDropBandFractionForLeaf);
+      return _clampEdgeFraction(widget.config.dropEdgeBandFractionForLeaf);
     }
 
-    return _clampEdgeFraction(widget.edgeDropBandFraction);
+    return _clampEdgeFraction(widget.config.dropEdgeBandFraction);
   }
 
   NodeDropPosition _calculateRawDropPosition(Offset globalOffset) {
@@ -169,7 +133,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
     final double edgeBand = _edgeBandFractionForTarget();
     final double topBoundary = height * edgeBand;
     final double bottomBoundary = height * (1 - edgeBand);
-    final double hysteresisPx = widget.dropPositionHysteresisPx.clamp(0.0, height / 2);
+    final double hysteresisPx = widget.config.dropPositionHysteresisPx.clamp(0.0, height / 2);
 
     if (_currentHoverPosition != null) {
       switch (_currentHoverPosition!) {
@@ -265,13 +229,13 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
 
     // Let optional logic-level guards override defaults.
     if (payload.isBatch) {
-      if (widget.canAcceptDropMany != null) {
-        return widget.canAcceptDropMany!(payload.nodes, widget.node, position);
+      if (widget.config.canAcceptDropMany != null) {
+        return widget.config.canAcceptDropMany!(payload.nodes, widget.node, position);
       }
 
-      if (widget.canAcceptDrop != null) {
+      if (widget.config.canAcceptDrop != null) {
         for (final TreeNode<T> draggedNode in payload.nodes) {
-          if (!widget.canAcceptDrop!(draggedNode, widget.node, position)) {
+          if (!widget.config.canAcceptDrop!(draggedNode, widget.node, position)) {
             return false;
           }
         }
@@ -280,8 +244,8 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
       return true;
     }
 
-    if (widget.canAcceptDrop != null) {
-      return widget.canAcceptDrop!(payload.primaryNode, widget.node, position);
+    if (widget.config.canAcceptDrop != null) {
+      return widget.config.canAcceptDrop!(payload.primaryNode, widget.node, position);
     }
 
     return true;
@@ -363,11 +327,11 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                   }
                 }
 
-                if (validatedPosition != null && widget.canAcceptDrop != null) {
+                if (validatedPosition != null && widget.config.canAcceptDrop != null) {
                   final NodeDropPosition currentPosition = validatedPosition;
                   if (payload.isBatch) {
-                    if (widget.canAcceptDropMany != null) {
-                      if (!widget.canAcceptDropMany!(
+                    if (widget.config.canAcceptDropMany != null) {
+                      if (!widget.config.canAcceptDropMany!(
                         payload.nodes,
                         widget.node,
                         currentPosition,
@@ -376,7 +340,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                       }
                     } else {
                       for (final TreeNode<T> draggedItem in payload.nodes) {
-                        if (!widget.canAcceptDrop!(
+                        if (!widget.config.canAcceptDrop!(
                           draggedItem,
                           widget.node,
                           currentPosition,
@@ -386,7 +350,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                         }
                       }
                     }
-                  } else if (!widget.canAcceptDrop!(
+                  } else if (!widget.config.canAcceptDrop!(
                     draggedNode,
                     widget.node,
                     currentPosition,
@@ -437,7 +401,7 @@ class _TreeDragAndDropWrapperState<T> extends State<TreeDragAndDropWrapper<T>> {
                           child: CustomPaint(
                             painter: _DropIndictorPainter(
                               position: validatedPosition,
-                              color: widget.style.dropIndicatorColor,
+                              color: widget.dragStyle.indicatorColor,
                             ),
                           ),
                         ),

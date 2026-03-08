@@ -206,12 +206,13 @@ void main() {
             prefixBuilder: (context, node) => const Icon(Icons.chevron_right),
             contentBuilder: (context, node, renameField) => Text(node.data),
             logic: TreeViewConfig(
-              enableDragAndDrop: true,
-              canAcceptDrop: (d, t, p) {
-                dragged = d;
-                target = t;
-                return true;
-              },
+              dragAndDrop: TreeDragAndDropConfig(
+                canAcceptDrop: (d, t, p) {
+                  dragged = d;
+                  target = t;
+                  return true;
+                },
+              ),
             ),
           ),
         ),
@@ -249,15 +250,16 @@ void main() {
             prefixBuilder: (context, node) => const SizedBox.shrink(),
             contentBuilder: (context, node, renameField) => Text(node.data),
             logic: TreeViewConfig<String>(
-              enableDragAndDrop: true,
-              dropEdgeBandFraction: 0.3,
-              dropPositionHysteresisPx: 0,
-              canAcceptDrop: (draggedNode, targetNode, position) {
-                if (targetNode.id == 'node_beta') {
-                  observedPosition = position;
-                }
-                return true;
-              },
+              dragAndDrop: TreeDragAndDropConfig<String>(
+                dropEdgeBandFraction: 0.3,
+                dropPositionHysteresisPx: 0,
+                canAcceptDrop: (draggedNode, targetNode, position) {
+                  if (targetNode.id == 'node_beta') {
+                    observedPosition = position;
+                  }
+                  return true;
+                },
+              ),
             ),
           ),
         ),
@@ -305,13 +307,14 @@ void main() {
                   return Text(node.data.name);
                 },
             logic: TreeViewConfig<FileSystemItem>(
-              enableDragAndDrop: true,
-              canAcceptDrop:
-                  (
-                    TreeNode<FileSystemItem> draggedNode,
-                    TreeNode<FileSystemItem> targetNode,
-                    NodeDropPosition position,
-                  ) => true,
+              dragAndDrop: TreeDragAndDropConfig<FileSystemItem>(
+                canAcceptDrop:
+                    (
+                      TreeNode<FileSystemItem> draggedNode,
+                      TreeNode<FileSystemItem> targetNode,
+                      NodeDropPosition position,
+                    ) => true,
+              ),
             ),
           ),
         ),
@@ -381,10 +384,11 @@ void main() {
                       return Text(node.data);
                     },
                 logic: const TreeViewConfig<String>(
-                  enableDragAndDrop: true,
-                  enableDragAutoScroll: true,
-                  dragAutoScrollEdgeThresholdPx: 48,
-                  dragAutoScrollMaxStepPx: 18,
+                  dragAndDrop: TreeDragAndDropConfig(
+                    enableAutoScroll: true,
+                    autoScrollEdgeThresholdPx: 48,
+                    autoScrollMaxStepPx: 18,
+                  ),
                 ),
               ),
             ),
@@ -443,10 +447,11 @@ void main() {
                         return Text(node.data);
                       },
                   logic: TreeViewConfig<String>(
-                    enableDragAndDrop: true,
-                    enableDragAutoScroll: true,
-                    dragAutoScrollEdgeThresholdPx: thresholdPx,
-                    dragAutoScrollMaxStepPx: 16,
+                    dragAndDrop: TreeDragAndDropConfig(
+                      enableAutoScroll: true,
+                      autoScrollEdgeThresholdPx: thresholdPx,
+                      autoScrollMaxStepPx: 16,
+                    ),
                   ),
                 ),
               ),
@@ -511,19 +516,20 @@ void main() {
                     return Text(node.data);
                   },
               logic: TreeViewConfig<String>(
-                enableDragAndDrop: true,
                 selectionMode: SelectionMode.multiple,
-                canAcceptDropMany:
-                    (
-                      List<TreeNode<String>> draggedNodes,
-                      TreeNode<String> targetNode,
-                      NodeDropPosition position,
-                    ) {
-                      observedDraggedIds = draggedNodes
-                          .map((TreeNode<String> node) => node.id)
-                          .toList(growable: false);
-                      return true;
-                    },
+                dragAndDrop: TreeDragAndDropConfig<String>(
+                  canAcceptDropMany:
+                      (
+                        List<TreeNode<String>> draggedNodes,
+                        TreeNode<String> targetNode,
+                        NodeDropPosition position,
+                      ) {
+                        observedDraggedIds = draggedNodes
+                            .map((TreeNode<String> node) => node.id)
+                            .toList(growable: false);
+                        return true;
+                      },
+                ),
               ),
             ),
           ),
@@ -569,25 +575,26 @@ void main() {
                     return Text(node.data);
                   },
               logic: TreeViewConfig<String>(
-                enableDragAndDrop: true,
                 selectionMode: SelectionMode.multiple,
-                canAcceptDrop: (
-                  TreeNode<String> draggedNode,
-                  TreeNode<String> targetNode,
-                  NodeDropPosition position,
-                ) {
-                  observedDraggedId = draggedNode.id;
-                  return true;
-                },
-                canAcceptDropMany:
-                    (
-                      List<TreeNode<String>> draggedNodes,
-                      TreeNode<String> targetNode,
-                      NodeDropPosition position,
-                    ) {
-                      batchCallbackTriggered = true;
-                      return true;
-                    },
+                dragAndDrop: TreeDragAndDropConfig<String>(
+                  canAcceptDrop: (
+                    TreeNode<String> draggedNode,
+                    TreeNode<String> targetNode,
+                    NodeDropPosition position,
+                  ) {
+                    observedDraggedId = draggedNode.id;
+                    return true;
+                  },
+                  canAcceptDropMany:
+                      (
+                        List<TreeNode<String>> draggedNodes,
+                        TreeNode<String> targetNode,
+                        NodeDropPosition position,
+                      ) {
+                        batchCallbackTriggered = true;
+                        return true;
+                      },
+                ),
               ),
             ),
           ),

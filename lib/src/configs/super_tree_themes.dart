@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:super_tree/src/configs/cupertino_file_system_icon_provider.dart';
 import 'package:super_tree/src/configs/file_system_icon_provider.dart';
 import 'package:super_tree/src/configs/file_system_tree_theme.dart';
+import 'package:super_tree/src/configs/tree_drag_and_drop_config.dart';
 import 'package:super_tree/src/configs/tree_view_style.dart';
 
 /// A reusable bundle of style and icon defaults for a SuperTree experience.
@@ -75,7 +76,7 @@ class SuperTreeThemes {
         idleColor: Colors.transparent,
         hoverColor: Color(0x1AFFFFFF),
         selectedColor: Color(0x33FFFFFF),
-        dropIndicatorColor: Colors.blue,
+        dragAndDrop: TreeDragAndDropStyle(indicatorColor: Colors.blue),
         padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       ),
       fileSystemTheme: FileSystemTreeTheme(
@@ -100,7 +101,7 @@ class SuperTreeThemes {
         idleColor: Colors.transparent,
         hoverColor: Color(0x1A000000),
         selectedColor: Color(0x330066CC),
-        dropIndicatorColor: Color(0xFF0066CC),
+        dragAndDrop: TreeDragAndDropStyle(indicatorColor: Color(0xFF0066CC)),
         padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
       ),
       fileSystemTheme: FileSystemTreeTheme(
@@ -124,7 +125,7 @@ class SuperTreeThemes {
         idleColor: Colors.transparent,
         hoverColor: Color(0x143B82F6),
         selectedColor: Color(0x293B82F6),
-        dropIndicatorColor: Color(0xFF3B82F6),
+        dragAndDrop: TreeDragAndDropStyle(indicatorColor: Color(0xFF3B82F6)),
         padding: EdgeInsets.symmetric(vertical: 2.0, horizontal: 6.0),
       ),
       fileSystemTheme: FileSystemTreeTheme(

@@ -1,4 +1,4 @@
-import 'package:super_tree/super_tree.dart';
+import 'package:super_tree/src/configs/tree_drag_and_drop_config.dart';
 
 /// An optional mixin that gives data items intelligent defaulting for the tree view.
 /// 
