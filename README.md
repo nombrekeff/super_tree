@@ -21,7 +21,7 @@ Add `super_tree` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  super_tree: ^0.3.0
+  super_tree: ^0.2.0
 ```
 
 ```sh
