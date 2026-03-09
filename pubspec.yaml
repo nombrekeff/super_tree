@@ -1,6 +1,6 @@
 name: super_tree
 description: "A high-performance, customizable hierarchical tree view for Flutter with desktop and mobile interactions."
-version: 0.2.1
+version: 0.3.0
 homepage: https://github.com/nombrekeff/super_tree
 repository: https://github.com/nombrekeff/super_tree
 issue_tracker: https://github.com/nombrekeff/super_tree/issues
