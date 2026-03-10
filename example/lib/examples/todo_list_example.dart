@@ -32,7 +32,9 @@ class _TodoListExampleState extends State<TodoListExample> {
               data: TodoItem('Write Documentation'),
               children: [
                 TreeNode(data: TodoItem('Update README')),
-                TreeNode(data: TodoItem('Add inline comments', isCompleted: true)),
+                TreeNode(
+                  data: TodoItem('Add inline comments', isCompleted: true),
+                ),
               ],
               isExpanded: true,
             ),
@@ -77,7 +79,9 @@ class _TodoListExampleState extends State<TodoListExample> {
       expansionBehavior: TreeSearchExpansionBehavior.expandAncestors,
       searchMatcher: _todoSearchFilter.asSearchMatcher(),
     );
-    _searchUi = ExampleTreeSearchLogic<TodoItem>(searchController: _searchController);
+    _searchUi = ExampleTreeSearchLogic<TodoItem>(
+      searchController: _searchController,
+    );
   }
 
   @override
@@ -110,6 +114,40 @@ class _TodoListExampleState extends State<TodoListExample> {
   void _refreshTodoOrder() {
     // Rebuild to apply current sort/grouping visual order after model changes.
     setState(() {});
+  }
+
+  void _deleteNodeFromContextMenu(TreeNode<TodoItem> node) {
+    ContextMenuOverlay.hide();
+    _controller.removeNode(node);
+  }
+
+  Widget _buildTodoContextMenuWidget(
+    BuildContext context,
+    TreeNode<TodoItem> node,
+  ) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        InkWell(
+          onTap: () => _deleteNodeFromContextMenu(node),
+          child: Container(
+            width: double.infinity,
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.symmetric(
+              vertical: 10.0,
+              horizontal: 16.0,
+            ),
+            child: Text(
+              l10n.todoDelete,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildCompactHeaderTitle(AppLocalizations l10n) {
@@ -180,7 +218,10 @@ class _TodoListExampleState extends State<TodoListExample> {
                       controller: _controller,
                       style: const TreeViewStyle(
                         indentAmount: 24.0,
-                        padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 16.0),
+                        padding: EdgeInsets.symmetric(
+                          vertical: 4.0,
+                          horizontal: 16.0,
+                        ),
                       ),
                       logic: const TreeViewConfig(
                         expansionTrigger: ExpansionTrigger.tap,
@@ -191,16 +232,7 @@ class _TodoListExampleState extends State<TodoListExample> {
                         // to force immediate visual re-sorting of the tree if desired.
                         setState(() {});
                       },
-                      contextMenuBuilder: (context, node) {
-                        return [
-                          ContextMenuItem(
-                            child: Text(l10n.todoDelete),
-                            onTap: () {
-                              _controller.removeNode(node);
-                            },
-                          ),
-                        ];
-                      },
+                      contextMenuWidgetBuilder: _buildTodoContextMenuWidget,
                     ),
                   ),
                   const VerticalDivider(width: 1),
@@ -224,20 +256,28 @@ class _TodoListExampleState extends State<TodoListExample> {
                           Icon(
                             Icons.checklist,
                             size: 64,
-                            color: Theme.of(context).colorScheme.primary.withAlpha(100),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primary.withAlpha(100),
                           ),
                           const SizedBox(height: 16),
                           Text(
                             l10n.todoDetailTitle,
-                            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             l10n.todoDetailSubtitle,
                             textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ),

@@ -39,11 +39,26 @@ class FileSystemSuperTree extends StatelessWidget {
   trailingBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  @Deprecated(
+    'Use contextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
   final List<ContextMenuItem> Function(BuildContext, TreeNode<FileSystemItem>)?
   contextMenuBuilder;
 
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  final Widget Function(BuildContext, TreeNode<FileSystemItem>)?
+  contextMenuWidgetBuilder;
+
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the background.
+  @Deprecated(
+    'Use rootContextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
   final List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder;
+
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the background.
+  final Widget Function(BuildContext)? rootContextMenuWidgetBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -60,7 +75,9 @@ class FileSystemSuperTree extends StatelessWidget {
     this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.contextMenuWidgetBuilder,
     this.rootContextMenuBuilder,
+    this.rootContextMenuWidgetBuilder,
     this.scrollController,
     this.physics,
   });
@@ -131,8 +148,12 @@ class FileSystemSuperTree extends StatelessWidget {
       prefixBuilder: prefixBuilder ?? _defaultPrefixBuilder,
       contentBuilder: contentBuilder ?? _defaultContentBuilder,
       trailingBuilder: trailingBuilder,
+      // ignore: deprecated_member_use_from_same_package
       contextMenuBuilder: contextMenuBuilder,
+      contextMenuWidgetBuilder: contextMenuWidgetBuilder,
+      // ignore: deprecated_member_use_from_same_package
       rootContextMenuBuilder: rootContextMenuBuilder,
+      rootContextMenuWidgetBuilder: rootContextMenuWidgetBuilder,
       scrollController: scrollController,
       physics: physics,
     );

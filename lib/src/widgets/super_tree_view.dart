@@ -109,12 +109,28 @@ class SuperTreeView<T> extends StatefulWidget {
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
   /// Returns a list of [ContextMenuItem]s to display in the overlay.
+  @Deprecated(
+    'Use contextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
   final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)?
   contextMenuBuilder;
 
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  /// Returns a custom widget to display in the context-menu overlay.
+  final Widget Function(BuildContext, TreeNode<T>)? contextMenuWidgetBuilder;
+
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the tree background.
   /// Returns a list of [ContextMenuItem]s to display in the overlay for root-level actions.
+  @Deprecated(
+    'Use rootContextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
   final List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder;
+
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) the tree background.
+  /// Returns a custom widget to display in the context-menu overlay.
+  final Widget Function(BuildContext)? rootContextMenuWidgetBuilder;
 
   /// Custom [ScrollController] for the internal ListView.
   final ScrollController? scrollController;
@@ -139,7 +155,9 @@ class SuperTreeView<T> extends StatefulWidget {
     this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.contextMenuWidgetBuilder,
     this.rootContextMenuBuilder,
+    this.rootContextMenuWidgetBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -168,7 +186,9 @@ class SuperTreeView<T> extends StatefulWidget {
     Widget Function(BuildContext, TreeNode<T>)? trailingBuilder,
     List<ContextMenuItem> Function(BuildContext, TreeNode<T>)?
     contextMenuBuilder,
+    Widget Function(BuildContext, TreeNode<T>)? contextMenuWidgetBuilder,
     List<ContextMenuItem> Function(BuildContext)? rootContextMenuBuilder,
+    Widget Function(BuildContext)? rootContextMenuWidgetBuilder,
     ScrollController? scrollController,
     ScrollPhysics? physics,
     TreeViewStyle style = const TreeViewStyle(),
@@ -188,7 +208,9 @@ class SuperTreeView<T> extends StatefulWidget {
       separatorBuilder: separatorBuilder,
       trailingBuilder: trailingBuilder,
       contextMenuBuilder: contextMenuBuilder,
+      contextMenuWidgetBuilder: contextMenuWidgetBuilder,
       rootContextMenuBuilder: rootContextMenuBuilder,
+      rootContextMenuWidgetBuilder: rootContextMenuWidgetBuilder,
       scrollController: scrollController,
       physics: physics,
       style: style,
@@ -211,7 +233,9 @@ class SuperTreeView<T> extends StatefulWidget {
     this.labelProvider,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.contextMenuWidgetBuilder,
     this.rootContextMenuBuilder,
+    this.rootContextMenuWidgetBuilder,
     this.scrollController,
     this.physics,
     this.style = const TreeViewStyle(),
@@ -562,7 +586,9 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
       labelProvider: widget.labelProvider,
       contentBuilder: widget.contentBuilder,
       trailingBuilder: widget.trailingBuilder,
+      // ignore: deprecated_member_use_from_same_package
       contextMenuBuilder: widget.contextMenuBuilder,
+      contextMenuWidgetBuilder: widget.contextMenuWidgetBuilder,
     );
   }
 
@@ -586,10 +612,26 @@ class _SuperTreeViewState<T> extends State<SuperTreeView<T>> {
   }
 
   void _showRootContextMenu(Offset position) {
-    if (widget.rootContextMenuBuilder == null) return;
+    if (widget.rootContextMenuWidgetBuilder != null) {
+      final Widget menu = widget.rootContextMenuWidgetBuilder!(context);
+      ContextMenuOverlay.showWidget(
+        context: context,
+        position: position,
+        menu: menu,
+      );
+      return;
+    }
 
+    // ignore: deprecated_member_use_from_same_package
+    if (widget.rootContextMenuBuilder == null) {
+      return;
+    }
+
+    // ignore: deprecated_member_use_from_same_package
     final items = widget.rootContextMenuBuilder!(context);
-    if (items.isEmpty) return;
+    if (items.isEmpty) {
+      return;
+    }
 
     ContextMenuOverlay.show(context: context, position: position, items: items);
   }

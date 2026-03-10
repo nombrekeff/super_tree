@@ -24,12 +24,24 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
 
   final Widget Function(BuildContext, TreeNode<T>) prefixBuilder;
   final TreeLabelProvider<T>? labelProvider;
-  final Widget Function(BuildContext context, TreeNode<T> node, Widget? renameField)
+  final Widget Function(
+    BuildContext context,
+    TreeNode<T> node,
+    Widget? renameField,
+  )
   contentBuilder;
   final Widget Function(BuildContext, TreeNode<T>)? trailingBuilder;
 
   /// Signature for generating right-click (desktop) or long-press (mobile) context menus.
-  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)? contextMenuBuilder;
+  @Deprecated(
+    'Use contextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
+  final List<ContextMenuItem> Function(BuildContext, TreeNode<T>)?
+  contextMenuBuilder;
+
+  /// Signature for generating right-click (desktop) or long-press (mobile) context menus.
+  final Widget Function(BuildContext, TreeNode<T>)? contextMenuWidgetBuilder;
 
   const SuperTreeNodeWidget({
     super.key,
@@ -45,6 +57,7 @@ class SuperTreeNodeWidget<T> extends StatefulWidget {
     required this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.contextMenuWidgetBuilder,
   }) : assert(expansionSlotSize > 0);
 
   @override
@@ -81,10 +94,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
       vsync: this,
       value: _isExpanded ? 1.0 : 0.0,
     );
-    _caretRotation = Tween<double>(
-      begin: 0.0,
-      end: 0.25,
-    ).animate(CurvedAnimation(parent: _expansionController, curve: Curves.easeInOut));
+    _caretRotation = Tween<double>(begin: 0.0, end: 0.25).animate(
+      CurvedAnimation(parent: _expansionController, curve: Curves.easeInOut),
+    );
 
     if (_prevRenamingNodeId == widget.node.id) {
       _initializeRenameText();
@@ -96,7 +108,8 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     super.didUpdateWidget(oldWidget);
     final currentRenamingId = widget.controller.renamingNodeId;
 
-    if (currentRenamingId == widget.node.id && _prevRenamingNodeId != widget.node.id) {
+    if (currentRenamingId == widget.node.id &&
+        _prevRenamingNodeId != widget.node.id) {
       _initializeRenameText();
     }
 
@@ -132,11 +145,12 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
         final TreeRenameSelectionStrategy<T> strategy =
             widget.logic.renameSelectionStrategy ??
             TreeRenameSelectionStrategies.selectAll<T>();
-        _renameController.selection = TreeRenameSelectionCore.resolveAndSanitize<T>(
-          node: widget.node,
-          currentText: _renameController.text,
-          strategy: strategy,
-        );
+        _renameController.selection =
+            TreeRenameSelectionCore.resolveAndSanitize<T>(
+              node: widget.node,
+              currentText: _renameController.text,
+              strategy: strategy,
+            );
         _renameFocusNode.requestFocus();
       }
     });
@@ -154,15 +168,16 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
 
   void _handleTap() {
     final DateTime now = DateTime.now();
-    final bool isDoubleTap = _lastTapTime != null && 
+    final bool isDoubleTap =
+        _lastTapTime != null &&
         now.difference(_lastTapTime!) < const Duration(milliseconds: 300);
-        
+
     if (isDoubleTap) {
       _lastTapTime = null;
       _handleDoubleTap();
       return;
     }
-    
+
     _lastTapTime = now;
 
     if (widget.logic.namingStrategy == TreeNamingStrategy.click) {
@@ -170,9 +185,11 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
     } else if (widget.logic.expansionTrigger == ExpansionTrigger.tap) {
       widget.controller.toggleNodeExpansion(widget.node);
     }
-    final bool isMultiSelect = widget.logic.selectionMode == SelectionMode.multiple;
+    final bool isMultiSelect =
+        widget.logic.selectionMode == SelectionMode.multiple;
     final bool isControlPressed =
-        HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed;
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isMetaPressed;
     final bool isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
 
     if (isMultiSelect && isShiftPressed) {
@@ -262,9 +279,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
   }
 
   Widget _buildRenameField(BuildContext context) {
-    final Color selectionColor = Theme.of(context).colorScheme.primary.withAlpha(
-      77,
-    );
+    final Color selectionColor = Theme.of(
+      context,
+    ).colorScheme.primary.withAlpha(77);
     final Color cursorColor = Theme.of(context).colorScheme.primary;
     final TextStyle? renameStyle =
         widget.style.labelStyle ??
@@ -293,12 +310,38 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
   }
 
   void _showContextMenu(Offset position) {
-    if (widget.contextMenuBuilder == null) return;
-
-    final items = widget.contextMenuBuilder!(context, widget.node);
-    if (items.isEmpty) return;
+    // ignore: deprecated_member_use_from_same_package
+    final bool hasLegacyBuilder = widget.contextMenuBuilder != null;
+    if (widget.contextMenuWidgetBuilder == null && !hasLegacyBuilder) {
+      return;
+    }
 
     widget.controller.setContextMenuNodeId(widget.node.id);
+
+    if (widget.contextMenuWidgetBuilder != null) {
+      final Widget menu = widget.contextMenuWidgetBuilder!(
+        context,
+        widget.node,
+      );
+      ContextMenuOverlay.showWidget(
+        context: context,
+        position: position,
+        menu: menu,
+        onDismissed: () {
+          if (mounted) {
+            widget.controller.setContextMenuNodeId(null);
+          }
+        },
+      );
+      return;
+    }
+
+    // ignore: deprecated_member_use_from_same_package
+    final items = widget.contextMenuBuilder!(context, widget.node);
+    if (items.isEmpty) {
+      widget.controller.setContextMenuNodeId(null);
+      return;
+    }
 
     ContextMenuOverlay.show(
       context: context,
@@ -378,7 +421,8 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
         canSelect: widget.logic.selectionMode != SelectionMode.none,
         isSelected: isSelected,
         isRenaming: widget.controller.renamingNodeId == widget.node.id,
-        isContextMenuOpen: widget.controller.contextMenuNodeId == widget.node.id,
+        isContextMenuOpen:
+            widget.controller.contextMenuNodeId == widget.node.id,
         isHovering: isHovering,
         isExpansionToggle: isExpansionToggle,
         isDragAndDropEnabled: widget.logic.enableDragAndDrop,
@@ -390,11 +434,13 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
   Widget build(BuildContext context) {
     final double paddingLeft = widget.style.indentAmount * widget.node.depth;
     final bool canExpand =
-        widget.node.hasChildren || widget.controller.canNodeLoadChildren(widget.node);
-    final bool isSelected = widget.controller.selectedNodeIds.contains(widget.node.id);
-    final TreeIntegrityIssue? integrityIssue = widget.controller.getIntegrityIssueForNode(
+        widget.node.hasChildren ||
+        widget.controller.canNodeLoadChildren(widget.node);
+    final bool isSelected = widget.controller.selectedNodeIds.contains(
       widget.node.id,
     );
+    final TreeIntegrityIssue? integrityIssue = widget.controller
+        .getIntegrityIssueForNode(widget.node.id);
     final List<TreeNode<T>> dragNodes = _resolveDragNodes(isSelected);
 
     return TreeDragAndDropWrapper<T>(
@@ -445,7 +491,9 @@ class _SuperTreeNodeWidgetState<T> extends State<SuperTreeNodeWidget<T>>
                   decoration: BoxDecoration(
                     color: isSelected
                         ? widget.style.selectedColor
-                        : (isHovering || widget.controller.contextMenuNodeId == widget.node.id)
+                        : (isHovering ||
+                              widget.controller.contextMenuNodeId ==
+                                  widget.node.id)
                         ? widget.style.hoverColor
                         : widget.style.idleColor,
                     border: Border.all(

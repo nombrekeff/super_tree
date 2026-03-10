@@ -34,8 +34,16 @@ class TodoListSuperTree extends StatefulWidget {
   final Widget Function(BuildContext, TreeNode<TodoItem>)? trailingBuilder;
 
   /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  @Deprecated(
+    'Use contextMenuWidgetBuilder instead. '
+    'This list-based API will be removed in a future release.',
+  )
   final List<ContextMenuItem> Function(BuildContext, TreeNode<TodoItem>)?
   contextMenuBuilder;
+
+  /// Optional function called when right-clicking (desktop) or long-pressing (mobile) a node.
+  final Widget Function(BuildContext, TreeNode<TodoItem>)?
+  contextMenuWidgetBuilder;
   final ScrollController? scrollController;
   final ScrollPhysics? physics;
 
@@ -51,6 +59,7 @@ class TodoListSuperTree extends StatefulWidget {
     this.contentBuilder,
     this.trailingBuilder,
     this.contextMenuBuilder,
+    this.contextMenuWidgetBuilder,
     this.scrollController,
     this.physics,
   });
@@ -207,7 +216,9 @@ class _TodoListSuperTreeState extends State<TodoListSuperTree> {
             renameField,
           ),
       trailingBuilder: widget.trailingBuilder,
+      // ignore: deprecated_member_use_from_same_package
       contextMenuBuilder: widget.contextMenuBuilder,
+      contextMenuWidgetBuilder: widget.contextMenuWidgetBuilder,
       scrollController: widget.scrollController,
       physics: widget.physics,
     );
